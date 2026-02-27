@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Bridge Master - TypeScript Version</title>
+    <style>
+        :root { --table-green: #2d6a4f; --card-w: 60px; --card-h: 90px; }
+        body { background-color: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; justify-content: center; }
+        
+        .scoreboard { background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 40px; font-size: 1.2rem; border: 2px solid #f1c40f; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .score-val { color: #f1c40f; font-weight: bold; font-size: 1.6rem; }
+
+        #table { 
+            position: relative; width: 1200px; height: 850px; 
+            background-color: var(--table-green); border: 15px solid #1b4332; border-radius: 60px;
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.6), 0 15px 40px rgba(0,0,0,0.8);
+        }
+
+        .hand { position: absolute; display: flex; transition: 0.3s; padding: 20px; box-sizing: border-box; }
+        
+        /* Position hands further apart to prevent overlap */
+        .north { top: 15px; left: 50%; transform: translateX(-50%); }
+        .south { bottom: 15px; left: 50%; transform: translateX(-50%); }
+        .west { left: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; height: 70%; justify-content: center; }
+        .east { right: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; height: 70%; justify-content: center; }
+
+        .card, .played-card {
+            width: var(--card-w); height: var(--card-h); background: white; color: black;
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; font-weight: bold; font-size: 20px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.4); border: 1px solid #ccc;
+            user-select: none;
+        }
+        
+        .red { color: #d00000 !important; }
+
+        .card { margin: -15px 3px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+        .west .card, .east .card { margin: 3px -15px; } /* 垂直排列時縮小間距 */
+        
+        .card.hidden { background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #bdc3c7; color: transparent !important; cursor: default; }
+        .card.hidden::after { content: "♠"; color: rgba(255,255,255,0.1); font-size: 40px; }
+
+        .card:not(.hidden):hover { transform: translateY(-25px); z-index: 100; border-color: #3498db; box-shadow: 0 0 15px #3498db; }
+        .west .card:not(.hidden):hover { transform: translateX(25px); }
+        .east .card:not(.hidden):hover { transform: translateX(-25px); }
+
+        .active-turn { outline: 5px solid #f1c40f; border-radius: 15px; background: rgba(241, 196, 15, 0.2); }
+
+        #play-area {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 200px; height: 200px;
+        }
+        .played-card { position: absolute; }
+        .p-n { top: 0; left: 75px; } 
+        .p-s { bottom: 0; left: 75px; } 
+        .p-w { left: 0; top: 62px; } 
+        .p-e { right: 0; top: 62px; }
+    </style>
+</head>
+<body>
+
+    <div class="scoreboard">
+        <div>NS Score: <span id="score-ns" class="score-val">0</span></div>
+        <div>EW Score: <span id="score-ew" class="score-val">0</span></div>
+        <div id="status" style="color: #58d68d">Click a card to start, South (You) leads</div>
+    </div>
+
+    <div id="table">
+        <div id="play-area"></div>
+        <div id="north" class="hand north"></div>
+        <div id="east" class="hand east"></div>
+        <div id="south" class="hand south"></div>
+        <div id="west" class="hand west"></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
