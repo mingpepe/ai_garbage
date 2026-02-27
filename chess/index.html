@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Chess Web App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Chinese Chess</h1>
+    <div id="status">Red Turn</div>
+    <div id="controls">
+        <button id="restart-btn" onclick="initBoard()">Restart Game</button>
+    </div>
+    <div id="game-container">
+        <div id="board">
+            <!-- 棋盤格線將由 CSS 和 JS 生成 -->
+        </div>
+    </div>
+    <div class="instructions">
+        <p>Select a piece to move. Click on a destination to move or capture. Strict rules apply.</p>
+    </div>
+    <script type="module" src="dist/script.js"></script>
+</body>
+</html>

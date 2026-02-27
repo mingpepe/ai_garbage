@@ -1,0 +1,177 @@
+body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+#status {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    padding: 5px 15px;
+    background: #e0e0e0;
+    border-radius: 5px;
+}
+
+#controls {
+    margin-bottom: 15px;
+}
+
+#restart-btn {
+    padding: 8px 20px;
+    font-size: 1rem;
+    background-color: #6b4423;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+#restart-btn:hover {
+    background-color: #8d5d34;
+}
+
+#game-container {
+    padding: 25px;
+    background-color: #e3bc8a; /* 棋盤木頭顏色 */
+    border: 3px solid #6b4423;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(9, 50px);
+    grid-template-rows: repeat(10, 50px);
+    /* 繪製棋盤線條 */
+    background-image: 
+        linear-gradient(#6b4423 2px, transparent 2px), 
+        linear-gradient(90deg, #6b4423 2px, transparent 2px);
+    background-size: 50px 50px;
+    background-position: 24px 24px;
+    width: 450px;
+    height: 500px;
+    position: relative;
+}
+
+/* 楚河漢界中間留白 */
+#board::before {
+    content: '楚 河 \00a0\00a0\00a0\00a0\00a0\00a0 漢 界';
+    position: absolute;
+    top: 200px; /* 4 * 50 */
+    left: 25px;
+    width: 400px;
+    height: 50px;
+    background-color: #e3bc8a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    font-weight: bold;
+    color: #6b4423;
+    z-index: 1;
+    /* 修正中間線段被覆蓋的問題，重新繪製邊界 */
+    border-left: 2px solid #6b4423;
+    border-right: 2px solid #6b4423;
+    box-sizing: border-box;
+}
+
+/* 九宮格斜線 (簡單實作) */
+.palace-line {
+    position: absolute;
+    width: 141px; /* 100 * sqrt(2) */
+    height: 2px;
+    background-color: #6b4423;
+    z-index: 2;
+}
+.palace-line.top-left { top: 74px; left: 154px; transform: rotate(45deg); }
+.palace-line.top-right { top: 74px; left: 154px; transform: rotate(-45deg); }
+.palace-line.bottom-left { top: 424px; left: 154px; transform: rotate(45deg); }
+.palace-line.bottom-right { top: 424px; left: 154px; transform: rotate(-45deg); }
+
+
+.cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 10;
+}
+
+.piece {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background-color: #fcebc4;
+    border: 2px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 26px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.4);
+    user-select: none;
+    transition: all 0.3s ease-in-out; /* 加入平滑動畫 */
+    position: relative;
+}
+
+.piece:active {
+    transform: scale(0.95);
+}
+
+.piece.red {
+    color: #d32f2f;
+    border-color: #d32f2f;
+}
+
+.piece.black {
+    color: #1a1a1a;
+    border-color: #1a1a1a;
+}
+
+.piece.selected {
+    box-shadow: 0 0 0 3px #1976d2, 0 0 10px #1976d2;
+    transform: translateY(-5px); /* 選中時稍微浮起 */
+    z-index: 100;
+}
+
+/* 最後一次移動的標記 */
+.cell.last-move-from::after,
+.cell.last-move-to::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #1976d2;
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.cell.last-move-from::after {
+    border-radius: 50%;
+    background: rgba(25, 118, 210, 0.1);
+}
+
+.cell.last-move-to::after {
+    width: 46px;
+    height: 46px;
+    border-color: #ff9800;
+}
+
+.instructions {
+    margin-top: 20px;
+    color: #555;
+    font-size: 0.9rem;
+}
