@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tower Defense Game</title>
+    <link rel="stylesheet" href="/src/style.css">
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-container">
+        <canvas id="game-canvas" width="800" height="600"></canvas>
+        
+        <div id="side-panel">
+          <div id="ui-header">
+            <h1>Tower Defense</h1>
+            <div id="stats">
+              <div class="stat-item">Money: <span id="money" class="highlight">$150</span></div>
+              <div class="stat-item">Lives: <span id="lives" class="highlight">10</span></div>
+              <div class="stat-item">Wave: <span id="wave" class="highlight">1</span></div>
+            </div>
+          </div>
+
+          <div id="tower-selection">
+            <h3>Deploy Defenses</h3>
+            <div class="tower-options">
+              <div class="tower-btn-wrapper">
+                <button class="tower-opt active" data-type="basic">
+                  <strong>Basic</strong><br>$50
+                </button>
+                <div class="tower-info">Dmg: 30 | Rng: 120</div>
+              </div>
+              <div class="tower-btn-wrapper">
+                <button class="tower-opt" data-type="sniper">
+                  <strong>Sniper</strong><br>$120
+                </button>
+                <div class="tower-info">Dmg: 120 | Rng: 300</div>
+              </div>
+              <div class="tower-btn-wrapper">
+                <button class="tower-opt" data-type="cannon">
+                  <strong>Heavy</strong><br>$200
+                </button>
+                <div class="tower-info">Dmg: 80 | Rng: 160</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="controls">
+            <button id="btn-toggle-sound" style="margin-bottom: 10px; background: #444;">SOUND: OFF</button>
+            <div class="volume-container" style="margin-bottom: 15px;">
+              <label for="volume-slider">Volume</label>
+              <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.7">
+            </div>
+            <button id="btn-next-wave">START NEXT WAVE</button>
+            <div class="auto-wave-container">
+              <input type="checkbox" id="auto-wave-toggle">
+              <label for="auto-wave-toggle">Auto-Start Next Wave</label>
+            </div>
+          </div>
+
+          <div id="legend">
+            <h4>Intelligence</h4>
+            <ul>
+              <li><span class="dot" style="background:#4ade80"></span> Normal</li>
+              <li><span class="dot" style="background:#3b82f6"></span> Fast Scout</li>
+              <li><span class="dot" style="background:#fbbf24"></span> Armored Tank</li>
+              <li><span class="dot" style="background:#f87171"></span> Boss Unit</li>
+            </ul>
+            <p class="hint">Click green area to build. Range is shown on hover.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
