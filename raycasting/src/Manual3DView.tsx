@@ -35,7 +35,6 @@ const Manual3DView: React.FC<Manual3DViewProps> = ({ playerRef }) => {
       ctx.fillStyle = '#050505';
       ctx.fillRect(0, 0, w, h);
 
-      const angle = Math.atan2(p.dirY, p.dirX);
       const vertices: Point3D[] = [
         {x: -0.5, y: -0.5, z: -0.5}, {x: 0.5, y: -0.5, z: -0.5},
         {x: 0.5, y: 0.5, z: -0.5}, {x: -0.5, y: 0.5, z: -0.5},
@@ -54,16 +53,24 @@ const Manual3DView: React.FC<Manual3DViewProps> = ({ playerRef }) => {
           let isPointInFront = false;
 
           vertices.forEach(v => {
-            const tx = (my + v.x) - p.y;
-            const ty = v.y;
-            const tz = (mx + v.z) - p.x;
-            const rx = tx * Math.cos(-angle - Math.PI/2) - tz * Math.sin(-angle - Math.PI/2);
-            const rz = tx * Math.sin(-angle - Math.PI/2) + tz * Math.cos(-angle - Math.PI/2);
+            const tx = (my + v.x) - p.y; // Column offset
+            const ty = v.y;              // Height offset
+            const tz = (mx + v.z) - p.x; // Row offset
+
+            // Correct projection: 
+            // rz (depth) is the projection onto the player's direction vector (dirY, dirX)
+            // rx (horizontal) is the projection onto the right vector (-dirX, dirY)
+            const rz = tx * p.dirY + tz * p.dirX;
+            const rx = tx * (-p.dirX) + tz * p.dirY;
+
             if (rz > 0.1) {
               isPointInFront = true;
               const scale = 400 / rz;
-              projectedPoints.push({x: rx * scale + w / 2, y: ty * scale + h / 2});
-            } else { projectedPoints.push({x: -999, y: -999}); }
+              // In canvas, Y increases downwards, so we negate ty if v.y=0.5 is the top
+              projectedPoints.push({x: rx * scale + w / 2, y: -ty * scale + h / 2});
+            } else { 
+              projectedPoints.push({x: -999, y: -999}); 
+            }
           });
 
           if (isPointInFront) {
