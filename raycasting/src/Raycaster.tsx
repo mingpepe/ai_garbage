@@ -88,9 +88,19 @@ const Raycaster: React.FC<RaycasterProps> = ({ playerRef }) => {
       ctx2D.fillStyle = '#ff3333';
       ctx2D.beginPath(); ctx2D.arc(p.y * blockSize, p.x * blockSize, 6, 0, Math.PI * 2); ctx2D.fill();
       ctx2D.strokeStyle = '#ff3333';
+      ctx2D.lineWidth = 2;
       ctx2D.beginPath(); ctx2D.moveTo(p.y * blockSize, p.x * blockSize);
-      ctx2D.lineTo((p.y + p.dirY * 1.0) * blockSize, (p.x + p.dirX * 1.0) * blockSize);
+      ctx2D.lineTo((p.y + p.dirY * 0.8) * blockSize, (p.x + p.dirX * 0.8) * blockSize);
       ctx2D.stroke();
+
+      // Camera Plane (planeX/Y)
+      ctx2D.strokeStyle = '#00ffff';
+      ctx2D.lineWidth = 2;
+      ctx2D.beginPath();
+      ctx2D.moveTo((p.y + p.dirY - p.planeY) * blockSize, (p.x + p.dirX - p.planeX) * blockSize);
+      ctx2D.lineTo((p.y + p.dirY + p.planeY) * blockSize, (p.x + p.dirX + p.planeX) * blockSize);
+      ctx2D.stroke();
+      ctx2D.lineWidth = 1;
 
       // --- VIEW 2: 2.5D PROJECTION (Raycasting) ---
       ctx3D.fillStyle = '#111';
