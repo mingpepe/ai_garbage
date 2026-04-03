@@ -3,22 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seasons Explorer for Kids</title>
+    <title>Solar System & Seasons Explorer</title>
     <link rel="stylesheet" href="./style.css">
 </head>
 <body>
     <div id="app">
-        <canvas id="canvas"></canvas>
-        <div class="controls">
-            <!-- Slider to move the Earth around the Sun -->
-            <input type="range" id="time-slider" min="0" max="360" value="0">
+        <!-- Main Navigation Menu -->
+        <nav id="main-menu">
+            <button id="btn-2d" class="active">🌸 2D Seasons</button>
+            <button id="btn-3d">🪐 3D Solar System</button>
+        </nav>
+
+        <!-- Container for 2D Seasons (Original) -->
+        <div id="view-2d" class="view">
+            <canvas id="canvas-2d"></canvas>
+            <div class="controls">
+                <input type="range" id="time-slider" min="0" max="360" value="0">
+            </div>
+            <div id="season-icons">
+                 <span id="spring" class="icon hidden">🌸</span>
+                 <span id="summer" class="icon hidden">☀️</span>
+                 <span id="autumn" class="icon hidden">🍁</span>
+                 <span id="winter" class="icon hidden">❄️</span>
+            </div>
         </div>
-        <!-- Seasonal icons display area -->
-        <div id="season-icons">
-             <span id="spring" class="icon hidden">🌸</span>
-             <span id="summer" class="icon hidden">☀️</span>
-             <span id="autumn" class="icon hidden">🍁</span>
-             <span id="winter" class="icon hidden">❄️</span>
+
+        <!-- Container for 3D Solar System -->
+        <div id="view-3d" class="view hidden">
+            <div id="canvas-3d-container"></div>
+            <div class="controls controls-3d">
+                <label for="speed-slider">🚀 Speed:</label>
+                <input type="range" id="speed-slider" min="0" max="100" value="10">
+            </div>
         </div>
     </div>
     <script type="module" src="./src/main.ts"></script>
