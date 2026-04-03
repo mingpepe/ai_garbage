@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seasons Explorer for Kids</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="app">
+        <canvas id="canvas"></canvas>
+        <div class="controls">
+            <!-- Slider to move the Earth around the Sun -->
+            <input type="range" id="time-slider" min="0" max="360" value="0">
+        </div>
+        <!-- Seasonal icons display area -->
+        <div id="season-icons">
+             <span id="spring" class="icon hidden">🌸</span>
+             <span id="summer" class="icon hidden">☀️</span>
+             <span id="autumn" class="icon hidden">🍁</span>
+             <span id="winter" class="icon hidden">❄️</span>
+        </div>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
