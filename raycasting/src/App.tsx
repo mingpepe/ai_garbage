@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import { useRef } from 'react';
 import Raycaster from './Raycaster';
 import True3DView from './True3DView';
 import Manual3DView from './Manual3DView';

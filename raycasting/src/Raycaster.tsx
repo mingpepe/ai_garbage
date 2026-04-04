@@ -6,6 +6,66 @@ const WALL_COLORS: Record<number, string> = {
   1: '210, 80%', 2: '0, 80%', 3: '50, 90%', 4: '120, 70%',
 };
 
+const TEXTURE_SIZE = 64;
+
+/**
+ * Generates procedural textures for the walls
+ */
+function generateTextures() {
+  const textures: Record<number, HTMLCanvasElement> = {};
+  
+  for (let i = 1; i <= 4; i++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = TEXTURE_SIZE;
+    canvas.height = TEXTURE_SIZE;
+    const ctx = canvas.getContext('2d')!;
+    
+    // Base color
+    ctx.fillStyle = i === 1 ? '#2980b9' : i === 2 ? '#c0392b' : i === 3 ? '#f1c40f' : '#27ae60';
+    ctx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+    
+    // Add some noise/texture
+    for (let x = 0; x < TEXTURE_SIZE; x++) {
+      for (let y = 0; y < TEXTURE_SIZE; y++) {
+        const rand = Math.random() * 40 - 20;
+        ctx.fillStyle = `rgba(${rand > 0 ? '255,255,255' : '0,0,0'}, ${Math.abs(rand) / 255})`;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    }
+
+    // Add brick patterns
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 2;
+    if (i === 2) { // Bricks
+      for (let y = 0; y < TEXTURE_SIZE; y += 16) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(TEXTURE_SIZE, y); ctx.stroke();
+        const offset = (y / 16) % 2 === 0 ? 0 : 16;
+        for (let x = 0; x < TEXTURE_SIZE; x += 32) {
+          ctx.beginPath(); ctx.moveTo(x + offset, y); ctx.lineTo(x + offset, y + 16); ctx.stroke();
+        }
+      }
+    } else if (i === 1) { // Large stones
+      for (let y = 0; y < TEXTURE_SIZE; y += 32) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(TEXTURE_SIZE, y); ctx.stroke();
+        const offset = (y / 32) % 2 === 0 ? 0 : 32;
+        for (let x = 0; x < TEXTURE_SIZE; x += 64) {
+          ctx.beginPath(); ctx.moveTo(x + offset, y); ctx.lineTo(x + offset, y + 32); ctx.stroke();
+        }
+      }
+    } else if (i === 3) { // Grid/Tech
+      ctx.strokeRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+      ctx.strokeRect(8, 8, TEXTURE_SIZE - 16, TEXTURE_SIZE - 16);
+    } else if (i === 4) { // Wood planks
+      for (let x = 0; x < TEXTURE_SIZE; x += 16) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, TEXTURE_SIZE); ctx.stroke();
+      }
+    }
+    
+    textures[i] = canvas;
+  }
+  return textures;
+}
+
 interface RaycasterProps {
   playerRef: React.MutableRefObject<Player>;
 }
@@ -13,9 +73,14 @@ interface RaycasterProps {
 const Raycaster: React.FC<RaycasterProps> = ({ playerRef }) => {
   const canvas2DRef = useRef<HTMLCanvasElement>(null);
   const canvas3DRef = useRef<HTMLCanvasElement>(null);
+  const texturesRef = useRef<Record<number, HTMLCanvasElement> | null>(null);
   const [showDebug, setShowDebug] = useState(true);
   const [debugData, setDebugData] = useState<any>({});
   const [keys, setKeys] = useState<{ [key: string]: boolean }>({});
+
+  useEffect(() => {
+    texturesRef.current = generateTextures();
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -48,7 +113,7 @@ const Raycaster: React.FC<RaycasterProps> = ({ playerRef }) => {
 
       const canvas2D = canvas2DRef.current;
       const canvas3D = canvas3DRef.current;
-      if (!canvas2D || !canvas3D) return;
+      if (!canvas2D || !canvas3D || !texturesRef.current) return;
 
       const ctx2D = canvas2D.getContext('2d')!;
       const ctx3D = canvas3D.getContext('2d')!;
@@ -103,18 +168,37 @@ const Raycaster: React.FC<RaycasterProps> = ({ playerRef }) => {
       ctx2D.lineWidth = 1;
 
       // --- VIEW 2: 2.5D PROJECTION (Raycasting) ---
-      ctx3D.fillStyle = '#111';
+      ctx3D.fillStyle = '#151515'; // Floor/Ceiling base
       ctx3D.fillRect(0, 0, 400, 400);
+      
+      // Draw Ceiling
+      ctx3D.fillStyle = '#252525';
+      ctx3D.fillRect(0, 200, 400, 200);
+
       rays.forEach((ray, x) => {
         const wallH = ray.lineHeight;
         const start = Math.max(0, -wallH / 2 + 200);
-        const end = Math.min(400, wallH / 2 + 200);
-        let b = Math.min(50, (1.2 / ray.perpWallDist) * 80);
-        if (ray.side === 1) b *= 0.7;
-        ctx3D.strokeStyle = `hsl(${WALL_COLORS[ray.wallType]}, ${b}%)`;
-        ctx3D.beginPath(); ctx3D.moveTo(x, start); ctx3D.lineTo(x, end); ctx3D.stroke();
-        ctx3D.strokeStyle = '#151515'; ctx3D.beginPath(); ctx3D.moveTo(x, 0); ctx3D.lineTo(x, start); ctx3D.stroke();
-        ctx3D.strokeStyle = '#252525'; ctx3D.beginPath(); ctx3D.moveTo(x, end); ctx3D.lineTo(x, 400); ctx3D.stroke();
+        
+        const texture = texturesRef.current![ray.wallType] || texturesRef.current![1];
+        
+        // Calculate texture X coordinate
+        let texX = Math.floor(ray.wallX * TEXTURE_SIZE);
+        if ((ray.side === 0 && ray.rayDirX > 0) || (ray.side === 1 && ray.rayDirY < 0)) {
+          texX = TEXTURE_SIZE - texX - 1;
+        }
+
+        // Draw vertical slice of texture
+        ctx3D.drawImage(
+          texture,
+          texX, 0, 1, TEXTURE_SIZE, // Source (slice)
+          x, start, 1, wallH        // Destination
+        );
+
+        // Apply shading (darken based on distance and side)
+        let opacity = Math.min(0.8, ray.perpWallDist / 8);
+        if (ray.side === 1) opacity += 0.15;
+        ctx3D.fillStyle = `rgba(0, 0, 0, ${opacity})`;
+        ctx3D.fillRect(x, start, 1, wallH);
       });
 
       // Update full Debug Data

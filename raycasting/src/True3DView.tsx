@@ -11,6 +11,52 @@ const WALL_COLORS: Record<number, number> = {
   1: 0x2980b9, 2: 0xc0392b, 3: 0xf1c40f, 4: 0x27ae60,
 };
 
+const TEXTURE_SIZE = 64;
+
+function generateWallTexture(type: number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = TEXTURE_SIZE;
+  canvas.height = TEXTURE_SIZE;
+  const ctx = canvas.getContext('2d')!;
+  
+  // Base color
+  const color = WALL_COLORS[type] || 0x888888;
+  ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+  ctx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+  
+  // Add noise
+  for (let x = 0; x < TEXTURE_SIZE; x++) {
+    for (let y = 0; y < TEXTURE_SIZE; y++) {
+      const rand = Math.random() * 40 - 20;
+      ctx.fillStyle = `rgba(${rand > 0 ? '255,255,255' : '0,0,0'}, ${Math.abs(rand) / 255})`;
+      ctx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  // Patterns
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 2;
+  if (type === 2) { // Bricks
+    for (let y = 0; y < TEXTURE_SIZE; y += 16) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(TEXTURE_SIZE, y); ctx.stroke();
+      const offset = (y / 16) % 2 === 0 ? 0 : 16;
+      for (let x = 0; x < TEXTURE_SIZE; x += 32) {
+        ctx.beginPath(); ctx.moveTo(x + offset, y); ctx.lineTo(x + offset, y + 16); ctx.stroke();
+      }
+    }
+  } else if (type === 1) { // Stones
+    for (let y = 0; y < TEXTURE_SIZE; y += 32) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(TEXTURE_SIZE, y); ctx.stroke();
+      const offset = (y / 32) % 2 === 0 ? 0 : 32;
+      for (let x = 0; x < TEXTURE_SIZE; x += 64) {
+        ctx.beginPath(); ctx.moveTo(x + offset, y); ctx.lineTo(x + offset, y + 32); ctx.stroke();
+      }
+    }
+  }
+  
+  return new THREE.CanvasTexture(canvas);
+}
+
 function isWebGLAvailable() {
   try {
     const canvas = document.createElement('canvas');
@@ -45,17 +91,17 @@ const True3DView: React.FC<True3DViewProps> = ({ playerRef }) => {
 
       const camera = new THREE.PerspectiveCamera(66, 1, 0.1, 100);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
       scene.add(ambientLight);
 
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      dirLight.position.set(5, 10, 5);
-      scene.add(dirLight);
-
       const wallGeometry = new THREE.BoxGeometry(1, 1, 1);
+      const textures: Record<number, THREE.CanvasTexture> = {};
       const materials: Record<number, THREE.MeshLambertMaterial> = {};
+      
       for (const key in WALL_COLORS) {
-        materials[key] = new THREE.MeshLambertMaterial({ color: WALL_COLORS[key] });
+        const type = parseInt(key);
+        textures[type] = generateWallTexture(type);
+        materials[type] = new THREE.MeshLambertMaterial({ map: textures[type] });
       }
 
       for (let x = 0; x < MAP_SIZE; x++) {

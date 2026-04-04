@@ -32,6 +32,7 @@ export interface RayHit {
   side: number; // 0 for NS wall, 1 for EW wall
   lineHeight: number;
   wallType: number; // Wall color/texture identifier
+  wallX: number;    // Exact hit position on the wall (0 to 1)
 }
 
 /**
@@ -104,7 +105,13 @@ export function castRay(x: number, width: number, player: Player, canvasHeight: 
   // Calculate height of line to draw on screen
   const lineHeight = Math.floor(canvasHeight / perpWallDist);
 
-  return { rayDirX, rayDirY, perpWallDist, mapX, mapY, side, lineHeight, wallType };
+  // Calculate wallX (where exactly the wall was hit)
+  let wallX;
+  if (side === 0) wallX = player.y + perpWallDist * rayDirY;
+  else wallX = player.x + perpWallDist * rayDirX;
+  wallX -= Math.floor(wallX);
+
+  return { rayDirX, rayDirY, perpWallDist, mapX, mapY, side, lineHeight, wallType, wallX };
 }
 
 /**
