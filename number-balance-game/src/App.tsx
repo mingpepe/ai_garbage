@@ -9,7 +9,6 @@ interface WeightItem {
   color: string;
   locked?: boolean;
   isMystery?: boolean;
-  isBalloon?: boolean;
 }
 
 const COLORS = [
@@ -24,7 +23,7 @@ const Weight: React.FC<{
   isStatic?: boolean;
   isSolved?: boolean;
 }> = ({ item, onDragEnd, onClick, isStatic, isSolved }) => {
-  const { value, color, locked, isMystery, isBalloon } = item;
+  const { value, color, locked, isMystery } = item;
   const size = 42 + (Math.abs(value) * 5);
   const showMystery = isMystery && !isSolved;
   
@@ -39,7 +38,7 @@ const Weight: React.FC<{
       whileDrag={{ zIndex: 1000, scale: 1.1 }}
       animate={isMystery && isSolved ? { rotateY: 360 } : { rotateY: 0 }}
       transition={{ duration: 0.8, type: 'spring' }}
-      className={`weight ${locked ? 'locked' : ''} ${showMystery ? 'mystery' : ''} ${isBalloon ? 'balloon' : ''}`}
+      className={`weight ${locked ? 'locked' : ''} ${showMystery ? 'mystery' : ''}`}
       style={{
         width: size,
         height: size,
@@ -48,13 +47,12 @@ const Weight: React.FC<{
         cursor: locked ? 'default' : (isStatic ? 'pointer' : 'grab')
       }}
     >
-      {showMystery ? '?' : (isBalloon ? `-${Math.abs(value)}` : value)}
-      {isBalloon && <div style={{ position: 'absolute', bottom: -15, width: 2, height: 15, background: '#fff' }} />}
+      {showMystery ? '?' : value}
     </motion.div>
   );
 };
 
-type GameMode = 'free' | 'challenge' | 'extreme';
+type GameMode = 'free' | 'challenge';
 
 export default function App() {
   const [mode, setMode] = useState<GameMode>('free');
@@ -81,7 +79,6 @@ export default function App() {
 
   const diff = rightSum - leftSum;
   const angle = Math.max(-30, Math.min(30, diff * 1.5));
-  const isOverloaded = Math.abs(diff) > 10 && mode === 'extreme';
 
   useEffect(() => {
     const balanced = leftSum === rightSum && leftSum !== 0;
@@ -107,35 +104,20 @@ export default function App() {
     let newTarget: number | null = null;
     let newIdeal = 0;
 
-    if (currentMode === 'extreme') {
-      newTarget = Math.floor(Math.random() * 4) + 5; // Target 5-8
-      newLeft = [{ id: 'ex-l', value: newTarget, color: COLORS[newTarget-1], locked: true, isMystery: true }];
-      
-      const balloonVal = Math.floor(Math.random() * 3) + 2; // Balloon 2-4
-      const bigBlockVal = newTarget + balloonVal;
-      
-      const inv: WeightItem[] = [
-        { id: 'b1', value: bigBlockVal, color: COLORS[Math.min(9, bigBlockVal-1)] },
-        { id: 'bal1', value: -balloonVal, color: '#e91e63', isBalloon: true }
-      ];
-      newInventory = inv.sort(() => Math.random() - 0.5);
-      newIdeal = 2;
+    const type = ['mystery', 'limited', 'multi'][(targetLevel - 1) % 3];
+    if (type === 'mystery') {
+      const val = Math.floor(Math.random() * 7) + 3;
+      newLeft = [{ id: 'm1', value: val, color: COLORS[val-1], locked: true, isMystery: true }];
+      newIdeal = 1;
+    } else if (type === 'limited') {
+      const val = Math.floor(Math.random() * 6) + 4;
+      newLeft = [{ id: 'l1', value: val, color: COLORS[val-1], locked: true }];
+      newInventory = [{ id: 'inv-1', value: val, color: COLORS[val-1] }];
+      newIdeal = 1;
     } else {
-      const type = ['mystery', 'limited', 'multi'][(targetLevel - 1) % 3];
-      if (type === 'mystery') {
-        const val = Math.floor(Math.random() * 7) + 3;
-        newLeft = [{ id: 'm1', value: val, color: COLORS[val-1], locked: true, isMystery: true }];
-        newIdeal = 1;
-      } else if (type === 'limited') {
-        const val = Math.floor(Math.random() * 6) + 4;
-        newLeft = [{ id: 'l1', value: val, color: COLORS[val-1], locked: true }];
-        newInventory = [{ id: 'inv-1', value: val, color: COLORS[val-1] }];
-        newIdeal = 1;
-      } else {
-        newLeft = [{ id: 'ml1', value: 5, color: COLORS[4], locked: true }, { id: 'ml2', value: 3, color: COLORS[2], locked: true }];
-        newRight = [{ id: 'mr1', value: 4, color: COLORS[3], locked: true }];
-        newIdeal = 1;
-      }
+      newLeft = [{ id: 'ml1', value: 5, color: COLORS[4], locked: true }, { id: 'ml2', value: 3, color: COLORS[2], locked: true }];
+      newRight = [{ id: 'mr1', value: 4, color: COLORS[3], locked: true }];
+      newIdeal = 1;
     }
 
     setLeftWeights(newLeft);
@@ -153,7 +135,7 @@ export default function App() {
     const { x, y } = info.point;
     let addedTo: 'left' | 'right' | null = null;
 
-    const checkTray = (ref: React.RefObject<HTMLDivElement>, setter: React.Dispatch<React.SetStateAction<WeightItem[]>>, side: 'left' | 'right') => {
+    const checkTray = (ref: React.RefObject<HTMLDivElement | null>, setter: React.Dispatch<React.SetStateAction<WeightItem[]>>, side: 'left' | 'right') => {
       if (ref.current) {
         const rect = ref.current.getBoundingClientRect();
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
@@ -186,7 +168,6 @@ export default function App() {
       <div className="mode-selector">
         <button className={`btn btn-secondary ${mode === 'free' ? 'btn-active' : ''}`} onClick={() => {setMode('free'); setInventory(null); setTargetSum(null); setLeftWeights([]); setRightWeights([]);}}>Free Play</button>
         <button className={`btn btn-primary ${mode === 'challenge' ? 'btn-active' : ''}`} onClick={() => startNewChallenge(1, 'challenge')}>Challenge</button>
-        <button className={`btn btn-extreme ${mode === 'extreme' ? 'btn-active' : ''}`} onClick={() => startNewChallenge(1, 'extreme')}>Extreme Mode</button>
       </div>
 
       <div className="spawner-area">
@@ -199,10 +180,10 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {(mode === 'challenge' || mode === 'extreme') && (
+      {mode === 'challenge' && (
         <div className="stats-panel">
           <span className="level-badge">LVL {level}</span>
-          <h2 style={{fontSize:'1.1rem', margin:'10px 0', color:'#e65100'}}>{mode === 'extreme' ? 'EXTREME: BALLOON MATH!' : 'MYSTERY CHALLENGE!'}</h2>
+          <h2 style={{fontSize:'1.1rem', margin:'10px 0', color:'#e65100'}}>MYSTERY CHALLENGE!</h2>
           {isSolved ? (
             <div>
               <div style={{fontSize:'1.8rem', margin:'5px 0'}}> {Array.from({length:3}).map((_,i)=><span key={i} style={{color:i<stars?'#ffd700':'#ccc'}}>⭐</span>)} </div>
@@ -221,26 +202,26 @@ export default function App() {
           <div className="beam">
             <div className="tray-container" style={{ left: -140 }}>
               <div className="string" />
-              <motion.div ref={leftTrayRef} className={`tray ${isSolved ? 'success-glow' : ''} ${isOverloaded && diff < 0 ? 'overload' : ''}`} animate={{ rotate: -angle }}>
+              <motion.div ref={leftTrayRef} className={`tray ${isSolved ? 'success-glow' : ''}`} animate={{ rotate: -angle }}>
                 <AnimatePresence>{leftWeights.map(w => (
                   <motion.div key={w.id} layout initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                     <Weight item={w} isStatic={true} isSolved={isSolved} onClick={() => removeWeight(w, 'left')} />
                   </motion.div>
                 ))}</AnimatePresence>
               </motion.div>
-              {(mode === 'challenge' || mode === 'extreme') && <div style={{fontWeight:'bold', color:'#5d4037', marginTop:5, fontSize:'1.2rem'}}>{leftHasMystery ? '?' : leftSum}</div>}
+              {mode === 'challenge' && <div style={{fontWeight:'bold', color:'#5d4037', marginTop:5, fontSize:'1.2rem'}}>{leftHasMystery ? '?' : leftSum}</div>}
             </div>
 
             <div className="tray-container" style={{ right: -140 }}>
               <div className="string" />
-              <motion.div ref={rightTrayRef} className={`tray ${isSolved ? 'success-glow' : ''} ${isOverloaded && diff > 0 ? 'overload' : ''}`} animate={{ rotate: -angle }}>
+              <motion.div ref={rightTrayRef} className={`tray ${isSolved ? 'success-glow' : ''}`} animate={{ rotate: -angle }}>
                 <AnimatePresence>{rightWeights.map(w => (
                   <motion.div key={w.id} layout initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
                     <Weight item={w} isStatic={true} isSolved={isSolved} onClick={() => removeWeight(w, 'right')} />
                   </motion.div>
                 ))}</AnimatePresence>
               </motion.div>
-              {(mode === 'challenge' || mode === 'extreme') && <div style={{fontWeight:'bold', color:'#5d4037', marginTop:5, fontSize:'1.2rem'}}>{rightHasMystery ? '?' : rightSum}</div>}
+              {mode === 'challenge' && <div style={{fontWeight:'bold', color:'#5d4037', marginTop:5, fontSize:'1.2rem'}}>{rightHasMystery ? '?' : rightSum}</div>}
             </div>
           </div>
         </motion.div>
