@@ -187,31 +187,39 @@ body {
 /* Dynamic Divider Logic */
 .grid-divider {
   position: absolute;
-  background: rgba(0,0,0,0.1);
+  background: #fff;
+  /* Multi-layered neon glow for maximum visibility without flickering */
+  box-shadow: 
+    0 0 5px #fff,
+    0 0 10px #00f3ff,
+    0 0 20px #00f3ff;
   z-index: 10;
   pointer-events: none;
+  opacity: 0.9;
 }
 
 .divider-horizontal {
-  top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%);
+  top: 0; bottom: 0; left: 50%; width: 8px; transform: translateX(-50%);
 }
 
 .divider-vertical {
-  left: 0; right: 0; top: 50%; height: 4px; transform: translateY(-50%);
+  left: 0; right: 0; top: 50%; height: 8px; transform: translateY(-50%);
 }
 
 .divider-diagonal-backslash {
-    top: 0; left: 0; width: 200%; height: 2px;
-    background: #ddd;
+    top: 0; left: 0; width: 150%; height: 8px;
+    background: #fff;
     transform: rotate(45deg);
     transform-origin: top left;
+    box-shadow: 0 0 15px #00f3ff;
 }
 
 .divider-diagonal-slash {
-    top: 0; right: 0; width: 200%; height: 2px;
-    background: #ddd;
+    top: 0; right: 0; width: 150%; height: 8px;
+    background: #fff;
     transform: rotate(-45deg);
     transform-origin: top right;
+    box-shadow: 0 0 15px #00f3ff;
 }
 
 .cell {
@@ -223,6 +231,11 @@ body {
 }
 
 .cell-template { cursor: default; }
+
+.tri-tl { clip-path: polygon(0 0, 100% 0, 0 100%); }
+.tri-tr { clip-path: polygon(0 0, 100% 0, 100% 100%); }
+.tri-bl { clip-path: polygon(0 0, 0 100%, 100% 100%); }
+.tri-br { clip-path: polygon(100% 0, 100% 100%, 0 100%); }
 
 .cell.hovered {
   box-shadow: inset 0 0 0 4px var(--info);

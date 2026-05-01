@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LEVELS } from './levels';
 import { type Level, type Difficulty, type SymmetryType } from './types';
-import { checkGridCompletion, getHintCell, isTemplateArea, getMirrorCell } from './utils/gameLogic';
+import { checkGridCompletion, getHintCell, isTemplateArea, getMirrorCell, getMirroredShape } from './utils/gameLogic';
 import confetti from 'canvas-confetti';
 import { Trophy, Award, Palette, Eraser, RotateCcw, Lightbulb, CheckCircle2, ChevronRight, Layout } from 'lucide-react';
 import './App.css';
@@ -39,9 +39,31 @@ const App: React.FC = () => {
   const [hoveredCell, setHoveredCell] = useState<{ r: number, c: number } | null>(null);
   const [animatingCell, setAnimCell] = useState<{ r: number, c: number, type: 'pulse' | 'jelly' | 'hint' } | null>(null);
 
+  const activePalette = useMemo(() => {
+    const usedIndices = new Set<number>();
+    currentLevel.pattern.forEach(row => {
+      row.forEach(cell => {
+        if (cell !== null) usedIndices.add(cell);
+      });
+    });
+    
+    // Sort and limit to 5
+    const sortedIndices = Array.from(usedIndices).sort((a, b) => a - b).slice(0, 5);
+    return sortedIndices.map(idx => ({
+      index: idx,
+      color: currentLevel.palette[idx]
+    }));
+  }, [currentLevel]);
+
   useEffect(() => {
     localStorage.setItem('mirror-pixel-art-v2', JSON.stringify({ completedLevels, totalScore }));
   }, [completedLevels, totalScore]);
+
+  useEffect(() => {
+    if (activePalette.length > 0 && (selectedColorIndex === null || !activePalette.some(p => p.index === selectedColorIndex))) {
+      setSelectedColorIndex(activePalette[0].index);
+    }
+  }, [activePalette, selectedColorIndex]);
 
   const changeLevel = (level: Level) => {
     setCurrentLevel(level);
@@ -49,7 +71,6 @@ const App: React.FC = () => {
     setHistory([]);
     setIsPerfect(false);
     setAnimCell(null);
-    setSelectedColorIndex(0);
     setHoveredCell(null);
   };
 
@@ -212,10 +233,20 @@ const App: React.FC = () => {
                 const isJelly = animatingCell?.r === r && animatingCell?.c === c && animatingCell.type === 'jelly';
                 const isHint = animatingCell?.r === r && animatingCell?.c === c && animatingCell.type === 'hint';
 
+                const getCellShapeClass = () => {
+                  if (!currentLevel.shapes) return '';
+                  const templateR = isTemplate ? r : mirror.r;
+                  const templateC = isTemplate ? c : mirror.c;
+                  const baseShape = currentLevel.shapes[templateR]?.[templateC] || 'square';
+                  if (isTemplate) return baseShape === 'square' ? '' : baseShape;
+                  const mirrored = getMirroredShape(baseShape, currentLevel.symmetryType);
+                  return mirrored === 'square' ? '' : mirrored;
+                };
+
                 return (
                     <div
                     key={`${r}-${c}`}
-                    className={`cell ${isTemplate ? 'cell-template' : ''} ${shouldHighlight ? 'hovered' : ''} ${isPulse ? 'pulse' : ''} ${isJelly ? 'jelly' : ''} ${isHint ? 'hint-flash' : ''}`}
+                    className={`cell ${isTemplate ? 'cell-template' : ''} ${shouldHighlight ? 'hovered' : ''} ${isPulse ? 'pulse' : ''} ${isJelly ? 'jelly' : ''} ${isHint ? 'hint-flash' : ''} ${getCellShapeClass()}`}
                     style={{ backgroundColor: getCellColor(r, c) }}
                     onClick={() => {
                         handleCellClick(r, c);
@@ -231,12 +262,12 @@ const App: React.FC = () => {
 
         <div className="toolbar">
             <div className="palette">
-                {currentLevel.palette.map((color, idx) => (
+                {activePalette.map(({ index, color }) => (
                     <div 
                     key={color}
-                    className={`color-swatch ${selectedColorIndex === idx ? 'active' : ''}`}
+                    className={`color-swatch ${selectedColorIndex === index ? 'active' : ''}`}
                     style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColorIndex(idx)}
+                    onClick={() => setSelectedColorIndex(index)}
                     />
                 ))}
                 <button 

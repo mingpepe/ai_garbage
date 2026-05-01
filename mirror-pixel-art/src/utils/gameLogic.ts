@@ -1,4 +1,36 @@
-import type { Level } from '../types';
+import type { Level, CellShape, SymmetryType } from '../types';
+
+export const getMirroredShape = (shape: CellShape, symmetry: SymmetryType): CellShape => {
+    if (shape === 'square') return 'square';
+    
+    switch (symmetry) {
+        case 'horizontal':
+            if (shape === 'tri-tl') return 'tri-tr';
+            if (shape === 'tri-tr') return 'tri-tl';
+            if (shape === 'tri-bl') return 'tri-br';
+            if (shape === 'tri-br') return 'tri-bl';
+            break;
+        case 'vertical':
+            if (shape === 'tri-tl') return 'tri-bl';
+            if (shape === 'tri-bl') return 'tri-tl';
+            if (shape === 'tri-tr') return 'tri-br';
+            if (shape === 'tri-br') return 'tri-tr';
+            break;
+        case 'diagonal-backslash': // Mirror across \
+            if (shape === 'tri-tl') return 'tri-tl';
+            if (shape === 'tri-br') return 'tri-br';
+            if (shape === 'tri-tr') return 'tri-bl';
+            if (shape === 'tri-bl') return 'tri-tr';
+            break;
+        case 'diagonal-slash': // Mirror across /
+            if (shape === 'tri-tr') return 'tri-tr';
+            if (shape === 'tri-bl') return 'tri-bl';
+            if (shape === 'tri-tl') return 'tri-br';
+            if (shape === 'tri-br') return 'tri-tl';
+            break;
+    }
+    return shape;
+};
 
 /**
  * Returns true if (r, c) belongs to the template area for the given level.
