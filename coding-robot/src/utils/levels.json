@@ -1,0 +1,1521 @@
+{
+  "level_1": {
+    "id": "challenge_01",
+    "name": "推石渡水 (The Rock & The River)",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "allowedCommands": [
+      "forward",
+      "turnLeft",
+      "turnRight",
+      "loop",
+      "while",
+      "if",
+      "markPosition",
+      "returnToMark"
+    ],
+    "obstacles": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        1,
+        7
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "waterTiles": [
+      {
+        "x": 5,
+        "y": 0
+      },
+      {
+        "x": 6,
+        "y": 0
+      }
+    ],
+    "boats": [
+      {
+        "x": 3,
+        "y": 7
+      }
+    ],
+    "collectibles": [
+      {
+        "x": 7,
+        "y": 7
+      },
+      {
+        "x": 3,
+        "y": 0
+      }
+    ],
+    "keys": [
+      {
+        "x": 0,
+        "y": 3,
+        "color": "blue"
+      }
+    ],
+    "doors": [
+      {
+        "x": 1,
+        "y": 3,
+        "color": "blue"
+      }
+    ],
+    "rocks": [
+      {
+        "x": 2,
+        "y": 5
+      }
+    ],
+    "triggerButtons": [
+      {
+        "x": 3,
+        "y": 5,
+        "setId": 1,
+        "color": "red"
+      }
+    ],
+    "triggerDoors": [
+      {
+        "x": 4,
+        "y": 6,
+        "setId": 1,
+        "color": "red"
+      }
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 2,
+          "y": 0
+        },
+        "posB": {
+          "x": 5,
+          "y": 7
+        },
+        "color": "purple"
+      }
+    ],
+    "planes": [
+      {
+        "x": 0,
+        "y": 0
+      }
+    ]
+  },
+  "level_2": {
+    "id": "level_2",
+    "name": "Basics: Turning",
+    "gridSize": [
+      5,
+      5
+    ],
+    "start": {
+      "x": 0,
+      "y": 4,
+      "dir": 0
+    },
+    "goal": {
+      "x": 2,
+      "y": 4
+    },
+    "obstacles": []
+  },
+  "level_3": {
+    "id": "level_3",
+    "name": "Basics: Detour",
+    "gridSize": [
+      5,
+      5
+    ],
+    "start": {
+      "x": 0,
+      "y": 4,
+      "dir": 0
+    },
+    "goal": {
+      "x": 4,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ]
+    ]
+  },
+  "level_4": {
+    "id": "level_4",
+    "name": "Basics: Backward",
+    "gridSize": [
+      5,
+      5
+    ],
+    "start": {
+      "x": 2,
+      "y": 2,
+      "dir": 0
+    },
+    "goal": {
+      "x": 2,
+      "y": 4
+    },
+    "obstacles": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        2,
+        1
+      ]
+    ]
+  },
+  "level_5": {
+    "id": "level_5",
+    "name": "Basics: Turn Around",
+    "gridSize": [
+      5,
+      5
+    ],
+    "start": {
+      "x": 0,
+      "y": 0,
+      "dir": 0
+    },
+    "goal": {
+      "x": 0,
+      "y": 2
+    },
+    "obstacles": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ]
+    ]
+  },
+  "level_6": {
+    "id": "level_6",
+    "name": "Basics: Zigzag",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 0,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        0
+      ]
+    ]
+  },
+  "level_7": {
+    "id": "level_7",
+    "name": "Collect: Energy Stones",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 0,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ]
+    ],
+    "collectibles": [
+      {
+        "x": 3,
+        "y": 5
+      },
+      {
+        "x": 0,
+        "y": 0
+      }
+    ]
+  },
+  "level_8": {
+    "id": "level_8",
+    "name": "Lock & Key: Secret Path",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 5,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 1
+    },
+    "obstacles": [
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        4
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "keys": [
+      {
+        "x": 5,
+        "y": 4
+      }
+    ],
+    "doors": [
+      {
+        "x": 5,
+        "y": 3,
+        "keyRequired": true
+      }
+    ]
+  },
+  "level_9": {
+    "id": "level_9",
+    "name": "Portal: Teleportation",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 0,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        4,
+        3
+      ]
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 2,
+          "y": 4
+        },
+        "posB": {
+          "x": 2,
+          "y": 2
+        },
+        "color": "#a855f7"
+      }
+    ]
+  },
+  "level_10": {
+    "id": "level_10",
+    "name": "Portal: Only Path",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 6,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        3,
+        0
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ]
+    ],
+    "keys": [
+      {
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "doors": [
+      {
+        "x": 6,
+        "y": 2,
+        "keyRequired": true
+      }
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 0,
+          "y": 4
+        },
+        "posB": {
+          "x": 6,
+          "y": 4
+        },
+        "color": "#3b82f6"
+      }
+    ]
+  },
+  "level_11": {
+    "id": "level_11",
+    "name": "General: Collection Challenge",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 0,
+      "dir": 1
+    },
+    "goal": {
+      "x": 7,
+      "y": 7
+    },
+    "obstacles": [
+      [
+        4,
+        0
+      ],
+      [
+        4,
+        1
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        4,
+        6
+      ],
+      [
+        4,
+        7
+      ]
+    ],
+    "collectibles": [
+      {
+        "x": 7,
+        "y": 0
+      },
+      {
+        "x": 0,
+        "y": 7
+      },
+      {
+        "x": 3,
+        "y": 3
+      }
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 1,
+          "y": 1
+        },
+        "posB": {
+          "x": 6,
+          "y": 6
+        },
+        "color": "#ec4899"
+      }
+    ]
+  },
+  "level_12": {
+    "id": "level_12",
+    "name": "Final Challenge",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 4,
+      "dir": 3
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        2,
+        0
+      ],
+      [
+        2,
+        1
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        2,
+        5
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ]
+    ],
+    "keys": [
+      {
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "collectibles": [
+      {
+        "x": 7,
+        "y": 7
+      }
+    ],
+    "doors": [
+      {
+        "x": 6,
+        "y": 2,
+        "keyRequired": true
+      }
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 1,
+          "y": 4
+        },
+        "posB": {
+          "x": 6,
+          "y": 4
+        },
+        "color": "#f72585"
+      }
+    ]
+  },
+  "level_13": {
+    "id": "level_13",
+    "name": "Logic: While Loop",
+    "gridSize": [
+      10,
+      10
+    ],
+    "start": {
+      "x": 0,
+      "y": 9,
+      "dir": 0
+    },
+    "goal": {
+      "x": 0,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        1,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ]
+    ]
+  },
+  "level_14": {
+    "id": "level_14",
+    "name": "Logic: Obstacle Navigation",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 0,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        2,
+        4
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        4,
+        4
+      ]
+    ]
+  },
+  "level_15": {
+    "id": "level_15",
+    "name": "Encapsulation: Function A",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 0,
+      "y": 1
+    },
+    "obstacles": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ]
+    ]
+  },
+  "level_16": {
+    "id": "level_16",
+    "name": "Encapsulation: Serpent Master",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        1,
+        1
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        1,
+        4
+      ],
+      [
+        1,
+        5
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        3,
+        1
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        3,
+        5
+      ],
+      [
+        3,
+        6
+      ],
+      [
+        3,
+        7
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        5,
+        5
+      ],
+      [
+        5,
+        6
+      ]
+    ]
+  },
+  "level_17": {
+    "id": "level_17",
+    "name": "Double Rhythm",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 0,
+      "dir": 1
+    },
+    "goal": {
+      "x": 7,
+      "y": 7
+    },
+    "obstacles": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        6
+      ]
+    ]
+  },
+  "level_18": {
+    "id": "level_18",
+    "name": "Portal Logic",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        0,
+        3
+      ],
+      [
+        1,
+        3
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        4,
+        3
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        6,
+        3
+      ],
+      [
+        7,
+        3
+      ]
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 2,
+          "y": 4
+        },
+        "posB": {
+          "x": 5,
+          "y": 2
+        },
+        "color": "#ec4899"
+      }
+    ]
+  },
+  "level_19": {
+    "id": "level_19",
+    "name": "Unlock Chain",
+    "gridSize": [
+      10,
+      10
+    ],
+    "start": {
+      "x": 0,
+      "y": 9,
+      "dir": 0
+    },
+    "goal": {
+      "x": 9,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        5,
+        0
+      ],
+      [
+        5,
+        1
+      ],
+      [
+        5,
+        2
+      ],
+      [
+        5,
+        3
+      ],
+      [
+        5,
+        4
+      ],
+      [
+        5,
+        6
+      ],
+      [
+        5,
+        7
+      ],
+      [
+        5,
+        8
+      ],
+      [
+        5,
+        9
+      ]
+    ],
+    "keys": [
+      {
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "doors": [
+      {
+        "x": 5,
+        "y": 5,
+        "keyRequired": true
+      }
+    ],
+    "collectibles": [
+      {
+        "x": 9,
+        "y": 9
+      }
+    ]
+  },
+  "level_20": {
+    "id": "level_20",
+    "name": "Obstacle Master",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 6,
+      "y": 6
+    },
+    "obstacles": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        3,
+        0
+      ],
+      [
+        4,
+        0
+      ],
+      [
+        5,
+        0
+      ],
+      [
+        6,
+        0
+      ],
+      [
+        7,
+        0
+      ],
+      [
+        7,
+        1
+      ],
+      [
+        7,
+        2
+      ],
+      [
+        7,
+        3
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ],
+      [
+        0,
+        7
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        0,
+        3
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        0,
+        1
+      ]
+    ]
+  },
+  "level_21": {
+    "id": "level_21",
+    "name": "Space: Diagonal Jump",
+    "gridSize": [
+      10,
+      10
+    ],
+    "start": {
+      "x": 0,
+      "y": 9,
+      "dir": 1
+    },
+    "goal": {
+      "x": 9,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        2,
+        2
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 2,
+          "y": 9
+        },
+        "posB": {
+          "x": 7,
+          "y": 2
+        },
+        "color": "#a855f7"
+      },
+      {
+        "id": "p2",
+        "posA": {
+          "x": 5,
+          "y": 9
+        },
+        "posB": {
+          "x": 2,
+          "y": 1
+        },
+        "color": "#3b82f6"
+      }
+    ]
+  },
+  "level_22": {
+    "id": "level_22",
+    "name": "Advanced Calls",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        1,
+        1
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        5,
+        5
+      ]
+    ]
+  },
+  "level_23": {
+    "id": "level_23",
+    "name": "Memory Crisis",
+    "gridSize": [
+      6,
+      6
+    ],
+    "start": {
+      "x": 0,
+      "y": 5,
+      "dir": 0
+    },
+    "goal": {
+      "x": 5,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        2,
+        2
+      ]
+    ]
+  },
+  "level_24": {
+    "id": "level_24",
+    "name": "Ultimate Challenge",
+    "gridSize": [
+      12,
+      12
+    ],
+    "start": {
+      "x": 0,
+      "y": 11,
+      "dir": 0
+    },
+    "goal": {
+      "x": 11,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        0,
+        9
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        3,
+        9
+      ],
+      [
+        4,
+        9
+      ],
+      [
+        5,
+        9
+      ],
+      [
+        11,
+        2
+      ],
+      [
+        10,
+        2
+      ],
+      [
+        9,
+        2
+      ],
+      [
+        8,
+        2
+      ]
+    ],
+    "keys": [
+      {
+        "x": 11,
+        "y": 5
+      }
+    ],
+    "doors": [
+      {
+        "x": 5,
+        "y": 10,
+        "keyRequired": true
+      }
+    ],
+    "portals": [
+      {
+        "id": "p1",
+        "posA": {
+          "x": 2,
+          "y": 11
+        },
+        "posB": {
+          "x": 9,
+          "y": 1
+        },
+        "color": "#f72585"
+      }
+    ]
+  },
+  "level_25": {
+    "id": "level_25",
+    "name": "Physics: Pressure Plate",
+    "gridSize": [
+      8,
+      8
+    ],
+    "start": {
+      "x": 0,
+      "y": 7,
+      "dir": 0
+    },
+    "goal": {
+      "x": 7,
+      "y": 0
+    },
+    "obstacles": [
+      [
+        0,
+        2
+      ],
+      [
+        1,
+        2
+      ],
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        2
+      ],
+      [
+        4,
+        2
+      ],
+      [
+        6,
+        2
+      ],
+      [
+        7,
+        2
+      ]
+    ],
+    "rocks": [
+      {
+        "x": 2,
+        "y": 5
+      }
+    ],
+    "triggerButtons": [
+      {
+        "x": 5,
+        "y": 5,
+        "setId": 2,
+        "color": "#fb923c"
+      }
+    ],
+    "triggerDoors": [
+      {
+        "x": 5,
+        "y": 2,
+        "setId": 2,
+        "color": "#fb923c"
+      }
+    ],
+    "allowedCommands": [
+      "forward",
+      "backward",
+      "left",
+      "right",
+      "loop",
+      "if"
+    ]
+  }
+}

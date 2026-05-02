@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply font-comic bg-slate-950 text-slate-200;
+  }
+}
+
+@theme {
+  --color-robot-blue: #4cc9f0;
+  --color-robot-purple: #7209b7;
+  --color-robot-pink: #f72585;
+  --color-robot-green: #4ade80;
+  --font-comic: "Comic Sans MS", "Chalkboard SE", sans-serif;
+}
+
+.command-shadow {
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.grid-line {
+  background-image: linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+                    linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+  background-size: 100% 100%;
+}
+
+/* Rock/Wall Texture */
+.obstacle-rock {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    box-shadow: inset -2px -2px 0px rgba(0,0,0,0.2), inset 2px 2px 0px rgba(255,255,255,0.2);
+    border-radius: 4px;
+    position: relative;
+}
+
+.obstacle-rock::after {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: 15%;
+    width: 30%;
+    height: 30%;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Robot Glow */
+.robot-head {
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
