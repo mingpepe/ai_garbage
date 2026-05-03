@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGameStore } from '../stores/game';
 import type { Command } from '../types';
-import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, X, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
+import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, X, Split, Goal, MapPin, CornerUpLeft, Ban } from 'lucide-vue-next';
 import draggable from 'vuedraggable';
 import { computed } from 'vue';
 
@@ -31,7 +31,6 @@ function updateLoopCount(val: number) {
       command.type === 'if' || command.type === 'ifLeft' || command.type === 'ifRight' ? 'bg-amber-500/20 p-2 border border-amber-500/40' :
       command.type.startsWith('callFunc') ? 'bg-cyan-500/20 p-2 border border-cyan-400/40' :
       command.type === 'break' ? 'bg-rose-500/20 p-2 border border-rose-500/40' :
-      command.type === 'wait' ? 'bg-slate-500/20 p-2 border border-slate-500/40' :
       'bg-slate-700 p-2.5 shadow-md border border-slate-600',
       store.isProgramLocked ? 'pointer-events-none' : ''
     ]"
@@ -42,7 +41,6 @@ function updateLoopCount(val: number) {
         :class="{
           'bg-robot-blue': command.type === 'forward',
           'bg-robot-purple': command.type === 'left' || command.type === 'right' || command.type === 'turnAround',
-          'bg-slate-500': command.type === 'wait',
           'bg-robot-pink': command.type === 'loop' || command.type === 'whileNotGoal' || command.type === 'whileFrontClear',
           'bg-amber-500': command.type === 'if' || command.type === 'ifLeft' || command.type === 'ifRight',
           'bg-slate-600': command.type === 'markPosition' || command.type === 'returnToMark',
@@ -61,7 +59,6 @@ function updateLoopCount(val: number) {
         <MapPin v-if="command.type === 'markPosition'" :size="16" />
         <CornerUpLeft v-if="command.type === 'returnToMark'" :size="16" />
         <Ban v-if="command.type === 'break'" :size="16" />
-        <Timer v-if="command.type === 'wait'" :size="16" />
         <span v-if="command.type.startsWith('callFunc')" class="text-xs font-black">{{ command.type.slice(-1) }}</span>
       </div>
 
@@ -70,7 +67,6 @@ function updateLoopCount(val: number) {
         <span v-if="command.type === 'left'">Turn Left 90°</span>
         <span v-if="command.type === 'right'">Turn Right 90°</span>
         <span v-if="command.type === 'turnAround'">Turn Around 180°</span>
-        <span v-if="command.type === 'wait'">Wait a Moment</span>
         <span v-if="command.type === 'markPosition'">Mark Position</span>
         <span v-if="command.type === 'returnToMark'">Return to Mark</span>
         <span v-if="command.type.startsWith('callFunc')">Function {{ command.type.slice(-1) }}</span>

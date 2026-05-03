@@ -68,11 +68,15 @@ function isWater(x: number, y: number) {
 }
 
 function isBoat(x: number, y: number) {
-  return store.currentLevel.boats?.some(tile => tile.x === x && tile.y === y) === true;
+  const idx = store.currentLevel.boats?.findIndex(tile => tile.x === x && tile.y === y);
+  if (idx === undefined || idx === -1) return false;
+  return !store.collectedBoatIds.has(`boat-${idx}`);
 }
 
 function isPlane(x: number, y: number) {
-  return store.currentLevel.planes?.some(tile => tile.x === x && tile.y === y) === true;
+  const idx = store.currentLevel.planes?.findIndex(tile => tile.x === x && tile.y === y);
+  if (idx === undefined || idx === -1) return false;
+  return !store.collectedPlaneIds.has(`plane-${idx}`);
 }
 
 function isGoal(x: number, y: number) {
@@ -276,26 +280,53 @@ onMounted(() => {
       class="absolute p-1.5 z-20 flex items-center justify-center pointer-events-none transition-all duration-300 ease-in-out"
       :style="robotStyle"
     >
-      <div class="relative w-[90%] h-[95%] bg-slate-800 rounded-xl flex flex-col items-center shadow-xl border-t-2 border-slate-500 overflow-visible">
-        <div class="absolute -top-1 w-1/2 h-2 bg-slate-700 rounded-t-full border-t border-slate-500"></div>
-        <div class="absolute bottom-1 right-2 w-1 h-3 bg-slate-600"></div>
-        <div class="absolute bottom-4 right-1.5 w-2 h-2 rounded-full z-30" :class="store.gameStatus.state === 'executing' ? 'bg-robot-pink animate-ping' : 'bg-robot-blue'"></div>
-        <div class="w-[85%] h-[45%] mt-2 bg-slate-900 rounded-lg border border-slate-700 flex flex-col items-center justify-center gap-1 shadow-inner relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-b from-transparent via-robot-blue/10 to-transparent h-2 animate-bounce"></div>
-            <div class="flex gap-3 z-10">
-                <div v-if="store.gameStatus.state === 'failed'" class="text-rose-500 font-bold text-sm leading-none">× ×</div>
-                <div v-else-if="store.gameStatus.state === 'success'" class="text-robot-green font-bold text-sm leading-none">^ ^</div>
-                <div v-else class="flex gap-3">
-                    <div class="w-3 h-3 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0] border border-white/20"></div>
-                    <div class="w-3 h-3 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0] border border-white/20"></div>
+      <div class="relative w-full h-full flex items-center justify-center">
+        <!-- Plane Visual -->
+        <template v-if="store.hasPlane">
+            <div class="relative w-[110%] h-[110%] flex items-center justify-center animate-bounce-slow">
+                <Plane :size="gridSize[0] > 6 ? 48 : 64" class="text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] fill-emerald-500/30" stroke-width="2.5" />
+                <div class="absolute inset-0 flex items-center justify-center scale-50 -translate-y-1">
+                     <div class="w-10 h-10 bg-slate-800 rounded-full border-2 border-slate-500 shadow-xl overflow-hidden flex items-center justify-center">
+                        <div class="w-4 h-4 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0]"></div>
+                     </div>
                 </div>
             </div>
+        </template>
+        
+        <!-- Boat Visual (Only on Water) -->
+        <template v-else-if="store.hasBoat && isWater(Math.round(store.robotPos.x), Math.round(store.robotPos.y))">
+            <div class="relative w-full h-full flex items-center justify-center">
+                <Sailboat :size="gridSize[0] > 6 ? 50 : 68" class="text-white drop-shadow-[0_0_12px_#4cc9f0] fill-sky-500/30" stroke-width="2.5" />
+                <div class="absolute inset-0 flex items-center justify-center scale-50 -translate-y-2">
+                     <div class="w-10 h-10 bg-slate-800 rounded-full border-2 border-slate-500 shadow-xl overflow-hidden flex items-center justify-center">
+                        <div class="w-4 h-4 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0]"></div>
+                     </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Default Robot Visual -->
+        <div v-else class="relative w-[90%] h-[95%] bg-slate-800 rounded-xl flex flex-col items-center shadow-xl border-t-2 border-slate-500 overflow-visible">
+            <div class="absolute -top-1 w-1/2 h-2 bg-slate-700 rounded-t-full border-t border-slate-500"></div>
+            <div class="absolute bottom-1 right-2 w-1 h-3 bg-slate-600"></div>
+            <div class="absolute bottom-4 right-1.5 w-2 h-2 rounded-full z-30" :class="store.gameStatus.state === 'executing' ? 'bg-robot-pink animate-ping' : 'bg-robot-blue'"></div>
+            <div class="w-[85%] h-[45%] mt-2 bg-slate-900 rounded-lg border border-slate-700 flex flex-col items-center justify-center gap-1 shadow-inner relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent via-robot-blue/10 to-transparent h-2 animate-bounce"></div>
+                <div class="flex gap-3 z-10">
+                    <div v-if="store.gameStatus.state === 'failed'" class="text-rose-500 font-bold text-sm leading-none">× ×</div>
+                    <div v-else-if="store.gameStatus.state === 'success'" class="text-robot-green font-bold text-sm leading-none">^ ^</div>
+                    <div v-else class="flex gap-3">
+                        <div class="w-3 h-3 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0] border border-white/20"></div>
+                        <div class="w-3 h-3 bg-robot-blue rounded-full shadow-[0_0_8px_#4cc9f0] border border-white/20"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 w-full flex flex-col items-center justify-center opacity-40">
+                <ChevronUp :size="20" class="text-slate-500 -mb-2" stroke-width="4" />
+                <ChevronUp :size="16" class="text-slate-500" stroke-width="3" />
+            </div>
+            <div class="absolute inset-0 rounded-xl pointer-events-none" :class="store.gameStatus.state === 'success' ? 'bg-robot-green/20 shadow-[0_0_30px_#4ade80]' : ''"></div>
         </div>
-        <div class="flex-1 w-full flex flex-col items-center justify-center opacity-40">
-            <ChevronUp :size="20" class="text-slate-500 -mb-2" stroke-width="4" />
-            <ChevronUp :size="16" class="text-slate-500" stroke-width="3" />
-        </div>
-        <div class="absolute inset-0 rounded-xl pointer-events-none" :class="store.gameStatus.state === 'success' ? 'bg-robot-green/20 shadow-[0_0_30px_#4ade80]' : ''"></div>
       </div>
     </div>
   </div>
@@ -308,5 +339,13 @@ onMounted(() => {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+.animate-bounce-slow {
+    animation: bounce-slow 2s ease-in-out infinite;
+}
+@keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
 }
 </style>

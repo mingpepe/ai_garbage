@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Command, Position, GameStatus, LevelProgress, Level } from '../types';
 import { LEVELS as INITIAL_LEVELS } from '../utils/levels';
+import { calculateChecksum } from '../utils/checksum';
 import gsap from 'gsap';
 
 type StepFrame = {
@@ -12,6 +13,13 @@ type StepFrame = {
   iterations?: number;
 };
 
+interface SavedProgram {
+  checksum: string;
+  main: Command[];
+  fA: Command[];
+  fB: Command[];
+}
+
 export const useGameStore = defineStore('game', () => {
   const mode = ref<'play' | 'editor'>('play');
   const engineeringMode = ref(false); 
@@ -19,11 +27,59 @@ export const useGameStore = defineStore('game', () => {
   const allLevels = ref<Record<string, Level>>({ ...INITIAL_LEVELS });
   const currentLevelId = ref('level_1');
   const currentLevel = computed(() => allLevels.value[currentLevelId.value]);
+  const currentLevelChecksum = computed(() => calculateChecksum(currentLevel.value));
   
-  const robotPos = ref<Position>({ ...currentLevel.value.start });
   const commandQueue = ref<Command[]>([]);
   const functionAQueue = ref<Command[]>([]);
   const functionBQueue = ref<Command[]>([]);
+
+  const savedPrograms = ref<Record<string, SavedProgram>>(
+    JSON.parse(localStorage.getItem('coding-robot-programs-v1') || '{}')
+  );
+
+  function loadProgramForLevel(id: string) {
+    const level = allLevels.value[id];
+    if (!level) return;
+    
+    const checksum = calculateChecksum(level);
+    const saved = savedPrograms.value[id];
+
+    if (saved && saved.checksum === checksum) {
+      commandQueue.value = JSON.parse(JSON.stringify(saved.main));
+      functionAQueue.value = JSON.parse(JSON.stringify(saved.fA));
+      functionBQueue.value = JSON.parse(JSON.stringify(saved.fB));
+    } else {
+      commandQueue.value = [];
+      functionAQueue.value = [];
+      functionBQueue.value = [];
+      if (saved) {
+        delete savedPrograms.value[id];
+        localStorage.setItem('coding-robot-programs-v1', JSON.stringify(savedPrograms.value));
+      }
+    }
+  }
+
+  function saveCurrentProgram() {
+    if (!currentLevel.value) return;
+
+    savedPrograms.value[currentLevelId.value] = {
+      checksum: currentLevelChecksum.value,
+      main: JSON.parse(JSON.stringify(commandQueue.value)),
+      fA: JSON.parse(JSON.stringify(functionAQueue.value)),
+      fB: JSON.parse(JSON.stringify(functionBQueue.value))
+    };
+    localStorage.setItem('coding-robot-programs-v1', JSON.stringify(savedPrograms.value));
+  }
+
+  // Initial load
+  loadProgramForLevel(currentLevelId.value);
+
+  // Auto-save on changes
+  watch([commandQueue, functionAQueue, functionBQueue], () => {
+    saveCurrentProgram();
+  }, { deep: true });
+
+  const robotPos = ref<Position>({ ...currentLevel.value.start });
   
   const gameStatus = ref<GameStatus>({ state: 'idle', message: '' });
   const activeCommandId = ref<string | null>(null);
@@ -32,7 +88,7 @@ export const useGameStore = defineStore('game', () => {
   const stepStack = ref<StepFrame[]>([]);
   const isStepRunning = ref(false);
   const savedPositions = ref<Position[]>([]);
-  const rockPosList = ref<{x: number, y: number}[]>((INITIAL_LEVELS.level_1.rocks || []).map(r => ({ ...r })));
+  const rockPosList = ref<{x: number, y: number}[]>((currentLevel.value.rocks || []).map(r => ({ ...r })));
   
   const activeTriggerSets = computed(() => {
     const sets = new Set<number>();
@@ -105,10 +161,8 @@ export const useGameStore = defineStore('game', () => {
     if (isProgramLocked.value) return;
     if (!isUnlocked(id)) return;
     currentLevelId.value = id;
+    loadProgramForLevel(id);
     resetRobot();
-    commandQueue.value = [];
-    functionAQueue.value = [];
-    functionBQueue.value = [];
     currentActiveTarget.value = 'main';
   }
 
@@ -524,8 +578,15 @@ export const useGameStore = defineStore('game', () => {
         if (target) {
             const canTeleport = await waitForRunToken(520, runToken);
             if (!canTeleport) return false;
+            const prevX = Math.round(robotPos.value.x);
+            const prevY = Math.round(robotPos.value.y);
             robotPos.value.x = target.x;
             robotPos.value.y = target.y;
+
+            if (hasBoat.value && isWater(prevX, prevY) && !isWater(robotPos.value.x, robotPos.value.y)) {
+                hasBoat.value = false;
+            }
+
             if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
             return waitForRunToken(320, runToken);
         }
@@ -549,6 +610,9 @@ export const useGameStore = defineStore('game', () => {
 
   async function executeSingleCommand(cmd: Command, runToken: number): Promise<boolean> {
     const duration = 0.3;
+    const startX = Math.round(robotPos.value.x);
+    const startY = Math.round(robotPos.value.y);
+    
     return new Promise<boolean>((resolve) => {
       let resolved = false;
       const finish = (result: boolean) => {
@@ -568,8 +632,8 @@ export const useGameStore = defineStore('game', () => {
         // Rock Pushing Logic
         const rockToPush = getRockAt(next.x, next.y);
         if (rockToPush) {
-          const dx = Math.round(next.x) - Math.round(robotPos.value.x);
-          const dy = Math.round(next.y) - Math.round(robotPos.value.y);
+          const dx = Math.round(next.x) - startX;
+          const dy = Math.round(next.y) - startY;
           const rockNext = { x: rockToPush.x + dx, y: rockToPush.y + dy };
           
           if (canEnterTile(rockNext.x, rockNext.y, true)) {
@@ -604,21 +668,43 @@ export const useGameStore = defineStore('game', () => {
         }
 
         if (!canEnterTile(next.x, next.y)) {
-            const hitObstacle = isObstacle(next.x, next.y) || isTriggerDoorClosed(next.x, next.y) || (isWater(next.x, next.y) && !hasBoat.value);
-            gameStatus.value = { state: 'failed', message: hitObstacle ? 'Bang! Hit an obstacle!' : 'Oops! Hit the boundary!' };
+            const isBlockedByWater = isWater(next.x, next.y) && !hasBoat.value && !hasPlane.value;
+            const hitObstacle = isObstacle(next.x, next.y) || isTriggerDoorClosed(next.x, next.y) || isBlockedByWater;
+            
+            if (isBlockedByWater) {
+                gameStatus.value = { state: 'failed', message: 'Need a boat to cross water!' };
+            } else {
+                gameStatus.value = { state: 'failed', message: hitObstacle ? 'Bang! Hit an obstacle!' : 'Oops! Hit the boundary!' };
+            }
+            
             if (navigator.vibrate) navigator.vibrate(200);
             
-            const dx = (next.x - robotPos.value.x) * 0.3;
-            const dy = (next.y - robotPos.value.y) * 0.3;
-            gsap.to(robotPos.value, {
-                x: robotPos.value.x + dx,
-                y: robotPos.value.y + dy,
-                duration: 0.08,
-                yoyo: true,
-                repeat: 3,
-                onComplete: () => finish(false),
-                onInterrupt: () => finish(false)
-            });
+            if (isBlockedByWater) {
+                // Refusal shake instead of bumping into water
+                gsap.to(robotPos.value, {
+                    dir: robotPos.value.dir + 0.2,
+                    duration: 0.05,
+                    yoyo: true,
+                    repeat: 5,
+                    onComplete: () => {
+                        robotPos.value.dir = (Math.round(robotPos.value.dir) + 400) % 4;
+                        finish(false);
+                    },
+                    onInterrupt: () => finish(false)
+                });
+            } else {
+                const dx = (next.x - robotPos.value.x) * 0.3;
+                const dy = (next.y - robotPos.value.y) * 0.3;
+                gsap.to(robotPos.value, {
+                    x: robotPos.value.x + dx,
+                    y: robotPos.value.y + dy,
+                    duration: 0.08,
+                    yoyo: true,
+                    repeat: 3,
+                    onComplete: () => finish(false),
+                    onInterrupt: () => finish(false)
+                });
+            }
             return;
         }
 
@@ -634,6 +720,12 @@ export const useGameStore = defineStore('game', () => {
              }
              robotPos.value.x = Math.round(next.x);
              robotPos.value.y = Math.round(next.y);
+
+             // Boat consumption: If we moved FROM water TO land, and have a boat, lose it
+             if (hasBoat.value && isWater(startX, startY) && !isWater(robotPos.value.x, robotPos.value.y)) {
+                hasBoat.value = false;
+             }
+
              setTimeout(() => finish(executionToken.value === runToken), 100);
           },
           onInterrupt: () => finish(false)
@@ -658,8 +750,6 @@ export const useGameStore = defineStore('game', () => {
           },
           onInterrupt: () => finish(false)
         });
-      } else if (cmd.type === 'wait') {
-        setTimeout(() => finish(executionToken.value === runToken), 400);
       } else if (cmd.type === 'markPosition') {
         savedPositions.value.push({
           x: Math.round(robotPos.value.x),
@@ -689,6 +779,11 @@ export const useGameStore = defineStore('game', () => {
             robotPos.value.x = Math.round(lastMark.x);
             robotPos.value.y = Math.round(lastMark.y);
             robotPos.value.dir = (Math.round(lastMark.dir) + 400) % 4;
+
+            if (hasBoat.value && isWater(startX, startY) && !isWater(robotPos.value.x, robotPos.value.y)) {
+                hasBoat.value = false;
+            }
+
             setTimeout(() => finish(executionToken.value === runToken), 120);
           },
           onInterrupt: () => finish(false)
@@ -744,7 +839,10 @@ export const useGameStore = defineStore('game', () => {
     if (isTriggerDoorClosed(x, y)) return false;
     if (isRegularDoorClosed(x, y)) return false;
     if (isObstacle(x, y) && (isRock || !hasPlane.value)) return false;
+    
+    // Water check: Must have plane or boat
     if (isWater(x, y) && (isRock || (!hasBoat.value && !hasPlane.value))) return false;
+    
     if (isRock && getRockAt(x, y)) return false; // Rocks can't push each other
     return true;
   }
@@ -784,6 +882,7 @@ export const useGameStore = defineStore('game', () => {
     allLevels.value[id] = JSON.parse(JSON.stringify(data));
     if (id === currentLevelId.value) {
       resetRobot();
+      saveCurrentProgram();
     }
   }
 

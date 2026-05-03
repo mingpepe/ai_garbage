@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable';
 import { useGameStore } from '../stores/game';
-import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
+import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, Split, Goal, MapPin, CornerUpLeft, Ban } from 'lucide-vue-next';
 import { ALL_COMMAND_TYPES } from '../types';
 import type { Command, CommandType } from '../types';
 import { computed } from 'vue';
@@ -23,8 +23,7 @@ const commandLibrary: Record<string, Command> = {
   returnToMark: { id: 'lib-returnToMark', type: 'returnToMark' },
   callFuncA: { id: 'lib-callFuncA', type: 'callFuncA' },
   callFuncB: { id: 'lib-callFuncB', type: 'callFuncB' },
-  break: { id: 'lib-break', type: 'break' },
-  wait: { id: 'lib-wait', type: 'wait' }
+  break: { id: 'lib-break', type: 'break' }
 };
 
 const availableCommands = computed(() => {
@@ -73,7 +72,6 @@ function quickAdd(type: CommandType) {
             {
               'bg-robot-blue': element.type === 'forward',
               'bg-robot-purple': element.type === 'left' || element.type === 'right' || element.type === 'turnAround',
-              'bg-slate-500': element.type === 'wait',
               'bg-robot-pink': element.type === 'loop' || element.type === 'whileNotGoal' || element.type === 'whileFrontClear',
               'bg-amber-500': element.type === 'if' || element.type === 'ifLeft' || element.type === 'ifRight',
               'bg-slate-600': element.type === 'markPosition' || element.type === 'returnToMark',
@@ -95,7 +93,6 @@ function quickAdd(type: CommandType) {
           <MapPin v-if="element.type === 'markPosition'" :size="18" class="shrink-0" />
           <CornerUpLeft v-if="element.type === 'returnToMark'" :size="18" class="shrink-0" />
           <Ban v-if="element.type === 'break'" :size="18" class="shrink-0" />
-          <Timer v-if="element.type === 'wait'" :size="18" class="shrink-0" />
           <span v-if="element.type.startsWith('callFunc')" class="text-xs w-4 text-center shrink-0">{{ element.type.slice(-1) }}</span>
           
           <span class="text-xs leading-tight truncate">
@@ -104,7 +101,6 @@ function quickAdd(type: CommandType) {
                 element.type === 'left' ? 'left' :
                 element.type === 'right' ? 'right' :
                 element.type === 'turnAround' ? 'turn around' :
-                element.type === 'wait' ? 'wait' :
                 element.type === 'loop' ? 'loop' :
                 element.type === 'whileNotGoal' ? 'while' :
                 element.type === 'whileFrontClear' ? 'while front clear' :

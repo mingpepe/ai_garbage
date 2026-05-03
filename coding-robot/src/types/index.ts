@@ -1,7 +1,7 @@
-export type CommandType = 'forward' | 'left' | 'right' | 'turnAround' | 'loop' | 'wait' | 'if' | 'ifLeft' | 'ifRight' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
+export type CommandType = 'forward' | 'left' | 'right' | 'turnAround' | 'loop' | 'if' | 'ifLeft' | 'ifRight' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
 
 export const ALL_COMMAND_TYPES: CommandType[] = [
-  'forward', 'left', 'right', 'turnAround', 'wait',
+  'forward', 'left', 'right', 'turnAround',
   'loop', 'whileNotGoal', 'whileFrontClear', 'if', 'ifLeft', 'ifRight',
   'markPosition', 'returnToMark',
   'callFuncA', 'callFuncB', 'break'
