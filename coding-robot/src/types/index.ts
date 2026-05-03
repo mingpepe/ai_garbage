@@ -1,4 +1,4 @@
-export type CommandType = 'forward' | 'backward' | 'left' | 'right' | 'turnAround' | 'loop' | 'wait' | 'if' | 'ifLeft' | 'ifRight' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
+export type CommandType = 'forward' | 'left' | 'right' | 'turnAround' | 'loop' | 'wait' | 'if' | 'ifLeft' | 'ifRight' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
 
 export interface Command {
   id: string;

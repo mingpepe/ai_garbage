@@ -217,7 +217,7 @@ export const useGameStore = defineStore('game', () => {
     const result = await executeRecursive(commandQueue.value, (cmd) => {
         if (executionToken.value !== runToken) return;
         activeCommandId.value = cmd.id; // Correctly highlights the current block
-        const physicalTypes = ['forward', 'backward', 'left', 'right', 'turnAround'];
+        const physicalTypes = ['forward', 'left', 'right', 'turnAround'];
         if (physicalTypes.includes(cmd.type)) totalPhysicalSteps++;
     }, 0, runToken);
 
@@ -562,8 +562,8 @@ export const useGameStore = defineStore('game', () => {
         return;
       }
 
-      if (cmd.type === 'forward' || cmd.type === 'backward') {
-        const next = getNextPos(robotPos.value, cmd.type === 'backward');
+      if (cmd.type === 'forward') {
+        const next = getNextPos(robotPos.value);
         
         // Rock Pushing Logic
         const rockToPush = getRockAt(next.x, next.y);
@@ -699,10 +699,10 @@ export const useGameStore = defineStore('game', () => {
     });
   }
 
-  function getNextPos(pos: Position, isBackward: boolean = false, dirOffset: number = 0): { x: number, y: number } {
+  function getNextPos(pos: Position, dirOffset: number = 0): { x: number, y: number } {
     let { x, y, dir } = pos;
     let d = (Math.round(dir) + 400 + dirOffset) % 4;
-    if (isBackward) d = (d + 2) % 4;
+    
     if (d === 0) y--;
     else if (d === 1) x++;
     else if (d === 2) y++;
@@ -750,7 +750,7 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function isTileBlocked(offset: number = 0) {
-    const nextPos = getNextPos(robotPos.value, false, offset);
+    const nextPos = getNextPos(robotPos.value, offset);
     if (!canEnterTile(nextPos.x, nextPos.y)) return true;
     
     // If there's a rock, check if it can be pushed

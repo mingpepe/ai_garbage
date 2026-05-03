@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useGameStore } from '../stores/game';
 import type { Command } from '../types';
-import { MoveUp, MoveDown, RotateCcw, RotateCw, RefreshCw, Repeat, X, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
+import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, X, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
 import draggable from 'vuedraggable';
 import { computed } from 'vue';
 
@@ -40,7 +40,7 @@ function updateLoopCount(val: number) {
       <div 
         class="w-8 h-8 rounded flex items-center justify-center text-white shrink-0 shadow-sm"
         :class="{
-          'bg-robot-blue': command.type === 'forward' || command.type === 'backward',
+          'bg-robot-blue': command.type === 'forward',
           'bg-robot-purple': command.type === 'left' || command.type === 'right' || command.type === 'turnAround',
           'bg-slate-500': command.type === 'wait',
           'bg-robot-pink': command.type === 'loop' || command.type === 'whileNotGoal' || command.type === 'whileFrontClear',
@@ -51,7 +51,6 @@ function updateLoopCount(val: number) {
         }"
       >
         <MoveUp v-if="command.type === 'forward'" :size="16" />
-        <MoveDown v-if="command.type === 'backward'" :size="16" />
         <RotateCcw v-if="command.type === 'left'" :size="16" />
         <RotateCw v-if="command.type === 'right'" :size="16" />
         <RefreshCw v-if="command.type === 'turnAround'" :size="16" />
@@ -68,7 +67,6 @@ function updateLoopCount(val: number) {
 
       <div class="flex-1 font-black text-white text-[14px] truncate drop-shadow-sm">
         <span v-if="command.type === 'forward'">Move Forward</span>
-        <span v-if="command.type === 'backward'">Move Backward</span>
         <span v-if="command.type === 'left'">Turn Left 90°</span>
         <span v-if="command.type === 'right'">Turn Right 90°</span>
         <span v-if="command.type === 'turnAround'">Turn Around 180°</span>

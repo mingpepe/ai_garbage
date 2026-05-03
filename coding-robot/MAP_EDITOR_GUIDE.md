@@ -43,7 +43,7 @@ The game now features a built-in **"Map Workshop"**, allowing you to draw maps w
 
 ### A. Movement & Pushing
 *   **Robot Pushing**: The robot can push **one rock** at a time if the cell behind the rock is empty.
-*   **Push Direction**: Works for both **Forward** and **Backward** movement.
+*   **Push Direction**: Works for **Forward** movement.
 *   **Collisions**: Rocks cannot be pushed into walls, water, or other rocks.
 
 ### B. Trigger Mechanisms (Buttons & T-Doors)

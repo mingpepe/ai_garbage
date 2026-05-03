@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable';
 import { useGameStore } from '../stores/game';
-import { MoveUp, MoveDown, RotateCcw, RotateCw, RefreshCw, Repeat, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
+import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
 import type { Command, CommandType } from '../types';
 import { computed } from 'vue';
 
@@ -9,7 +9,6 @@ const store = useGameStore();
 
 const commandLibrary: Record<string, Command> = {
   forward: { id: 'lib-forward', type: 'forward' },
-  backward: { id: 'lib-backward', type: 'backward' },
   left: { id: 'lib-left', type: 'left' },
   right: { id: 'lib-right', type: 'right' },
   turnAround: { id: 'lib-turnAround', type: 'turnAround' },
@@ -29,7 +28,7 @@ const commandLibrary: Record<string, Command> = {
 
 // All commands are available in all levels now
 const ALL_COMMAND_TYPES: CommandType[] = [
-  'forward', 'backward', 'left', 'right', 'turnAround', 'wait',
+  'forward', 'left', 'right', 'turnAround', 'wait',
   'loop', 'whileNotGoal', 'whileFrontClear', 'if', 'ifLeft', 'ifRight',
   'markPosition', 'returnToMark',
   'callFuncA', 'callFuncB', 'break'
@@ -78,7 +77,7 @@ function quickAdd(type: CommandType) {
           class="min-h-11 px-2 py-2.5 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-2 text-white font-black command-shadow transition-all hover:translate-x-1 select-none"
           :class="[
             {
-              'bg-robot-blue': element.type === 'forward' || element.type === 'backward',
+              'bg-robot-blue': element.type === 'forward',
               'bg-robot-purple': element.type === 'left' || element.type === 'right' || element.type === 'turnAround',
               'bg-slate-500': element.type === 'wait',
               'bg-robot-pink': element.type === 'loop' || element.type === 'whileNotGoal' || element.type === 'whileFrontClear',
@@ -92,7 +91,6 @@ function quickAdd(type: CommandType) {
           ]"
         >
           <MoveUp v-if="element.type === 'forward'" :size="18" class="shrink-0" />
-          <MoveDown v-if="element.type === 'backward'" :size="18" class="shrink-0" />
           <RotateCcw v-if="element.type === 'left'" :size="18" class="shrink-0" />
           <RotateCw v-if="element.type === 'right'" :size="18" class="shrink-0" />
           <RefreshCw v-if="element.type === 'turnAround'" :size="18" class="shrink-0" />
@@ -109,7 +107,6 @@ function quickAdd(type: CommandType) {
           <span class="text-xs leading-tight truncate">
             {{ 
                 element.type === 'forward' ? 'forward' :
-                element.type === 'backward' ? 'backward' :
                 element.type === 'left' ? 'left' :
                 element.type === 'right' ? 'right' :
                 element.type === 'turnAround' ? 'turn around' :

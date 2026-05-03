@@ -217,7 +217,7 @@
   },
   "level_4": {
     "id": "level_4",
-    "name": "Basics: Backward",
+    "name": "Basics",
     "gridSize": [
       5,
       5
@@ -1511,7 +1511,6 @@
     ],
     "allowedCommands": [
       "forward",
-      "backward",
       "left",
       "right",
       "loop",
