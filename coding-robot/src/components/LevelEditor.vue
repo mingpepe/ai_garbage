@@ -3,10 +3,11 @@ import { ref } from 'vue';
 import { useGameStore } from '../stores/game';
 import { 
     Download, Plus, Save, Bot, Zap, 
-    Star, Key, Lock, Hammer, Eraser,
-    ChevronLeft, Waves, Sailboat, Plane, Box, Target, Layers, CircleDashed, Info, Radio, Mountain, LayoutGrid
+    Star, Key, Lock, Hammer, Eraser, Trash2,
+    ChevronLeft, Waves, Sailboat, Plane, Box, Target, Layers, CircleDashed, Info, Radio, Mountain, LayoutGrid, ToggleLeft
 } from 'lucide-vue-next';
-import type { Level } from '../types';
+import type { Level, CommandType } from '../types';
+import { ALL_COMMAND_TYPES } from '../types';
 
 const store = useGameStore();
 
@@ -149,6 +150,34 @@ function handleCellClick(x: number, y: number) {
     }
 }
 
+function clearMap() {
+    if (!confirm('Are you sure you want to clear this map? This will remove all items, obstacles, and triggers!')) return;
+    const level = localLevel.value;
+    level.obstacles = [];
+    level.waterTiles = [];
+    level.boats = [];
+    level.planes = [];
+    level.collectibles = [];
+    level.keys = [];
+    level.doors = [];
+    level.rocks = [];
+    level.triggerButtons = [];
+    level.triggerDoors = [];
+    level.portals = [];
+}
+
+function toggleCommand(cmd: CommandType) {
+    if (!localLevel.value.allowedCommands) {
+        localLevel.value.allowedCommands = [...ALL_COMMAND_TYPES];
+    }
+    const idx = localLevel.value.allowedCommands.indexOf(cmd);
+    if (idx === -1) {
+        localLevel.value.allowedCommands.push(cmd);
+    } else {
+        localLevel.value.allowedCommands.splice(idx, 1);
+    }
+}
+
 function saveToStore() {
     if (localLevel.value.portals) {
         localLevel.value.portals = localLevel.value.portals.filter(p => p.posA.x !== -1 && p.posB.x !== -1);
@@ -197,6 +226,7 @@ function getPortal(x: number, y: number) {
             </h1>
         </div>
         <div class="flex gap-2">
+            <button @click="clearMap" class="btn-editor bg-rose-500 hover:bg-rose-600 text-white shadow-lg text-xs px-3 py-1.5"><Trash2 :size="16" /> Clear Map</button>
             <button @click="addNewLevel" class="btn-editor bg-robot-blue text-white shadow-lg text-xs px-3 py-1.5"><Plus :size="16" /> New</button>
             <button @click="downloadJSON" class="btn-editor bg-robot-green text-white shadow-lg text-xs px-3 py-1.5"><Download :size="16" /> Export</button>
         </div>
@@ -241,6 +271,21 @@ function getPortal(x: number, y: number) {
                     </div>
                 </div>
                 
+                <!-- Allowed Commands -->
+                <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-black text-slate-500 uppercase tracking-tighter flex items-center gap-1.5"><ToggleLeft :size="12" /> Allowed Commands</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                        <button v-for="cmd in ALL_COMMAND_TYPES" :key="cmd"
+                            @click="toggleCommand(cmd)"
+                            class="py-1 px-1.5 rounded text-[9px] font-black uppercase text-left truncate transition-all border"
+                            :class="(localLevel.allowedCommands || ALL_COMMAND_TYPES).includes(cmd) ? 'bg-robot-purple/20 border-robot-purple text-robot-purple' : 'bg-slate-900 border-slate-800 text-slate-500'">
+                            {{ cmd }}
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Set ID Control -->
                 <div class="p-3 bg-slate-950/50 rounded-xl border border-slate-800">
                     <div class="flex justify-between items-center mb-2">

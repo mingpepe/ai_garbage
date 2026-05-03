@@ -8,8 +8,10 @@ This guide details how to create brand new logic challenge levels for "RoboCode"
 The game now features a built-in **"Map Workshop"**, allowing you to draw maps without writing code:
 
 1.  **Access:** On the left side of the main game screen, next to the "Progress" panel, click the **⚙️ Settings icon**.
-2.  **Draw Map:** Select a tool from the top toolbar and click on the grid to place the element.
-3.  **Toolbar Icons:**
+2.  **Settings Panel:** On the left sidebar, you can configure the map's Title, Width, Height, and **Allowed Commands**. Toggle the command buttons to restrict which tools the player can use in this specific level.
+3.  **Clear Map:** Use the "Clear Map" button at the top to instantly remove all items, obstacles, and triggers from the current level.
+4.  **Draw Map:** Select a tool from the top toolbar and click on the grid to place the element.
+5.  **Toolbar Icons:**
     *   **Wall**: solid obstacle, blocks robot and rocks.
     *   **Water**: liquid hazard, requires **Boat** to cross.
     *   **Boat**: item that allows the robot to cross water.
@@ -22,10 +24,10 @@ The game now features a built-in **"Map Workshop"**, allowing you to draw maps w
     *   **Goal**: the mission objective cell.
     *   **Start**: the robot's starting position.
     *   **Eraser**: click a cell to clear all items on it.
-4.  **Multi-Set ID (1-8)**: 
+6.  **Multi-Set ID (1-8)**: 
     *   Used to link specific buttons to specific doors. 
     *   Select a **Set ID** in the sidebar, then place a button and a door. They will automatically be linked and share the same color code.
-5.  **Export JSON:** Once editing is finished, click "Download JSON" and overwrite `src/utils/levels.json` in your project.
+7.  **Export JSON:** Once editing is finished, click "Download JSON" and overwrite `src/utils/levels.json` in your project.
 
 ---
 

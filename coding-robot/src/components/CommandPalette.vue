@@ -2,6 +2,7 @@
 import draggable from 'vuedraggable';
 import { useGameStore } from '../stores/game';
 import { MoveUp, RotateCcw, RotateCw, RefreshCw, Repeat, Split, Goal, MapPin, CornerUpLeft, Ban, Timer } from 'lucide-vue-next';
+import { ALL_COMMAND_TYPES } from '../types';
 import type { Command, CommandType } from '../types';
 import { computed } from 'vue';
 
@@ -26,16 +27,9 @@ const commandLibrary: Record<string, Command> = {
   wait: { id: 'lib-wait', type: 'wait' }
 };
 
-// All commands are available in all levels now
-const ALL_COMMAND_TYPES: CommandType[] = [
-  'forward', 'left', 'right', 'turnAround', 'wait',
-  'loop', 'whileNotGoal', 'whileFrontClear', 'if', 'ifLeft', 'ifRight',
-  'markPosition', 'returnToMark',
-  'callFuncA', 'callFuncB', 'break'
-];
-
 const availableCommands = computed(() => {
-  return ALL_COMMAND_TYPES.map(type => commandLibrary[type]).filter(Boolean);
+  const allowed = store.currentLevel?.allowedCommands || ALL_COMMAND_TYPES;
+  return allowed.map(type => commandLibrary[type]).filter(Boolean);
 });
 
 function cloneCommand(cmd: Command): Command {
