@@ -14,11 +14,19 @@ const commandLibrary: Record<string, Command> = {
   right: { id: 'lib-right', type: 'right' },
   turnAround: { id: 'lib-turnAround', type: 'turnAround' },
   loop: { id: 'lib-loop', type: 'loop', value: 2, subCommands: [] },
-  whileNotGoal: { id: 'lib-whileNotGoal', type: 'whileNotGoal', subCommands: [] },
-  whileFrontClear: { id: 'lib-whileFrontClear', type: 'whileFrontClear', subCommands: [] },
-  if: { id: 'lib-if', type: 'if', trueBranch: [], falseBranch: [] },
-  ifLeft: { id: 'lib-ifLeft', type: 'ifLeft', trueBranch: [], falseBranch: [] },
-  ifRight: { id: 'lib-ifRight', type: 'ifRight', trueBranch: [], falseBranch: [] },
+  while: { 
+    id: 'lib-while', 
+    type: 'while', 
+    subCommands: [], 
+    condition: { type: 'simple', subject: 'front', not: true, target: 'wall' } 
+  },
+  if: { 
+    id: 'lib-if', 
+    type: 'if', 
+    trueBranch: [], 
+    falseBranch: [],
+    condition: { type: 'simple', subject: 'front', not: false, target: 'wall' }
+  },
   markPosition: { id: 'lib-markPosition', type: 'markPosition' },
   returnToMark: { id: 'lib-returnToMark', type: 'returnToMark' },
   callFuncA: { id: 'lib-callFuncA', type: 'callFuncA' },
@@ -37,7 +45,8 @@ function cloneCommand(cmd: Command): Command {
     id: crypto.randomUUID(), 
     subCommands: cmd.subCommands ? [] : undefined,
     trueBranch: cmd.trueBranch ? [] : undefined,
-    falseBranch: cmd.falseBranch ? [] : undefined
+    falseBranch: cmd.falseBranch ? [] : undefined,
+    condition: cmd.condition ? JSON.parse(JSON.stringify(cmd.condition)) : undefined
   };
 }
 
@@ -72,8 +81,8 @@ function quickAdd(type: CommandType) {
             {
               'bg-robot-blue': element.type === 'forward',
               'bg-robot-purple': element.type === 'left' || element.type === 'right' || element.type === 'turnAround',
-              'bg-robot-pink': element.type === 'loop' || element.type === 'whileNotGoal' || element.type === 'whileFrontClear',
-              'bg-amber-500': element.type === 'if' || element.type === 'ifLeft' || element.type === 'ifRight',
+              'bg-robot-pink': element.type === 'loop' || element.type === 'while',
+              'bg-amber-500': element.type === 'if',
               'bg-slate-600': element.type === 'markPosition' || element.type === 'returnToMark',
               'bg-rose-600': element.type === 'break',
               'bg-cyan-500': element.type === 'callFuncA',
@@ -87,9 +96,8 @@ function quickAdd(type: CommandType) {
           <RotateCw v-if="element.type === 'right'" :size="18" class="shrink-0" />
           <RefreshCw v-if="element.type === 'turnAround'" :size="18" class="shrink-0" />
           <Repeat v-if="element.type === 'loop'" :size="18" class="shrink-0" />
-          <Goal v-if="element.type === 'whileNotGoal'" :size="18" class="shrink-0" />
-          <Repeat v-if="element.type === 'whileFrontClear'" :size="18" class="shrink-0" />
-          <Split v-if="element.type === 'if' || element.type === 'ifLeft' || element.type === 'ifRight'" :size="18" class="shrink-0" />
+          <Goal v-if="element.type === 'while'" :size="18" class="shrink-0" />
+          <Split v-if="element.type === 'if'" :size="18" class="shrink-0" />
           <MapPin v-if="element.type === 'markPosition'" :size="18" class="shrink-0" />
           <CornerUpLeft v-if="element.type === 'returnToMark'" :size="18" class="shrink-0" />
           <Ban v-if="element.type === 'break'" :size="18" class="shrink-0" />
@@ -102,11 +110,8 @@ function quickAdd(type: CommandType) {
                 element.type === 'right' ? 'right' :
                 element.type === 'turnAround' ? 'turn around' :
                 element.type === 'loop' ? 'loop' :
-                element.type === 'whileNotGoal' ? 'while' :
-                element.type === 'whileFrontClear' ? 'while front clear' :
-                element.type === 'if' ? 'if obstacle' : 
-                element.type === 'ifLeft' ? 'if obstacle L' :
-                element.type === 'ifRight' ? 'if obstacle R' :
+                element.type === 'while' ? 'while' :
+                element.type === 'if' ? 'if' : 
                 element.type === 'markPosition' ? 'remember position' :
                 element.type === 'returnToMark' ? 'return to mark' :
                 element.type === 'callFuncA' ? 'function A' :

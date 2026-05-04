@@ -365,6 +365,73 @@ export const useGameStore = defineStore('game', () => {
     gameStatus.value = { state: 'stepping', message: 'Step complete.' };
   }
 
+  function evaluateCondition(cond?: Condition): boolean {
+    if (!cond) return false;
+    if (cond.type === 'simple') {
+      const result = checkSimpleCondition(cond);
+      return cond.not ? !result : result;
+    } else if (cond.type === 'and') {
+      return evaluateCondition(cond.left) && evaluateCondition(cond.right);
+    } else if (cond.type === 'or') {
+      return evaluateCondition(cond.left) || evaluateCondition(cond.right);
+    }
+    return false;
+  }
+
+  function checkSimpleCondition(cond: SimpleCondition): boolean {
+    const rx = Math.round(robotPos.value.x);
+    const ry = Math.round(robotPos.value.y);
+
+    if (cond.subject === 'robot') {
+      switch (cond.target) {
+        case 'boat': return hasBoat.value;
+        case 'plane': return hasPlane.value;
+        case 'key': return hasKey.value;
+        case 'star': return collectedCount.value > 0;
+        default: return false;
+      }
+    }
+
+    let targetX = rx;
+    let targetY = ry;
+    
+    if (cond.subject !== 'here') {
+      let offset = 0;
+      if (cond.subject === 'left') offset = -1;
+      else if (cond.subject === 'right') offset = 1;
+      else if (cond.subject === 'back') offset = 2;
+      const next = getNextPos(robotPos.value, offset);
+      targetX = next.x;
+      targetY = next.y;
+    }
+
+    switch (cond.target) {
+      case 'wall': return isOutOfBounds(targetX, targetY) || isObstacle(targetX, targetY);
+      case 'boundary': return isOutOfBounds(targetX, targetY);
+      case 'water': return isWater(targetX, targetY);
+      case 'rock': return !!getRockAt(targetX, targetY);
+      case 'goal': return targetX === currentLevel.value.goal.x && targetY === currentLevel.value.goal.y;
+      case 'star': 
+        return currentLevel.value.collectibles?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedIds.value.has(`coll-${idx}`)
+        ) || false;
+      case 'key':
+        return currentLevel.value.keys?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedKeyIds.value.has(`key-${idx}`)
+        ) || false;
+      case 'boat':
+        return currentLevel.value.boats?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedBoatIds.value.has(`boat-${idx}`)
+        ) || false;
+      case 'plane':
+        return currentLevel.value.planes?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedPlaneIds.value.has(`plane-${idx}`)
+        ) || false;
+      case 't-door': return isTriggerDoorClosed(targetX, targetY) || isRegularDoorClosed(targetX, targetY);
+      default: return false;
+    }
+  }
+
   function getNextSteppableCommand(): Command | null {
     while (stepStack.value.length > 0) {
       if (stepStack.value.length > 500) {
@@ -379,18 +446,6 @@ export const useGameStore = defineStore('game', () => {
       if (frame.index >= frame.commands.length) {
         if (frame.kind === 'loop' && (frame.remaining || 0) > 1) {
           frame.remaining = (frame.remaining || 0) - 1;
-          frame.index = 0;
-          continue;
-        }
-
-        if (frame.kind === 'while' && !checkWin() && (frame.iterations || 0) < 200 && frame.commands.length > 0) {
-          frame.iterations = (frame.iterations || 0) + 1;
-          frame.index = 0;
-          continue;
-        }
-
-        if (frame.kind === 'whileFrontClear' && !isFrontBlocked() && (frame.iterations || 0) < 200 && frame.commands.length > 0) {
-          frame.iterations = (frame.iterations || 0) + 1;
           frame.index = 0;
           continue;
         }
@@ -418,26 +473,31 @@ export const useGameStore = defineStore('game', () => {
         continue;
       }
 
-      if (cmd.type === 'whileNotGoal') {
-        if (!checkWin() && (cmd.subCommands?.length || 0) > 0) {
-          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'while', iterations: 1 });
-        }
-        continue;
-      }
+      if (cmd.type === 'while' || cmd.type === 'whileNotGoal' || cmd.type === 'whileFrontClear') {
+        let shouldContinue = false;
+        if (cmd.type === 'while') shouldContinue = evaluateCondition(cmd.condition);
+        else if (cmd.type === 'whileNotGoal') shouldContinue = !checkWin();
+        else if (cmd.type === 'whileFrontClear') shouldContinue = !isFrontBlocked();
 
-      if (cmd.type === 'whileFrontClear') {
-        if (!isFrontBlocked() && (cmd.subCommands?.length || 0) > 0) {
-          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'whileFrontClear', iterations: 1 });
+        if (shouldContinue && (cmd.subCommands?.length || 0) > 0) {
+          // For stepping while, we push the commands and decrement the index so we re-evaluate the while itself after the subcommands finish
+          frame.index--; // Re-run this while block after subcommands
+          stepStack.value.push({ commands: cmd.subCommands || [], index: 0 });
         }
         continue;
       }
 
       if (cmd.type === 'if' || cmd.type === 'ifLeft' || cmd.type === 'ifRight') {
-        let offset = 0;
-        if (cmd.type === 'ifLeft') offset = -1;
-        else if (cmd.type === 'ifRight') offset = 1;
+        let conditionMet = false;
+        if (cmd.type === 'if' && cmd.condition) {
+            conditionMet = evaluateCondition(cmd.condition);
+        } else {
+            let offset = 0;
+            if (cmd.type === 'ifLeft') offset = -1;
+            else if (cmd.type === 'ifRight') offset = 1;
+            conditionMet = isTileBlocked(offset);
+        }
         
-        const conditionMet = isTileBlocked(offset);
         const branch = conditionMet ? (cmd.trueBranch || []) : (cmd.falseBranch || []);
         if (branch.length > 0) {
           stepStack.value.push({ commands: branch, index: 0 });
@@ -478,28 +538,32 @@ export const useGameStore = defineStore('game', () => {
           if (res === 'break') break;
           if (res === 'failed') return 'failed';
         }
-      } else if (cmd.type === 'whileNotGoal') {
+      } else if (cmd.type === 'while' || cmd.type === 'whileNotGoal' || cmd.type === 'whileFrontClear') {
         let iterations = 0;
-        while (!checkWin() && iterations < 200 && executionToken.value === runToken) { 
-          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken);
-          if (res === 'break') break;
-          if (res === 'failed') return 'failed';
-          iterations++;
-        }
-      } else if (cmd.type === 'whileFrontClear') {
-        let iterations = 0;
-        while (!isFrontBlocked() && iterations < 200 && executionToken.value === runToken) {
+        let shouldContinue = true;
+        while (shouldContinue && iterations < 200 && executionToken.value === runToken) { 
+          if (cmd.type === 'while') shouldContinue = evaluateCondition(cmd.condition);
+          else if (cmd.type === 'whileNotGoal') shouldContinue = !checkWin();
+          else if (cmd.type === 'whileFrontClear') shouldContinue = !isFrontBlocked();
+          
+          if (!shouldContinue) break;
+
           const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken);
           if (res === 'break') break;
           if (res === 'failed') return 'failed';
           iterations++;
         }
       } else if (cmd.type === 'if' || cmd.type === 'ifLeft' || cmd.type === 'ifRight') {
-        let offset = 0;
-        if (cmd.type === 'ifLeft') offset = -1;
-        else if (cmd.type === 'ifRight') offset = 1;
-        
-        const conditionMet = isTileBlocked(offset);
+        let conditionMet = false;
+        if (cmd.type === 'if' && cmd.condition) {
+            conditionMet = evaluateCondition(cmd.condition);
+        } else {
+            let offset = 0;
+            if (cmd.type === 'ifLeft') offset = -1;
+            else if (cmd.type === 'ifRight') offset = 1;
+            conditionMet = isTileBlocked(offset);
+        }
+
         const branch = conditionMet ? (cmd.trueBranch || []) : (cmd.falseBranch || []);
         const res = await executeRecursive(branch, onStep, depth + 1, runToken);
         if (res === 'break') return 'break'; // Propagate break out of IF
