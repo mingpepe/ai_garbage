@@ -69,6 +69,7 @@ export interface Level {
   start: Position;
   goal: { x: number; y: number };
   allowedCommands: CommandType[];
+  fogRadius?: number;
   obstacles: [number, number][];
   waterTiles?: { x: number; y: number }[];
   boats?: { x: number; y: number }[];

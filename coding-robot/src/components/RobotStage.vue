@@ -39,6 +39,27 @@ const gridSize = computed(() => store.currentLevel.gridSize);
 const cellWidth = computed(() => 100 / gridSize.value[0]);
 const cellHeight = computed(() => 100 / gridSize.value[1]);
 
+const fogStyle = computed(() => {
+  const fogRadius = store.currentLevel.fogRadius;
+  if (!fogRadius || fogRadius <= 0 || store.isFogDisabled) {
+    return { display: 'none' };
+  }
+  const { x, y } = store.robotPos;
+  // Use exact center of the robot
+  const centerX = (x + 0.5) * cellWidth.value;
+  const centerY = (y + 0.5) * cellHeight.value;
+  
+  // Calculate radius in percentage (average of width/height scales)
+  const avgRadius = fogRadius * ((cellWidth.value + cellHeight.value) / 2);
+  
+  return {
+    maskImage: `radial-gradient(circle at ${centerX}% ${centerY}%, transparent ${Math.max(avgRadius - 5, 0)}%, black ${avgRadius + 15}%)`,
+    WebkitMaskImage: `radial-gradient(circle at ${centerX}% ${centerY}%, transparent ${Math.max(avgRadius - 5, 0)}%, black ${avgRadius + 15}%)`,
+    backgroundColor: '#020617', // Very dark slate/black
+    zIndex: 100
+  };
+});
+
 const robotStyle = computed(() => {
   const { x, y, dir } = store.robotPos;
   return {
@@ -329,6 +350,12 @@ onMounted(() => {
         </div>
       </div>
     </div>
+    
+    <!-- Fog of War Overlay -->
+    <div 
+      class="absolute inset-0 pointer-events-none transition-all duration-300 ease-linear"
+      :style="fogStyle"
+    ></div>
   </div>
 </template>
 

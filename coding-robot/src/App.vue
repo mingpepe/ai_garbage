@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from 'vue';
 import ControlPanel from './components/ControlPanel.vue';
 import RobotStage from './components/RobotStage.vue';
 import CommandPalette from './components/CommandPalette.vue';
@@ -8,6 +9,38 @@ import { useGameStore } from './stores/game';
 import { Settings } from 'lucide-vue-next';
 
 const store = useGameStore();
+
+const secretCode = 'nofog';
+let currentInput = '';
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    store.isFogDisabled = false;
+    currentInput = '';
+    return;
+  }
+  
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    currentInput += e.key.toLowerCase();
+    
+    if (currentInput.length > secretCode.length) {
+      currentInput = currentInput.slice(-secretCode.length);
+    }
+    
+    if (currentInput === secretCode) {
+      store.isFogDisabled = true;
+      currentInput = '';
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>

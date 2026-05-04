@@ -129,6 +129,12 @@ export const useGameStore = defineStore('game', () => {
     JSON.parse(localStorage.getItem('coding-robot-progress-v6') || '{}')
   );
 
+  const isFogDisabled = ref(false);
+
+  function toggleFog() {
+    isFogDisabled.value = !isFogDisabled.value;
+  }
+
   const isProgramLocked = computed(() => gameStatus.value.state === 'executing' || isStepRunning.value);
   const canStopProgram = computed(() => gameStatus.value.state === 'executing' || gameStatus.value.state === 'stepping');
 
@@ -996,6 +1002,7 @@ export const useGameStore = defineStore('game', () => {
     hasBoat,
     hasPlane,
     openDoors,
+    isFogDisabled,
     isUnlocked,
     setLevel,
     enterEditor,
@@ -1008,7 +1015,8 @@ export const useGameStore = defineStore('game', () => {
     addCommandToTarget,
     removeCommand,
     updateLevel,
-    addLevel
+    addLevel,
+    toggleFog
   };
 });
 

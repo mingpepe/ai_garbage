@@ -269,6 +269,10 @@ function getPortal(x: number, y: number) {
                         <span class="text-[10px] font-black text-slate-500 uppercase ml-1">Height</span>
                         <input v-model.number="localLevel.gridSize[1]" type="number" class="input-editor py-2 px-2 text-[14px] text-center" />
                     </div>
+                    <div class="w-16 flex flex-col gap-1.5">
+                        <span class="text-[10px] font-black text-slate-500 uppercase ml-1" title="Set to 0 to disable">Fog R</span>
+                        <input v-model.number="localLevel.fogRadius" type="number" min="0" step="0.5" class="input-editor py-2 px-2 text-[14px] text-center bg-slate-800/80 text-robot-pink placeholder:text-robot-pink/30" placeholder="0" />
+                    </div>
                 </div>
                 
                 <!-- Allowed Commands -->
