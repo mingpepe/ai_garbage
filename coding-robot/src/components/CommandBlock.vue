@@ -15,7 +15,7 @@ const store = useGameStore();
 
 const isActive = computed(() => {
     if (!store.activeCommandId) return false;
-    return store.activeCommandId === props.command.id || store.activeCommandId.startsWith(`${props.command.id}-at-`);
+    return store.activeCommandId.split('-at-').includes(props.command.id);
 });
 
 function updateLoopCount(val: number) {
@@ -37,6 +37,10 @@ function removeLogic() {
         props.command.condition = props.command.condition.left;
     }
 }
+
+function toggleBreakpoint() {
+    props.command.breakpoint = !props.command.breakpoint;
+}
 </script>
 
 <template>
@@ -49,12 +53,13 @@ function removeLogic() {
       command.type.startsWith('callFunc') ? 'bg-cyan-500/20 p-2 border border-cyan-400/40' :
       command.type === 'break' ? 'bg-rose-500/20 p-2 border border-rose-500/40' :
       'bg-slate-700 p-2.5 shadow-md border border-slate-600',
-      store.isProgramLocked ? 'pointer-events-none' : ''
+      store.isProgramLocked && store.gameStatus.state !== 'stepping' ? 'pointer-events-none' : ''
     ]"
   >
     <div class="flex items-center gap-3">
       <div 
-        class="w-8 h-8 rounded flex items-center justify-center text-white shrink-0 shadow-sm"
+        @click="toggleBreakpoint"
+        class="w-8 h-8 rounded flex items-center justify-center text-white shrink-0 shadow-sm relative cursor-pointer hover:brightness-110 active:scale-95 transition-all"
         :class="{
           'bg-robot-blue': command.type === 'forward',
           'bg-robot-purple': command.type === 'left' || command.type === 'right' || command.type === 'turnAround',
@@ -65,6 +70,9 @@ function removeLogic() {
           'bg-rose-600': command.type === 'break'
         }"
       >
+        <!-- Breakpoint indicator -->
+        <div v-if="command.breakpoint" class="absolute -top-1 -left-1 w-3 h-3 bg-rose-500 border-2 border-white rounded-full z-20 shadow-sm animate-pulse"></div>
+
         <MoveUp v-if="command.type === 'forward'" :size="16" />
         <RotateCcw v-if="command.type === 'left'" :size="16" />
         <RotateCw v-if="command.type === 'right'" :size="16" />

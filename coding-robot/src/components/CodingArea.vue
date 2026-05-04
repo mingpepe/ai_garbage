@@ -96,14 +96,17 @@ function toggleFunc(id: 'A' | 'B') {
                     </button>
                 </template>
                 <template v-else>
-                    <button @click.stop="store.runSingleStep" :disabled="store.commandQueue.length === 0 || store.isStepRunning" class="px-4 py-1.5 bg-robot-blue text-white font-black rounded-xl shadow-md hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm transition-all">
+                    <button @click.stop="store.runSingleStep" :disabled="store.commandQueue.length === 0 || store.isStepRunning" class="px-4 py-1.5 bg-robot-blue text-white font-black rounded-xl shadow-md hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm transition-all" title="Step Into">
                         <SkipForward :size="15" fill="currentColor" /> Step
+                    </button>
+                    <button @click.stop="() => { console.log('Over Button clicked in template'); store.runOverStep(); }" :disabled="store.commandQueue.length === 0 || store.isStepRunning" class="px-4 py-1.5 bg-cyan-600 text-white font-black rounded-xl shadow-md hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm transition-all" title="Step Over Function">
+                        <SkipForward :size="15" fill="currentColor" class="rotate-90" /> Over
                     </button>
                     <button v-if="store.gameStatus.state === 'stepping'" @click.stop="store.stopExecution" class="px-4 py-1.5 bg-rose-600 text-white font-black rounded-xl shadow-md hover:scale-105 flex items-center gap-2 text-sm transition-all">
                         <Square :size="14" fill="currentColor" /> Stop
                     </button>
-                    <button v-else @click.stop="store.runCommands" :disabled="store.commandQueue.length === 0" class="px-5 py-1.5 bg-robot-green text-white font-black rounded-xl shadow-md hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm transition-all">
-                        <Play :size="16" fill="currentColor" /> Run
+                    <button @click.stop="store.runCommands" :disabled="store.commandQueue.length === 0" class="px-5 py-1.5 bg-robot-green text-white font-black rounded-xl shadow-md hover:scale-105 disabled:opacity-50 flex items-center gap-2 text-sm transition-all">
+                        <Play :size="16" fill="currentColor" /> {{ store.gameStatus.state === 'stepping' ? 'Continue' : 'Run' }}
                     </button>
                 </template>
             </div>
@@ -135,7 +138,13 @@ function toggleFunc(id: 'A' | 'B') {
     <!-- Functions Areas -->
     <div class="flex flex-col gap-2 shrink-0">
         <!-- Function A -->
-        <div class="bg-cyan-950/20 rounded-2xl border-2 transition-all duration-300" :class="expandedFunc === 'A' ? 'border-cyan-500 shadow-sm' : 'border-slate-800 opacity-60'">
+        <div 
+            class="bg-cyan-950/20 rounded-2xl border-2 transition-all duration-300" 
+            :class="[
+                expandedFunc === 'A' ? 'border-cyan-500 shadow-sm' : 'border-slate-800 opacity-60',
+                store.activeFunction === 'A' ? 'ring-2 ring-yellow-400 border-yellow-400' : ''
+            ]"
+        >
             <button @click="toggleFunc('A')" class="w-full flex items-center justify-between p-2.5">
                 <h3 class="text-xs font-black flex items-center gap-2 text-cyan-500 uppercase">
                     <Code2 :size="14" /> Function A
@@ -158,7 +167,13 @@ function toggleFunc(id: 'A' | 'B') {
         </div>
 
         <!-- Function B -->
-        <div class="bg-indigo-950/20 rounded-2xl border-2 transition-all duration-300" :class="expandedFunc === 'B' ? 'border-indigo-500 shadow-sm' : 'border-slate-800 opacity-60'">
+        <div 
+            class="bg-indigo-950/20 rounded-2xl border-2 transition-all duration-300" 
+            :class="[
+                expandedFunc === 'B' ? 'border-indigo-500 shadow-sm' : 'border-slate-800 opacity-60',
+                store.activeFunction === 'B' ? 'ring-2 ring-yellow-400 border-yellow-400' : ''
+            ]"
+        >
             <button @click="toggleFunc('B')" class="w-full flex items-center justify-between p-2.5">
                 <h3 class="text-xs font-black flex items-center gap-2 text-indigo-500 uppercase">
                     <Code2 :size="14" /> Function B

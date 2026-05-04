@@ -28,6 +28,7 @@ export type Condition = SimpleCondition | LogicCondition;
 export interface Command {
   id: string;
   type: CommandType;
+  breakpoint?: boolean;
   value?: number; // count for loop
   condition?: Condition;
   subCommands?: Command[]; 
