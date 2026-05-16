@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useGameStore } from '../stores/game';
+import draggable from 'vuedraggable';
 import { 
     Download, Plus, Save, Bot, Zap, 
     Star, Key, Lock, Hammer, Eraser, Trash2,
-    ChevronLeft, Waves, Sailboat, Plane, Box, Target, Layers, CircleDashed, Info, Radio, Mountain, LayoutGrid, ToggleLeft
+    ChevronLeft, Waves, Sailboat, Plane, Box, Target, Layers, CircleDashed, Info, Radio, Mountain, LayoutGrid, ToggleLeft, GripVertical
 } from 'lucide-vue-next';
 import type { Level, CommandType } from '../types';
 import { ALL_COMMAND_TYPES } from '../types';
@@ -240,13 +241,34 @@ function getPortal(x: number, y: number) {
                 <h3 class="font-black text-slate-500 text-[11px] uppercase mb-3 tracking-widest flex items-center gap-2">
                    <LayoutGrid :size="12" /> Level List
                 </h3>
-                <div class="flex flex-col gap-1.5">
-                    <button v-for="(lvl, id) in store.allLevels" :key="id" @click="selectLevel(id)"
-                        class="w-full text-left p-3 rounded-xl font-black text-[13px] transition-all border-2"
-                        :class="editId === id ? 'bg-robot-purple text-white border-robot-purple shadow-md' : 'bg-slate-800 border-transparent hover:border-slate-700 text-slate-400'">
-                        {{ lvl.name }}
-                    </button>
-                </div>
+                <draggable 
+                    :list="Object.keys(store.allLevels)"
+                    item-key="toString"
+                    class="flex flex-col gap-1.5"
+                    handle=".drag-handle"
+                    @change="(e: any) => {
+                        if (e.moved) {
+                            const keys = Object.keys(store.allLevels);
+                            const [movedKey] = keys.splice(e.moved.oldIndex, 1);
+                            keys.splice(e.moved.newIndex, 0, movedKey);
+                            const newAllLevels: Record<string, Level> = {};
+                            keys.forEach(k => { newAllLevels[k] = store.allLevels[k]; });
+                            store.allLevels = newAllLevels;
+                        }
+                    }"
+                >
+                    <template #item="{ element: id }">
+                        <div 
+                            @click="selectLevel(id)"
+                            class="group w-full text-left p-3 rounded-xl font-black text-[13px] transition-all border-2 flex items-center gap-2 cursor-pointer"
+                            :class="editId === id ? 'bg-robot-purple text-white border-robot-purple shadow-md' : 'bg-slate-800 border-transparent hover:border-slate-700 text-slate-400'">
+                            <div class="drag-handle p-1 -ml-1 hover:bg-white/10 rounded cursor-grab active:cursor-grabbing">
+                                <GripVertical :size="14" class="opacity-50" />
+                            </div>
+                            <span class="flex-1 truncate">{{ store.allLevels[id].name }}</span>
+                        </div>
+                    </template>
+                </draggable>
             </div>
 
             <!-- Metadata Editing -->
@@ -268,6 +290,22 @@ function getPortal(x: number, y: number) {
                     <div class="w-16 flex flex-col gap-1.5">
                         <span class="text-[10px] font-black text-slate-500 uppercase ml-1">Height</span>
                         <input v-model.number="localLevel.gridSize[1]" type="number" class="input-editor py-2 px-2 text-[14px] text-center" />
+                    </div>
+                    <div class="w-16 flex flex-col gap-1.5">
+                        <span class="text-[10px] font-black text-slate-500 uppercase ml-1" title="Set to 0 to disable">Fog R</span>
+                        <input v-model.number="localLevel.fogRadius" type="number" min="0" step="0.5" class="input-editor py-2 px-2 text-[14px] text-center bg-slate-800/80 text-robot-pink placeholder:text-robot-pink/30" placeholder="0" />
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1.5">
+                    <span class="text-[10px] font-black text-slate-500 uppercase ml-1">Start Direction</span>
+                    <div class="grid grid-cols-4 gap-1.5">
+                        <button v-for="(dir, idx) in ['North', 'East', 'South', 'West']" :key="idx" 
+                            @click="localLevel.start.dir = idx"
+                            class="py-1.5 rounded-lg text-[10px] font-black border transition-all"
+                            :class="localLevel.start.dir === idx ? 'bg-robot-blue border-robot-blue text-white shadow-md' : 'bg-slate-800 border-slate-700 text-slate-500'">
+                            {{ dir }}
+                        </button>
                     </div>
                 </div>
                 
@@ -424,8 +462,9 @@ function getPortal(x: number, y: number) {
                                 {{ getPortal(x-1, y-1)?.id }}{{ getPortal(x-1, y-1)?.type }}
                             </div>
                             <Zap v-if="localLevel.goal.x === x-1 && localLevel.goal.y === y-1" :size="40" class="text-robot-green fill-robot-green" />
-                            <div v-if="localLevel.start.x === x-1 && localLevel.start.y === y-1" class="w-10 h-10 bg-robot-blue rounded-xl border-2 border-white flex items-center justify-center shadow-xl">
+                            <div v-if="localLevel.start.x === x-1 && localLevel.start.y === y-1" class="w-10 h-10 bg-robot-blue rounded-xl border-2 border-white flex items-center justify-center shadow-xl transition-transform" :style="{ transform: `rotate(${localLevel.start.dir * 90}deg)` }">
                                 <Bot :size="24" color="white" />
+                                <ChevronUp :size="12" class="absolute -top-3 text-white" />
                             </div>
                         </div>
                     </div>

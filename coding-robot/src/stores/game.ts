@@ -8,7 +8,10 @@ import gsap from 'gsap';
 type StepFrame = {
   commands: Command[];
   index: number;
-  kind?: 'loop' | 'while' | 'whileFrontClear';
+  kind?: 'loop' | 'while' | 'whileFrontClear' | 'func';
+  func?: 'A' | 'B';
+  path?: string;
+  isPeeking?: boolean;
   remaining?: number;
   iterations?: number;
 };
@@ -83,6 +86,7 @@ export const useGameStore = defineStore('game', () => {
   
   const gameStatus = ref<GameStatus>({ state: 'idle', message: '' });
   const activeCommandId = ref<string | null>(null);
+  const activeFunction = ref<'A' | 'B' | null>(null);
   const currentActiveTarget = ref<'main' | 'A' | 'B'>('main');
   const executionToken = ref(0);
   const stepStack = ref<StepFrame[]>([]);
@@ -129,6 +133,12 @@ export const useGameStore = defineStore('game', () => {
     JSON.parse(localStorage.getItem('coding-robot-progress-v6') || '{}')
   );
 
+  const isFogDisabled = ref(false);
+
+  function toggleFog() {
+    isFogDisabled.value = !isFogDisabled.value;
+  }
+
   const isProgramLocked = computed(() => gameStatus.value.state === 'executing' || isStepRunning.value);
   const canStopProgram = computed(() => gameStatus.value.state === 'executing' || gameStatus.value.state === 'stepping');
 
@@ -139,6 +149,14 @@ export const useGameStore = defineStore('game', () => {
     const prevId = `level_${num - 1}`;
     return levelProgress.value[prevId]?.completed === true;
   }
+
+  // Auto-update active function during stepping
+  watch(stepStack, (stack) => {
+    if (gameStatus.value.state === 'stepping') {
+        const funcFrame = [...stack].reverse().find(f => f.kind === 'func');
+        activeFunction.value = funcFrame?.func || null;
+    }
+  }, { deep: true });
 
   const blockCount = computed(() => 
     countBlocks(commandQueue.value) + 
@@ -190,6 +208,7 @@ export const useGameStore = defineStore('game', () => {
     
     gameStatus.value = { state: 'idle', message: '' };
     activeCommandId.value = null;
+    activeFunction.value = null;
     stepStack.value = [];
     isStepRunning.value = false;
     savedPositions.value = [];
@@ -253,38 +272,90 @@ export const useGameStore = defineStore('game', () => {
   }
 
   async function runCommands() {
-    if (isProgramLocked.value) return;
-    
-    const shouldPauseAfterReset = needsPreRunReset();
-    resetRobot();
-    const runToken = ++executionToken.value;
+    console.log('--- runCommands triggered ---');
+    if (gameStatus.value.state === 'executing' || isStepRunning.value) return;
 
-    if (shouldPauseAfterReset) {
-      gameStatus.value = { state: 'executing', message: 'Resetting position...' };
-      const resetComplete = await waitForRunToken(520, runToken);
-      if (!resetComplete) return;
-    }
+    // 1. If IDLE, reset and start fresh. If STEPPING, just resume.
+    const isResuming = gameStatus.value.state === 'stepping';
     
-    gameStatus.value = { state: 'executing', message: 'Starting robot...' };
-    
-    let totalPhysicalSteps = 0;
-    const result = await executeRecursive(commandQueue.value, (cmd) => {
-        if (executionToken.value !== runToken) return;
-        activeCommandId.value = cmd.id; // Correctly highlights the current block
-        const physicalTypes = ['forward', 'left', 'right', 'turnAround'];
-        if (physicalTypes.includes(cmd.type)) totalPhysicalSteps++;
-    }, 0, runToken);
-
-    if (executionToken.value !== runToken) return;
-
-    if (result !== 'failed' && checkWin()) {
-        gameStatus.value = { state: 'success', message: 'Success! Mission Accomplished!' };
-        updateProgress(currentLevelId.value);
-    } else if (gameStatus.value.state === 'executing') {
-        gameStatus.value = { state: 'failed', message: 'Target not reached.' };
+    if (!isResuming) {
+        console.log('Starting fresh run...');
+        const shouldPauseAfterReset = needsPreRunReset();
+        resetRobot();
+        executionToken.value++;
+        stepStack.value = [{ commands: commandQueue.value, index: 0 }];
+        
+        if (shouldPauseAfterReset) {
+            gameStatus.value = { state: 'executing', message: 'Resetting...' };
+            const resetComplete = await waitForRunToken(520, executionToken.value);
+            if (!resetComplete) return;
+        }
+    } else {
+        console.log('Resuming from stepping/breakpoint...');
+        // Increment token to cancel any pending stepping timeouts but don't reset robot
+        executionToken.value++;
     }
 
-    activeCommandId.value = null;
+    const runToken = executionToken.value;
+    gameStatus.value = { state: 'executing', message: isResuming ? 'Resuming...' : 'Running...' };
+
+    let firstStepAfterResume = isResuming;
+
+    while (gameStatus.value.state === 'executing' && executionToken.value === runToken) {
+        const result = getNextSteppableCommand();
+        if (!result) break;
+
+        const { cmd, path } = result;
+
+        // Breakpoint check: skip if we are resuming and this is the very first fetch
+        if (cmd.breakpoint && !firstStepAfterResume) {
+            console.log('Breakpoint hit at:', path);
+            activeCommandId.value = path;
+            gameStatus.value = { state: 'stepping', message: 'Breakpoint hit.' };
+            
+            // Revert state so this command is executed next time
+            const frame = stepStack.value[stepStack.value.length - 1];
+            if (frame.isPeeking) frame.isPeeking = false;
+            else frame.index--;
+            return;
+        }
+        firstStepAfterResume = false;
+
+        activeCommandId.value = path;
+        
+        const isPhysical = [
+            'forward', 'left', 'right', 'turnAround', 
+            'markPosition', 'returnToMark'
+        ].includes(cmd.type);
+
+        if (isPhysical) {
+            const success = await executeSingleCommand(cmd, runToken);
+            if (executionToken.value !== runToken) return;
+            if (!success) {
+                stepStack.value = [];
+                return;
+            }
+            const interactionsComplete = await handleCellInteractions(runToken);
+            if (!interactionsComplete) return;
+        }
+
+        if (checkWin()) {
+            activeCommandId.value = null;
+            activeFunction.value = null;
+            stepStack.value = [];
+            gameStatus.value = { state: 'success', message: 'Success! Mission Accomplished!' };
+            updateProgress(currentLevelId.value);
+            return;
+        }
+    }
+
+    if (executionToken.value === runToken) {
+        if (gameStatus.value.state === 'executing') {
+            gameStatus.value = { state: 'failed', message: 'Target not reached.' };
+        }
+        activeCommandId.value = null;
+        activeFunction.value = null;
+    }
   }
 
   function stopExecution() {
@@ -292,6 +363,7 @@ export const useGameStore = defineStore('game', () => {
     executionToken.value++;
     gsap.killTweensOf(robotPos.value);
     activeCommandId.value = null;
+    activeFunction.value = null;
     stepStack.value = [];
     isStepRunning.value = false;
     gameStatus.value = { state: 'stopped', message: 'Execution stopped.' };
@@ -301,36 +373,55 @@ export const useGameStore = defineStore('game', () => {
     if (gameStatus.value.state !== 'stepping') return;
     executionToken.value++;
     activeCommandId.value = null;
+    activeFunction.value = null;
     stepStack.value = [];
     isStepRunning.value = false;
     gameStatus.value = { state: 'idle', message: '' };
   }
 
   async function runSingleStep() {
+    console.log('--- runSingleStep triggered ---');
     if (gameStatus.value.state === 'executing' || isStepRunning.value) return;
     if (commandQueue.value.length === 0) return;
 
+    // 1. If IDLE, we just highlight the first command
     if (gameStatus.value.state !== 'stepping') {
       const shouldPauseAfterReset = needsPreRunReset();
       resetRobot();
       executionToken.value++;
       stepStack.value = [{ commands: commandQueue.value, index: 0 }];
-      gameStatus.value = { state: 'stepping', message: shouldPauseAfterReset ? 'Resetting...' : 'Step mode: Ready.' };
+      gameStatus.value = { state: 'stepping', message: 'Step mode: Ready.' };
 
       if (shouldPauseAfterReset) {
         isStepRunning.value = true;
         const resetComplete = await waitForRunToken(520, executionToken.value);
         isStepRunning.value = false;
         if (!resetComplete) return;
-        gameStatus.value = { state: 'stepping', message: 'Step mode: Ready.' };
       }
+
+      // Peek the first command to show the yellow frame
+      const first = getNextSteppableCommand();
+      if (first) {
+          console.log('Initial peek for highlighting:', first.path);
+          activeCommandId.value = first.path;
+          
+          // Revert state so this command is executed on the NEXT click
+          const frame = stepStack.value[stepStack.value.length - 1];
+          if (frame.isPeeking) frame.isPeeking = false;
+          else frame.index--;
+      }
+      return; 
     }
 
-    const runToken = executionToken.value;
-    const cmd = getNextSteppableCommand();
+    await doOneSteppingStep(executionToken.value);
+  }
 
-    if (!cmd) {
+  async function doOneSteppingStep(runToken: number) {
+    const result = getNextSteppableCommand();
+
+    if (!result) {
       activeCommandId.value = null;
+      activeFunction.value = null;
       stepStack.value = [];
       gameStatus.value = checkWin()
         ? { state: 'success', message: 'Success! Mission Accomplished!' }
@@ -339,23 +430,33 @@ export const useGameStore = defineStore('game', () => {
       return;
     }
 
-    isStepRunning.value = true;
-    activeCommandId.value = cmd.id;
-    const success = await executeSingleCommand(cmd, runToken);
-    isStepRunning.value = false;
+    const { cmd, path } = result;
+    activeCommandId.value = path;
+    
+    const isPhysical = [
+        'forward', 'left', 'right', 'turnAround', 
+        'markPosition', 'returnToMark'
+    ].includes(cmd.type);
 
-    if (executionToken.value !== runToken) return;
+    if (isPhysical) {
+        isStepRunning.value = true;
+        const success = await executeSingleCommand(cmd, runToken);
+        isStepRunning.value = false;
 
-    if (!success) {
-      stepStack.value = [];
-      return;
+        if (executionToken.value !== runToken) return;
+
+        if (!success) {
+            stepStack.value = [];
+            return;
+        }
+
+        const interactionsComplete = await handleCellInteractions(runToken);
+        if (!interactionsComplete) return;
     }
-
-    const interactionsComplete = await handleCellInteractions(runToken);
-    if (!interactionsComplete) return;
 
     if (checkWin()) {
       activeCommandId.value = null;
+      activeFunction.value = null;
       stepStack.value = [];
       gameStatus.value = { state: 'success', message: 'Success! Mission Accomplished!' };
       updateProgress(currentLevelId.value);
@@ -365,7 +466,217 @@ export const useGameStore = defineStore('game', () => {
     gameStatus.value = { state: 'stepping', message: 'Step complete.' };
   }
 
-  function getNextSteppableCommand(): Command | null {
+  async function runOverStep() {
+    console.log('--- runOverStep triggered ---');
+    if (gameStatus.value.state === 'executing' || isStepRunning.value) {
+        console.log('Blocked: state is executing or step is already running', { state: gameStatus.value.state, isStepRunning: isStepRunning.value });
+        return;
+    }
+    if (commandQueue.value.length === 0) {
+        console.log('Blocked: commandQueue is empty');
+        return;
+    }
+
+    // 1. Initialize stepping if not started
+    if (gameStatus.value.state !== 'stepping') {
+      console.log('Initializing stepping mode...');
+      const shouldPauseAfterReset = needsPreRunReset();
+      resetRobot();
+      executionToken.value++;
+      stepStack.value = [{ commands: commandQueue.value, index: 0 }];
+      gameStatus.value = { state: 'stepping', message: 'Step mode: Ready.' };
+
+      if (shouldPauseAfterReset) {
+        isStepRunning.value = true;
+        const resetComplete = await waitForRunToken(520, executionToken.value);
+        isStepRunning.value = false;
+        if (!resetComplete) {
+            console.log('Reset failed or interrupted');
+            return;
+        }
+      }
+
+      // Peek the first command to show the yellow frame
+      const first = getNextSteppableCommand();
+      if (first) {
+          activeCommandId.value = first.path;
+          const frame = stepStack.value[stepStack.value.length - 1];
+          if (frame && !frame.isPeeking) frame.index--; 
+          else if (frame && frame.isPeeking) frame.isPeeking = false;
+      }
+      return; 
+    }
+
+    const runToken = executionToken.value;
+    console.log('Current runToken:', runToken);
+    
+    // 2. Peek current frame for function calls
+    let frame = stepStack.value[stepStack.value.length - 1];
+    while (frame && frame.index >= frame.commands.length) {
+        console.log('Popping finished frame');
+        stepStack.value.pop();
+        frame = stepStack.value[stepStack.value.length - 1];
+    }
+
+    if (!frame) {
+        console.log('No frame found after cleanup, falling back to doOneSteppingStep');
+        await doOneSteppingStep(runToken);
+        return;
+    }
+
+    const cmd = frame.commands[frame.index];
+    console.log('Next command to evaluate:', cmd?.type, 'at index', frame.index);
+    const isFunction = cmd.type === 'callFuncA' || cmd.type === 'callFuncB';
+
+    // 3. Handle Step Over Function
+    if (isFunction) {
+        console.log('Detected Function Call - Executing Step Over');
+        isStepRunning.value = true;
+        frame.index++; // Advance past the function call
+        frame.isPeeking = false;
+        const currentPath = frame.path ? `${frame.path}-at-${cmd.id}` : cmd.id;
+        activeCommandId.value = currentPath;
+
+        const prevFunc = activeFunction.value;
+        activeFunction.value = cmd.type === 'callFuncA' ? 'A' : 'B';
+        const queue = cmd.type === 'callFuncA' ? functionAQueue.value : functionBQueue.value;
+
+        console.log('Running recursive execution for function:', activeFunction.value);
+        const result = await executeRecursive(queue, (c, path) => {
+            if (executionToken.value !== runToken) return;
+            activeCommandId.value = path;
+        }, 0, runToken, currentPath);
+
+        activeFunction.value = prevFunc;
+        isStepRunning.value = false;
+
+        if (executionToken.value !== runToken) {
+            console.log('Token mismatch after recursive execution');
+            return;
+        }
+
+        if (result === 'breakpoint') {
+            console.log('Breakpoint hit inside function during Step Over');
+            // Recursive interrupted, we stay in stepping mode
+            return;
+        }
+
+        if (result === 'failed') {
+            console.log('Recursive execution failed');
+            stepStack.value = [];
+            return;
+        }
+
+        const interactionsComplete = await handleCellInteractions(runToken);
+        if (!interactionsComplete) {
+            console.log('Interactions failed after function execution');
+            return;
+        }
+
+        if (checkWin()) {
+            console.log('Win detected after function execution');
+            activeCommandId.value = null;
+            activeFunction.value = null;
+            stepStack.value = [];
+            gameStatus.value = { state: 'success', message: 'Success! Mission Accomplished!' };
+            updateProgress(currentLevelId.value);
+            return;
+        }
+
+        // After step over, we should highlight the NEXT command
+        console.log('Scanning for next command to highlight...');
+        const nextResult = getNextSteppableCommand();
+        if (nextResult) {
+            console.log('Highlighting next command:', nextResult.path);
+            activeCommandId.value = nextResult.path;
+            const nextFrame = stepStack.value[stepStack.value.length - 1];
+            if (nextFrame && !nextFrame.isPeeking) {
+                console.log('Adjusting frame index for next highlight');
+                nextFrame.index--; 
+            } else if (nextFrame && nextFrame.isPeeking) {
+                console.log('Resetting peek state for container highlight');
+                nextFrame.isPeeking = false;
+            }
+        } else {
+            console.log('No next command found');
+            activeCommandId.value = null;
+        }
+
+        gameStatus.value = { state: 'stepping', message: 'Step over complete.' };
+    } else {
+        console.log('Non-function command, falling back to doOneSteppingStep');
+        await doOneSteppingStep(runToken);
+    }
+  }
+
+  function evaluateCondition(cond?: Condition): boolean {
+    if (!cond) return false;
+    if (cond.type === 'simple') {
+      const result = checkSimpleCondition(cond);
+      return cond.not ? !result : result;
+    } else if (cond.type === 'and') {
+      return evaluateCondition(cond.left) && evaluateCondition(cond.right);
+    } else if (cond.type === 'or') {
+      return evaluateCondition(cond.left) || evaluateCondition(cond.right);
+    }
+    return false;
+  }
+
+  function checkSimpleCondition(cond: SimpleCondition): boolean {
+    const rx = Math.round(robotPos.value.x);
+    const ry = Math.round(robotPos.value.y);
+
+    if (cond.subject === 'robot') {
+      switch (cond.target) {
+        case 'boat': return hasBoat.value;
+        case 'plane': return hasPlane.value;
+        case 'key': return hasKey.value;
+        case 'star': return collectedCount.value > 0;
+        default: return false;
+      }
+    }
+
+    let targetX = rx;
+    let targetY = ry;
+    
+    if (cond.subject !== 'here') {
+      let offset = 0;
+      if (cond.subject === 'left') offset = -1;
+      else if (cond.subject === 'right') offset = 1;
+      else if (cond.subject === 'back') offset = 2;
+      const next = getNextPos(robotPos.value, offset);
+      targetX = next.x;
+      targetY = next.y;
+    }
+
+    switch (cond.target) {
+      case 'wall': return isOutOfBounds(targetX, targetY) || isObstacle(targetX, targetY);
+      case 'boundary': return isOutOfBounds(targetX, targetY);
+      case 'water': return isWater(targetX, targetY);
+      case 'rock': return !!getRockAt(targetX, targetY);
+      case 'goal': return targetX === currentLevel.value.goal.x && targetY === currentLevel.value.goal.y;
+      case 'star': 
+        return currentLevel.value.collectibles?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedIds.value.has(`coll-${idx}`)
+        ) || false;
+      case 'key':
+        return currentLevel.value.keys?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedKeyIds.value.has(`key-${idx}`)
+        ) || false;
+      case 'boat':
+        return currentLevel.value.boats?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedBoatIds.value.has(`boat-${idx}`)
+        ) || false;
+      case 'plane':
+        return currentLevel.value.planes?.some((item, idx) => 
+          item.x === targetX && item.y === targetY && !collectedPlaneIds.value.has(`plane-${idx}`)
+        ) || false;
+      case 't-door': return isTriggerDoorClosed(targetX, targetY) || isRegularDoorClosed(targetX, targetY);
+      default: return false;
+    }
+  }
+
+  function getNextSteppableCommand(): { cmd: Command, path: string } | null {
     while (stepStack.value.length > 0) {
       if (stepStack.value.length > 500) {
         gameStatus.value = { state: 'failed', message: 'Stack overflow.' };
@@ -373,25 +684,13 @@ export const useGameStore = defineStore('game', () => {
         return null;
       }
 
-
       const frame = stepStack.value[stepStack.value.length - 1];
 
       if (frame.index >= frame.commands.length) {
         if (frame.kind === 'loop' && (frame.remaining || 0) > 1) {
           frame.remaining = (frame.remaining || 0) - 1;
           frame.index = 0;
-          continue;
-        }
-
-        if (frame.kind === 'while' && !checkWin() && (frame.iterations || 0) < 200 && frame.commands.length > 0) {
-          frame.iterations = (frame.iterations || 0) + 1;
-          frame.index = 0;
-          continue;
-        }
-
-        if (frame.kind === 'whileFrontClear' && !isFrontBlocked() && (frame.iterations || 0) < 200 && frame.commands.length > 0) {
-          frame.iterations = (frame.iterations || 0) + 1;
-          frame.index = 0;
+          frame.isPeeking = false;
           continue;
         }
 
@@ -399,13 +698,27 @@ export const useGameStore = defineStore('game', () => {
         continue;
       }
 
-      const cmd = frame.commands[frame.index++];
-      activeCommandId.value = cmd.id;
+      const cmd = frame.commands[frame.index];
+      const currentPath = frame.path ? `${frame.path}-at-${cmd.id}` : cmd.id;
+      
+      const isContainer = [
+          'loop', 'while', 'whileNotGoal', 'whileFrontClear', 
+          'if', 'ifLeft', 'ifRight', 'callFuncA', 'callFuncB'
+      ].includes(cmd.type);
+
+      if (isContainer && !frame.isPeeking) {
+          frame.isPeeking = true;
+          return { cmd, path: currentPath };
+      }
+
+      // If we are here, it's either physical or we've already peeked the container.
+      frame.index++;
+      frame.isPeeking = false;
 
       if (cmd.type === 'break') {
         while (stepStack.value.length > 0) {
           const popped = stepStack.value.pop();
-          if (popped?.kind) break; // Exit the loop/while frame
+          if (popped?.kind) break;
         }
         continue;
       }
@@ -413,104 +726,140 @@ export const useGameStore = defineStore('game', () => {
       if (cmd.type === 'loop') {
         const count = cmd.value || 2;
         if (count > 0 && (cmd.subCommands?.length || 0) > 0) {
-          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'loop', remaining: count });
+          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'loop', remaining: count, path: currentPath });
         }
         continue;
       }
 
-      if (cmd.type === 'whileNotGoal') {
-        if (!checkWin() && (cmd.subCommands?.length || 0) > 0) {
-          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'while', iterations: 1 });
-        }
-        continue;
-      }
+      if (cmd.type === 'while' || cmd.type === 'whileNotGoal' || cmd.type === 'whileFrontClear') {
+        let shouldContinue = false;
+        if (cmd.type === 'while') shouldContinue = evaluateCondition(cmd.condition);
+        else if (cmd.type === 'whileNotGoal') shouldContinue = !checkWin();
+        else if (cmd.type === 'whileFrontClear') shouldContinue = !isFrontBlocked();
 
-      if (cmd.type === 'whileFrontClear') {
-        if (!isFrontBlocked() && (cmd.subCommands?.length || 0) > 0) {
-          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, kind: 'whileFrontClear', iterations: 1 });
+        if (shouldContinue && (cmd.subCommands?.length || 0) > 0) {
+          frame.index--; // Re-run this while block after subcommands
+          stepStack.value.push({ commands: cmd.subCommands || [], index: 0, path: currentPath });
         }
         continue;
       }
 
       if (cmd.type === 'if' || cmd.type === 'ifLeft' || cmd.type === 'ifRight') {
-        let offset = 0;
-        if (cmd.type === 'ifLeft') offset = -1;
-        else if (cmd.type === 'ifRight') offset = 1;
+        let conditionMet = false;
+        if (cmd.type === 'if' && cmd.condition) {
+            conditionMet = evaluateCondition(cmd.condition);
+        } else {
+            let offset = 0;
+            if (cmd.type === 'ifLeft') offset = -1;
+            else if (cmd.type === 'ifRight') offset = 1;
+            conditionMet = isTileBlocked(offset);
+        }
         
-        const conditionMet = isTileBlocked(offset);
         const branch = conditionMet ? (cmd.trueBranch || []) : (cmd.falseBranch || []);
         if (branch.length > 0) {
-          stepStack.value.push({ commands: branch, index: 0 });
+          stepStack.value.push({ commands: branch, index: 0, path: currentPath });
         }
         continue;
       }
 
       if (cmd.type === 'callFuncA') {
-        if (functionAQueue.value.length > 0) stepStack.value.push({ commands: functionAQueue.value, index: 0 });
+        if (functionAQueue.value.length > 0) stepStack.value.push({ commands: functionAQueue.value, index: 0, kind: 'func', func: 'A', path: currentPath });
         continue;
       }
 
       if (cmd.type === 'callFuncB') {
-        if (functionBQueue.value.length > 0) stepStack.value.push({ commands: functionBQueue.value, index: 0 });
+        if (functionBQueue.value.length > 0) stepStack.value.push({ commands: functionBQueue.value, index: 0, kind: 'func', func: 'B', path: currentPath });
         continue;
       }
 
-      return cmd;
+      return { cmd, path: currentPath };
     }
 
     return null;
   }
 
-  async function executeRecursive(commands: Command[], onStep: (cmd: Command) => void, depth: number = 0, runToken: number = executionToken.value): Promise<'ok' | 'failed' | 'break'> {
+  async function executeRecursive(commands: Command[], onStep: (cmd: Command, path: string) => void, depth: number = 0, runToken: number = executionToken.value, parentPath: string = ''): Promise<'ok' | 'failed' | 'break' | 'breakpoint'> {
     if (executionToken.value !== runToken) return 'failed';
     if (depth > 500) return 'failed'; 
     for (const cmd of commands) {
       if (executionToken.value !== runToken) return 'failed';
       if (gameStatus.value.state === 'failed') return 'failed';
-      onStep(cmd);
+      
+      const currentPath = parentPath ? `${parentPath}-at-${cmd.id}` : cmd.id;
+
+      // Breakpoint check: Stop BEFORE executing
+      if (cmd.breakpoint && gameStatus.value.state === 'executing') {
+          console.log('Breakpoint hit at:', currentPath);
+          activeCommandId.value = currentPath;
+          gameStatus.value = { state: 'stepping', message: 'Breakpoint hit.' };
+          
+          // Prepare the step stack so user can continue from here
+          // We need to find where we are. This is tricky for recursive.
+          // But wait, if we switch to 'stepping', the runCommands loop will finish.
+          // We need to initialize the step stack with the current state.
+          // This requires a bit more work to "pause" and "resume" recursive execution.
+          return 'breakpoint';
+      }
+
+      onStep(cmd, currentPath);
       
       if (cmd.type === 'break') return 'break';
 
       if (cmd.type === 'loop') {
         const count = cmd.value || 2;
         for (let i = 0; i < count; i++) {
-          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken);
+          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken, currentPath);
           if (res === 'break') break;
+          if (res === 'breakpoint') return 'breakpoint';
           if (res === 'failed') return 'failed';
         }
-      } else if (cmd.type === 'whileNotGoal') {
+      } else if (cmd.type === 'while' || cmd.type === 'whileNotGoal' || cmd.type === 'whileFrontClear') {
         let iterations = 0;
-        while (!checkWin() && iterations < 200 && executionToken.value === runToken) { 
-          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken);
+        let shouldContinue = true;
+        while (shouldContinue && iterations < 200 && executionToken.value === runToken) { 
+          if (cmd.type === 'while') shouldContinue = evaluateCondition(cmd.condition);
+          else if (cmd.type === 'whileNotGoal') shouldContinue = !checkWin();
+          else if (cmd.type === 'whileFrontClear') shouldContinue = !isFrontBlocked();
+          
+          if (!shouldContinue) break;
+
+          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken, currentPath);
           if (res === 'break') break;
-          if (res === 'failed') return 'failed';
-          iterations++;
-        }
-      } else if (cmd.type === 'whileFrontClear') {
-        let iterations = 0;
-        while (!isFrontBlocked() && iterations < 200 && executionToken.value === runToken) {
-          const res = await executeRecursive(cmd.subCommands || [], onStep, depth + 1, runToken);
-          if (res === 'break') break;
+          if (res === 'breakpoint') return 'breakpoint';
           if (res === 'failed') return 'failed';
           iterations++;
         }
       } else if (cmd.type === 'if' || cmd.type === 'ifLeft' || cmd.type === 'ifRight') {
-        let offset = 0;
-        if (cmd.type === 'ifLeft') offset = -1;
-        else if (cmd.type === 'ifRight') offset = 1;
-        
-        const conditionMet = isTileBlocked(offset);
+        let conditionMet = false;
+        if (cmd.type === 'if' && cmd.condition) {
+            conditionMet = evaluateCondition(cmd.condition);
+        } else {
+            let offset = 0;
+            if (cmd.type === 'ifLeft') offset = -1;
+            else if (cmd.type === 'ifRight') offset = 1;
+            conditionMet = isTileBlocked(offset);
+        }
+
         const branch = conditionMet ? (cmd.trueBranch || []) : (cmd.falseBranch || []);
-        const res = await executeRecursive(branch, onStep, depth + 1, runToken);
+        const res = await executeRecursive(branch, onStep, depth + 1, runToken, currentPath);
         if (res === 'break') return 'break'; // Propagate break out of IF
+        if (res === 'breakpoint') return 'breakpoint';
         if (res === 'failed') return 'failed';
       } else if (cmd.type === 'callFuncA') {
-        const res = await executeRecursive(functionAQueue.value, onStep, depth + 1, runToken);
+        const prevFunc = activeFunction.value;
+        activeFunction.value = 'A';
+        const res = await executeRecursive(functionAQueue.value, onStep, depth + 1, runToken, currentPath);
+        activeFunction.value = prevFunc;
         if (res === 'break') return 'break';
+        if (res === 'breakpoint') return 'breakpoint';
         if (res === 'failed') return 'failed';
       } else if (cmd.type === 'callFuncB') {
-        const res = await executeRecursive(functionBQueue.value, onStep, depth + 1, runToken);
+        const prevFunc = activeFunction.value;
+        activeFunction.value = 'B';
+        const res = await executeRecursive(functionBQueue.value, onStep, depth + 1, runToken, currentPath);
+        activeFunction.value = prevFunc;
         if (res === 'break') return 'break';
+        if (res === 'breakpoint') return 'breakpoint';
         if (res === 'failed') return 'failed';
       } else {
         const res = await executeSingleCommand(cmd, runToken);
@@ -932,6 +1281,7 @@ export const useGameStore = defineStore('game', () => {
     hasBoat,
     hasPlane,
     openDoors,
+    isFogDisabled,
     isUnlocked,
     setLevel,
     enterEditor,
@@ -939,12 +1289,14 @@ export const useGameStore = defineStore('game', () => {
     resetRobot,
     runCommands,
     runSingleStep,
+    runOverStep,
     stopExecution,
     cancelStepping,
     addCommandToTarget,
     removeCommand,
     updateLevel,
-    addLevel
+    addLevel,
+    toggleFog
   };
 });
 

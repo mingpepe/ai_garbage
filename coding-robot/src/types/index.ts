@@ -1,16 +1,36 @@
-export type CommandType = 'forward' | 'left' | 'right' | 'turnAround' | 'loop' | 'if' | 'ifLeft' | 'ifRight' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
+export type CommandType = 'forward' | 'left' | 'right' | 'turnAround' | 'loop' | 'if' | 'ifLeft' | 'ifRight' | 'while' | 'whileNotGoal' | 'whileFrontClear' | 'markPosition' | 'returnToMark' | 'callFuncA' | 'callFuncB' | 'break';
 
 export const ALL_COMMAND_TYPES: CommandType[] = [
   'forward', 'left', 'right', 'turnAround',
-  'loop', 'whileNotGoal', 'whileFrontClear', 'if', 'ifLeft', 'ifRight',
+  'loop', 'while', 'if',
   'markPosition', 'returnToMark',
   'callFuncA', 'callFuncB', 'break'
 ];
 
+export type ConditionSubject = 'front' | 'left' | 'right' | 'back' | 'here' | 'robot';
+export type ConditionTarget = 'wall' | 'water' | 'rock' | 'goal' | 'star' | 'key' | 'boat' | 'plane' | 't-door' | 'boundary';
+
+export interface SimpleCondition {
+  type: 'simple';
+  subject: ConditionSubject;
+  not: boolean;
+  target: ConditionTarget;
+}
+
+export interface LogicCondition {
+  type: 'and' | 'or';
+  left: Condition;
+  right: Condition;
+}
+
+export type Condition = SimpleCondition | LogicCondition;
+
 export interface Command {
   id: string;
   type: CommandType;
+  breakpoint?: boolean;
   value?: number; // count for loop
+  condition?: Condition;
   subCommands?: Command[]; 
   trueBranch?: Command[];  
   falseBranch?: Command[]; 
@@ -50,6 +70,7 @@ export interface Level {
   start: Position;
   goal: { x: number; y: number };
   allowedCommands: CommandType[];
+  fogRadius?: number;
   obstacles: [number, number][];
   waterTiles?: { x: number; y: number }[];
   boats?: { x: number; y: number }[];

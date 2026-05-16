@@ -67,6 +67,7 @@ If you choose to edit `levels.json` directly, please follow this format:
 | `id` | `string` | Unique identifier (e.g., "level_1"). |
 | `name` | `string` | Level title. |
 | `gridSize` | `[width, height]` | Map grid size (recommended 5x5 ~ 12x12). |
+| `fogRadius` | `number` | Fog of War radius in cells. `0` to disable. |
 | `start` | `object` | Initial pos: `{"x": 0, "y": 4, "dir": 0}`. |
 | `goal` | `object` | Goal pos: `{"x": 0, "y": 0}`. |
 | `obstacles` | `[[x, y]]` | Array of static wall coordinates. |
@@ -86,6 +87,10 @@ If you choose to edit `levels.json` directly, please follow this format:
 ## 5. Design Tips
 1.  **Check for Softlocks**: Ensure the robot can't accidentally push a rock into a corner where it's no longer reachable if a button needs it.
 2.  **Color Coding**: Use the **Set ID** system to visually group related mechanisms for the player.
+3.  **Encourage Algorithms**: Design levels that are easier to solve with `While` and `If` rather than a long sequence of `Move Forward`.
+
+Enjoy creating your own logic challenges for RoboCode! 🤖🚀✨
+ted mechanisms for the player.
 3.  **Encourage Algorithms**: Design levels that are easier to solve with `While` and `If` rather than a long sequence of `Move Forward`.
 
 Enjoy creating your own logic challenges for RoboCode! 🤖🚀✨
