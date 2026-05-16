@@ -36,8 +36,31 @@ const App: React.FC = () => {
   const [completedLevels, setCompletedLevels] = useState<string[]>(INITIAL_PROGRESS.completedLevels);
   const [totalScore, setTotalScore] = useState<number>(INITIAL_PROGRESS.totalScore);
   const [isPerfect, setIsPerfect] = useState(false);
+  const [isEasyMode, setIsEasyMode] = useState(false);
+  const [inputBuffer, setInputBuffer] = useState('');
   const [hoveredCell, setHoveredCell] = useState<{ r: number, c: number } | null>(null);
   const [animatingCell, setAnimCell] = useState<{ r: number, c: number, type: 'pulse' | 'jelly' | 'hint' } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEasyMode(false);
+        return;
+      }
+      const char = e.key.toLowerCase();
+      if (/^[a-z]$/.test(char)) {
+        setInputBuffer(prev => {
+          const newBuffer = (prev + char).slice(-4);
+          if (newBuffer === 'easy') {
+            setIsEasyMode(true);
+          }
+          return newBuffer;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const activePalette = useMemo(() => {
     const usedIndices = new Set<number>();
@@ -47,8 +70,8 @@ const App: React.FC = () => {
       });
     });
     
-    // Sort and limit to 5
-    const sortedIndices = Array.from(usedIndices).sort((a, b) => a - b).slice(0, 5);
+    // Sort indices
+    const sortedIndices = Array.from(usedIndices).sort((a, b) => a - b);
     return sortedIndices.map(idx => ({
       index: idx,
       color: currentLevel.palette[idx]
@@ -221,12 +244,11 @@ const App: React.FC = () => {
                 Array(currentLevel.width).fill(0).map((_, c) => {
                 const isTemplate = isTemplateArea(r, c, currentLevel);
                 const mirror = getMirrorCell(r, c, currentLevel);
+                const mirrorOfHovered = hoveredCell ? getMirrorCell(hoveredCell.r, hoveredCell.c, currentLevel) : null;
                 
-                // Fixed highlight logic for all symmetry types
                 const shouldHighlight = hoveredCell && (
                     (hoveredCell.r === r && hoveredCell.c === c) ||
-                    (r === mirror.r && c === mirror.c && isTemplateArea(hoveredCell.r, hoveredCell.c, currentLevel) === false && getMirrorCell(hoveredCell.r, hoveredCell.c, currentLevel).r === r && getMirrorCell(hoveredCell.r, hoveredCell.c, currentLevel).c === c) ||
-                    (isTemplate && r === getMirrorCell(hoveredCell.r, hoveredCell.c, currentLevel).r && c === getMirrorCell(hoveredCell.r, hoveredCell.c, currentLevel).c)
+                    (isEasyMode && isTemplate && r === mirrorOfHovered?.r && c === mirrorOfHovered?.c)
                 );
 
                 const isPulse = animatingCell?.r === r && animatingCell?.c === c && animatingCell.type === 'pulse';
