@@ -3,8 +3,8 @@
     "id": "challenge_01",
     "name": "Simple move0",
     "gridSize": [
-      3,
-      3
+      8,
+      8
     ],
     "start": {
       "x": 0,
@@ -886,7 +886,7 @@
       ],
       [
         4,
-        2
+        8
       ],
       [
         4,
@@ -1032,7 +1032,7 @@
     ],
     "boats": [
       {
-        "x": 3,
+        "x": 0,
         "y": 5
       },
       {
@@ -1065,7 +1065,7 @@
       },
       {
         "x": 4,
-        "y": 8,
+        "y": 2,
         "keyRequired": true,
         "color": "yellow"
       }
@@ -1269,1070 +1269,352 @@
   },
   "level_13": {
     "id": "level_13",
-    "name": "Function",
-    "gridSize": [
-      12,
-      10
-    ],
-    "start": {
-      "x": 0,
-      "y": 4,
-      "dir": 3
-    },
-    "goal": {
-      "x": 8,
-      "y": 0
-    },
+    "name": "Zigzag Stairs (Function A)",
+    "gridSize": [6, 6],
+    "start": { "x": 0, "y": 5, "dir": 0 },
+    "goal": { "x": 5, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "callFuncA"],
     "obstacles": [
-      [
-        1,
-        2
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        1,
-        5
-      ],
-      [
-        0,
-        5
-      ],
-      [
-        1,
-        1
-      ],
-      [
-        3,
-        0
-      ],
-      [
-        3,
-        1
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        3,
-        3
-      ],
-      [
-        3,
-        4
-      ],
-      [
-        3,
-        5
-      ],
-      [
-        3,
-        6
-      ],
-      [
-        3,
-        7
-      ],
-      [
-        2,
-        7
-      ],
-      [
-        1,
-        7
-      ],
-      [
-        1,
-        8
-      ],
-      [
-        2,
-        8
-      ],
-      [
-        3,
-        8
-      ],
-      [
-        5,
-        8
-      ],
-      [
-        5,
-        9
-      ],
-      [
-        5,
-        7
-      ],
-      [
-        5,
-        6
-      ],
-      [
-        5,
-        5
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        5,
-        3
-      ],
-      [
-        6,
-        3
-      ],
-      [
-        7,
-        3
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        7,
-        5
-      ],
-      [
-        7,
-        6
-      ],
-      [
-        7,
-        8
-      ],
-      [
-        9,
-        8
-      ],
-      [
-        8,
-        8
-      ],
-      [
-        10,
-        8
-      ],
-      [
-        8,
-        6
-      ],
-      [
-        9,
-        6
-      ],
-      [
-        10,
-        6
-      ],
-      [
-        11,
-        4
-      ],
-      [
-        10,
-        4
-      ],
-      [
-        9,
-        4
-      ]
+      [0, 0], [0, 1], [0, 2], [0, 3],
+      [1, 0], [1, 1], [1, 2], [1, 5],
+      [2, 0], [2, 1], [2, 4], [2, 5],
+      [3, 0], [3, 3], [3, 4], [3, 5],
+      [4, 2], [4, 3], [4, 4], [4, 5],
+      [5, 1], [5, 2], [5, 3], [5, 4], [5, 5]
     ],
-    "keys": [],
-    "collectibles": [],
-    "doors": [],
-    "portals": [],
-    "allowedCommands": [
-      "forward",
-      "left",
-      "right",
-      "turnAround",
-      "loop",
-      "while"
-    ],
-    "waterTiles": []
+    "collectibles": [
+      { "x": 0, "y": 4 },
+      { "x": 1, "y": 3 },
+      { "x": 2, "y": 2 },
+      { "x": 3, "y": 1 },
+      { "x": 4, "y": 0 }
+    ]
   },
   "level_14": {
     "id": "level_14",
-    "name": "Logic: Obstacle Navigation",
-    "gridSize": [
-      6,
-      6
-    ],
-    "start": {
-      "x": 0,
-      "y": 5,
-      "dir": 0
-    },
-    "goal": {
-      "x": 5,
-      "y": 0
-    },
+    "name": "Snake Path (Logic Navigation)",
+    "gridSize": [6, 6],
+    "start": { "x": 0, "y": 5, "dir": 1 },
+    "goal": { "x": 5, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "while", "ifLeft", "ifRight"],
     "obstacles": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        0
-      ],
-      [
-        2,
-        0
-      ],
-      [
-        3,
-        0
-      ],
-      [
-        4,
-        0
-      ],
-      [
-        0,
-        2
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        2,
-        2
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        4,
-        2
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        2,
-        4
-      ],
-      [
-        3,
-        4
-      ],
-      [
-        4,
-        4
-      ]
+      [0, 4], [1, 4], [2, 4], [3, 4], [4, 4],
+      [1, 2], [2, 2], [3, 2], [4, 2], [5, 2],
+      [0, 0], [1, 0], [2, 0], [3, 0], [4, 0]
+    ],
+    "collectibles": [
+      { "x": 5, "y": 5 },
+      { "x": 5, "y": 3 },
+      { "x": 0, "y": 3 },
+      { "x": 0, "y": 1 },
+      { "x": 5, "y": 1 }
     ]
   },
   "level_15": {
     "id": "level_15",
-    "name": "Encapsulation: Function A",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 0,
-      "y": 1
-    },
+    "name": "Zigzag Rooms (Encapsulation)",
+    "gridSize": [13, 10],
+    "start": { "x": 0, "y": 2, "dir": 1 },
+    "goal": { "x": 12, "y": 8 },
+    "allowedCommands": ["forward", "left", "right", "callFuncA"],
     "obstacles": [
-      [
-        1,
-        1
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        1,
-        4
-      ]
+      [0, 0], [0, 1], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7], [0, 8], [0, 9],
+      [1, 0], [1, 1], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8], [1, 9],
+      [2, 0], [2, 1], [2, 5], [2, 6], [2, 7], [2, 8], [2, 9],
+      [3, 0], [3, 1], [3, 2], [3, 3], [3, 5], [3, 6], [3, 7], [3, 8], [3, 9],
+      [4, 0], [4, 1], [4, 2], [4, 3], [4, 5], [4, 6], [4, 7], [4, 8], [4, 9],
+      [5, 0], [5, 1], [5, 2], [5, 3], [5, 5], [5, 6], [5, 7], [5, 8], [5, 9],
+      [6, 0], [6, 1], [6, 2], [6, 3], [6, 7], [6, 8], [6, 9],
+      [7, 0], [7, 1], [7, 2], [7, 3], [7, 4], [7, 5], [7, 7], [7, 8], [7, 9],
+      [8, 0], [8, 1], [8, 2], [8, 3], [8, 4], [8, 5], [8, 7], [8, 8], [8, 9],
+      [9, 0], [9, 1], [9, 2], [9, 3], [9, 4], [9, 5], [9, 7], [9, 8], [9, 9],
+      [10, 0], [10, 1], [10, 2], [10, 3], [10, 4], [10, 5], [10, 9],
+      [11, 0], [11, 1], [11, 2], [11, 3], [11, 4], [11, 5], [11, 6], [11, 7], [11, 9],
+      [12, 0], [12, 1], [12, 2], [12, 3], [12, 4], [12, 5], [12, 6], [12, 7], [12, 9]
+    ],
+    "keys": [
+      { "x": 2, "y": 4, "color": "blue" },
+      { "x": 6, "y": 6, "color": "red" },
+      { "x": 10, "y": 8, "color": "yellow" }
+    ],
+    "doors": [
+      { "x": 3, "y": 4, "color": "blue", "keyRequired": true },
+      { "x": 7, "y": 6, "color": "red", "keyRequired": true },
+      { "x": 11, "y": 8, "color": "yellow", "keyRequired": true }
+    ],
+    "collectibles": [
+      { "x": 2, "y": 3 },
+      { "x": 6, "y": 5 },
+      { "x": 10, "y": 7 }
     ]
   },
   "level_16": {
     "id": "level_16",
-    "name": "Encapsulation: Serpent Master",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 7,
-      "y": 0
-    },
+    "name": "Double Comb (Functions A & B)",
+    "gridSize": [5, 7],
+    "start": { "x": 2, "y": 6, "dir": 0 },
+    "goal": { "x": 2, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "turnAround", "callFuncA", "callFuncB"],
     "obstacles": [
-      [
-        1,
-        1
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        1,
-        4
-      ],
-      [
-        1,
-        5
-      ],
-      [
-        1,
-        6
-      ],
-      [
-        3,
-        1
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        3,
-        3
-      ],
-      [
-        3,
-        4
-      ],
-      [
-        3,
-        5
-      ],
-      [
-        3,
-        6
-      ],
-      [
-        3,
-        7
-      ],
-      [
-        5,
-        0
-      ],
-      [
-        5,
-        1
-      ],
-      [
-        5,
-        2
-      ],
-      [
-        5,
-        3
-      ],
-      [
-        5,
-        4
-      ],
-      [
-        5,
-        5
-      ],
-      [
-        5,
-        6
-      ]
+      [0, 0], [0, 2], [0, 4], [0, 6],
+      [1, 0], [1, 2], [1, 4], [1, 6],
+      [3, 0], [3, 1], [3, 3], [3, 5], [3, 6],
+      [4, 0], [4, 1], [4, 3], [4, 5], [4, 6]
+    ],
+    "collectibles": [
+      { "x": 0, "y": 5 },
+      { "x": 4, "y": 4 },
+      { "x": 0, "y": 3 },
+      { "x": 4, "y": 2 },
+      { "x": 0, "y": 1 }
     ]
   },
   "level_17": {
     "id": "level_17",
-    "name": "Double Rhythm",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 0,
-      "dir": 1
-    },
-    "goal": {
-      "x": 7,
-      "y": 7
-    },
+    "name": "Parallel Worlds (Double Rhythm)",
+    "gridSize": [3, 5],
+    "start": { "x": 0, "y": 4, "dir": 0 },
+    "goal": { "x": 2, "y": 1 },
+    "allowedCommands": ["forward", "left", "right", "turnAround"],
     "obstacles": [
-      [
-        1,
-        0
-      ],
-      [
-        0,
-        1
-      ],
-      [
-        6,
-        7
-      ],
-      [
-        7,
-        6
-      ]
+      [1, 0], [1, 1], [1, 2], [1, 3], [1, 4]
+    ],
+    "portals": [
+      { "id": "p1", "posA": { "x": 0, "y": 2 }, "posB": { "x": 2, "y": 2 }, "color": "#3b82f6" },
+      { "id": "p2", "posA": { "x": 0, "y": 0 }, "posB": { "x": 2, "y": 0 }, "color": "#a855f7" }
+    ],
+    "keys": [
+      { "x": 2, "y": 4, "color": "blue" }
+    ],
+    "doors": [
+      { "x": 0, "y": 1, "color": "blue", "keyRequired": true }
+    ],
+    "collectibles": [
+      { "x": 0, "y": 3 },
+      { "x": 2, "y": 3 },
+      { "x": 0, "y": 1 }
     ]
   },
   "level_18": {
     "id": "level_18",
-    "name": "Portal Logic",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 7,
-      "y": 0
-    },
+    "name": "Archipelago (Portal Logic)",
+    "gridSize": [5, 5],
+    "start": { "x": 0, "y": 4, "dir": 1 },
+    "goal": { "x": 4, "y": 4 },
+    "allowedCommands": ["forward", "turnAround", "loop"],
     "obstacles": [
-      [
-        0,
-        3
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        2,
-        3
-      ],
-      [
-        3,
-        3
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        5,
-        3
-      ],
-      [
-        6,
-        3
-      ],
-      [
-        7,
-        3
-      ]
+      [0, 0], [0, 1], [0, 2], [0, 3],
+      [1, 0], [1, 1], [1, 2], [1, 3],
+      [2, 0], [2, 1], [2, 2], [2, 3],
+      [3, 0], [3, 1], [3, 2], [3, 3],
+      [4, 0]
     ],
     "portals": [
-      {
-        "id": "p1",
-        "posA": {
-          "x": 2,
-          "y": 4
-        },
-        "posB": {
-          "x": 5,
-          "y": 2
-        },
-        "color": "#ec4899"
-      }
+      { "id": "p1", "posA": { "x": 1, "y": 4 }, "posB": { "x": 4, "y": 1 }, "color": "#ec4899" },
+      { "id": "p2", "posA": { "x": 2, "y": 4 }, "posB": { "x": 4, "y": 2 }, "color": "#a855f7" },
+      { "id": "p3", "posA": { "x": 3, "y": 4 }, "posB": { "x": 4, "y": 3 }, "color": "#3b82f6" }
+    ],
+    "collectibles": [
+      { "x": 4, "y": 1 },
+      { "x": 4, "y": 2 },
+      { "x": 4, "y": 3 }
     ]
   },
   "level_19": {
     "id": "level_19",
-    "name": "Unlock Chain",
-    "gridSize": [
-      10,
-      10
-    ],
-    "start": {
-      "x": 0,
-      "y": 9,
-      "dir": 0
-    },
-    "goal": {
-      "x": 9,
-      "y": 0
-    },
+    "name": "Sequential Key Chain",
+    "gridSize": [5, 5],
+    "start": { "x": 0, "y": 4, "dir": 0 },
+    "goal": { "x": 4, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "turnAround"],
     "obstacles": [
-      [
-        5,
-        0
-      ],
-      [
-        5,
-        1
-      ],
-      [
-        5,
-        2
-      ],
-      [
-        5,
-        3
-      ],
-      [
-        5,
-        4
-      ],
-      [
-        5,
-        6
-      ],
-      [
-        5,
-        7
-      ],
-      [
-        5,
-        8
-      ],
-      [
-        5,
-        9
-      ]
+      [1, 0], [1, 1], [1, 3], [1, 4],
+      [3, 0], [3, 1], [3, 3], [3, 4]
     ],
     "keys": [
-      {
-        "x": 0,
-        "y": 0
-      }
+      { "x": 0, "y": 0, "color": "blue" },
+      { "x": 2, "y": 0, "color": "red" },
+      { "x": 4, "y": 4, "color": "yellow" }
     ],
     "doors": [
-      {
-        "x": 5,
-        "y": 5,
-        "keyRequired": true
-      }
+      { "x": 1, "y": 2, "color": "blue", "keyRequired": true },
+      { "x": 3, "y": 2, "color": "red", "keyRequired": true },
+      { "x": 4, "y": 1, "color": "yellow", "keyRequired": true }
     ],
     "collectibles": [
-      {
-        "x": 9,
-        "y": 9
-      }
+      { "x": 0, "y": 0 },
+      { "x": 2, "y": 0 },
+      { "x": 4, "y": 4 }
     ]
   },
   "level_20": {
     "id": "level_20",
-    "name": "Obstacle Master",
-    "gridSize": [
-      8,
-      8
+    "name": "Sea & Sky (Obstacle Master)",
+    "gridSize": [6, 6],
+    "start": { "x": 0, "y": 5, "dir": 1 },
+    "goal": { "x": 5, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "loop"],
+    "waterTiles": [
+      { "x": 0, "y": 4 }, { "x": 1, "y": 4 }, { "x": 2, "y": 4 },
+      { "x": 3, "y": 4 }, { "x": 4, "y": 4 }, { "x": 5, "y": 4 }
     ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 6,
-      "y": 6
-    },
     "obstacles": [
-      [
-        0,
-        0
-      ],
-      [
-        1,
-        0
-      ],
-      [
-        2,
-        0
-      ],
-      [
-        3,
-        0
-      ],
-      [
-        4,
-        0
-      ],
-      [
-        5,
-        0
-      ],
-      [
-        6,
-        0
-      ],
-      [
-        7,
-        0
-      ],
-      [
-        7,
-        1
-      ],
-      [
-        7,
-        2
-      ],
-      [
-        7,
-        3
-      ],
-      [
-        7,
-        4
-      ],
-      [
-        7,
-        5
-      ],
-      [
-        7,
-        6
-      ],
-      [
-        7,
-        7
-      ],
-      [
-        0,
-        7
-      ],
-      [
-        0,
-        6
-      ],
-      [
-        0,
-        5
-      ],
-      [
-        0,
-        4
-      ],
-      [
-        0,
-        3
-      ],
-      [
-        0,
-        2
-      ],
-      [
-        0,
-        1
-      ]
+      [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2]
+    ],
+    "boats": [
+      { "x": 5, "y": 5 }
+    ],
+    "planes": [
+      { "x": 0, "y": 3 }
+    ],
+    "collectibles": [
+      { "x": 5, "y": 5 },
+      { "x": 0, "y": 3 }
     ]
   },
   "level_21": {
     "id": "level_21",
-    "name": "Space: Diagonal Jump",
-    "gridSize": [
-      10,
-      10
-    ],
-    "start": {
-      "x": 0,
-      "y": 9,
-      "dir": 1
-    },
-    "goal": {
-      "x": 9,
-      "y": 0
-    },
+    "name": "Backtracking T-Corridors",
+    "gridSize": [5, 5],
+    "start": { "x": 0, "y": 2, "dir": 1 },
+    "goal": { "x": 4, "y": 2 },
+    "allowedCommands": ["forward", "left", "right", "markPosition", "returnToMark", "loop"],
     "obstacles": [
-      [
-        2,
-        2
-      ],
-      [
-        7,
-        7
-      ]
+      [0, 0], [0, 1], [0, 3], [0, 4],
+      [1, 3], [1, 4],
+      [2, 0], [2, 1],
+      [3, 3], [3, 4],
+      [4, 0], [4, 1], [4, 3], [4, 4]
     ],
-    "portals": [
-      {
-        "id": "p1",
-        "posA": {
-          "x": 2,
-          "y": 9
-        },
-        "posB": {
-          "x": 7,
-          "y": 2
-        },
-        "color": "#a855f7"
-      },
-      {
-        "id": "p2",
-        "posA": {
-          "x": 5,
-          "y": 9
-        },
-        "posB": {
-          "x": 2,
-          "y": 1
-        },
-        "color": "#3b82f6"
-      }
+    "collectibles": [
+      { "x": 1, "y": 0 },
+      { "x": 2, "y": 4 },
+      { "x": 3, "y": 0 }
     ]
   },
   "level_22": {
     "id": "level_22",
-    "name": "Advanced Calls",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 7,
-      "y": 0
-    },
+    "name": "Triple Deep Alcoves (Nested)",
+    "gridSize": [3, 7],
+    "start": { "x": 1, "y": 6, "dir": 0 },
+    "goal": { "x": 1, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "turnAround", "callFuncA", "callFuncB"],
     "obstacles": [
-      [
-        1,
-        1
-      ],
-      [
-        3,
-        3
-      ],
-      [
-        5,
-        5
-      ]
+      [0, 0], [0, 2], [0, 4], [0, 6],
+      [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6]
+    ],
+    "collectibles": [
+      { "x": 0, "y": 5 },
+      { "x": 0, "y": 3 },
+      { "x": 0, "y": 1 }
     ]
   },
   "level_23": {
     "id": "level_23",
-    "name": "Memory Crisis",
-    "gridSize": [
-      6,
-      6
-    ],
-    "start": {
-      "x": 0,
-      "y": 5,
-      "dir": 0
-    },
-    "goal": {
-      "x": 5,
-      "y": 0
-    },
+    "name": "Branching Tree Backtrack",
+    "gridSize": [5, 5],
+    "start": { "x": 2, "y": 4, "dir": 0 },
+    "goal": { "x": 2, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "markPosition", "returnToMark", "loop"],
     "obstacles": [
-      [
-        2,
-        2
-      ]
+      [0, 0], [0, 1], [0, 2], [0, 3], [0, 4],
+      [1, 0], [1, 2], [1, 4],
+      [3, 0], [3, 2], [3, 4],
+      [4, 0], [4, 1], [4, 2], [4, 3], [4, 4]
+    ],
+    "collectibles": [
+      { "x": 1, "y": 1 },
+      { "x": 1, "y": 3 },
+      { "x": 3, "y": 1 },
+      { "x": 3, "y": 3 }
     ]
   },
   "level_24": {
     "id": "level_24",
-    "name": "Ultimate Challenge",
-    "gridSize": [
-      12,
-      12
-    ],
-    "start": {
-      "x": 0,
-      "y": 11,
-      "dir": 0
-    },
-    "goal": {
-      "x": 11,
-      "y": 0
-    },
-    "obstacles": [
-      [
-        0,
-        9
-      ],
-      [
-        1,
-        9
-      ],
-      [
-        2,
-        9
-      ],
-      [
-        3,
-        9
-      ],
-      [
-        4,
-        9
-      ],
-      [
-        5,
-        9
-      ],
-      [
-        11,
-        2
-      ],
-      [
-        10,
-        2
-      ],
-      [
-        9,
-        2
-      ],
-      [
-        8,
-        2
-      ]
+    "name": "Grand Synthesis",
+    "gridSize": [7, 7],
+    "start": { "x": 0, "y": 6, "dir": 0 },
+    "goal": { "x": 4, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "turnAround", "loop"],
+    "portals": [
+      { "id": "p1", "posA": { "x": 0, "y": 5 }, "posB": { "x": 6, "y": 5 }, "color": "#3b82f6" },
+      { "id": "p2", "posA": { "x": 0, "y": 1 }, "posB": { "x": 6, "y": 1 }, "color": "#ec4899" }
     ],
     "keys": [
-      {
-        "x": 11,
-        "y": 5
-      }
+      { "x": 6, "y": 4, "color": "blue" }
     ],
     "doors": [
-      {
-        "x": 5,
-        "y": 10,
-        "keyRequired": true
-      }
+      { "x": 0, "y": 4, "color": "blue", "keyRequired": true }
     ],
-    "portals": [
-      {
-        "id": "p1",
-        "posA": {
-          "x": 2,
-          "y": 11
-        },
-        "posB": {
-          "x": 9,
-          "y": 1
-        },
-        "color": "#f72585"
-      }
+    "boats": [
+      { "x": 0, "y": 3 }
+    ],
+    "waterTiles": [
+      { "x": 0, "y": 2 }
+    ],
+    "planes": [
+      { "x": 6, "y": 0 }
+    ],
+    "obstacles": [
+      [1, 1], [1, 2], [1, 3], [1, 4], [1, 5], [1, 6],
+      [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 6],
+      [3, 1], [3, 2], [3, 3], [3, 4], [3, 5], [3, 6],
+      [4, 1], [4, 2], [4, 3], [4, 4], [4, 5], [4, 6],
+      [5, 1], [5, 2], [5, 3], [5, 4], [5, 5], [5, 6],
+      [6, 2], [6, 3], [6, 6]
+    ],
+    "collectibles": [
+      { "x": 6, "y": 4 },
+      { "x": 6, "y": 0 }
     ]
   },
   "level_25": {
     "id": "level_25",
-    "name": "Physics: Pressure Plate",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 7,
-      "y": 0
-    },
+    "name": "Pressure Plate Corridor",
+    "gridSize": [6, 4],
+    "start": { "x": 0, "y": 2, "dir": 1 },
+    "goal": { "x": 5, "y": 2 },
+    "allowedCommands": ["forward", "left", "right"],
     "obstacles": [
-      [
-        0,
-        2
-      ],
-      [
-        1,
-        2
-      ],
-      [
-        2,
-        2
-      ],
-      [
-        3,
-        2
-      ],
-      [
-        4,
-        2
-      ],
-      [
-        6,
-        2
-      ],
-      [
-        7,
-        2
-      ]
+      [0, 0], [0, 1], [1, 0], [1, 1], [1, 2],
+      [3, 0], [3, 1], [3, 3],
+      [4, 0], [4, 1], [4, 3],
+      [5, 0], [5, 1], [5, 3]
     ],
     "rocks": [
-      {
-        "x": 2,
-        "y": 5
-      }
+      { "x": 2, "y": 2 }
     ],
     "triggerButtons": [
-      {
-        "x": 5,
-        "y": 5,
-        "setId": 2,
-        "color": "#fb923c"
-      }
+      { "x": 2, "y": 0, "setId": 1, "color": "#fb923c" }
     ],
     "triggerDoors": [
-      {
-        "x": 5,
-        "y": 2,
-        "setId": 2,
-        "color": "#fb923c"
-      }
+      { "x": 4, "y": 2, "setId": 1, "color": "#fb923c" }
     ],
-    "allowedCommands": [
-      "forward",
-      "left",
-      "right",
-      "loop",
-      "if"
+    "collectibles": [
+      { "x": 2, "y": 1 },
+      { "x": 3, "y": 2 }
     ]
   },
   "level_26": {
     "id": "level_26",
-    "name": "The Conditional Bridge",
-    "gridSize": [
-      8,
-      8
-    ],
-    "start": {
-      "x": 0,
-      "y": 7,
-      "dir": 0
-    },
-    "goal": {
-      "x": 7,
-      "y": 0
-    },
+    "name": "The Wall-Follower Bridge",
+    "gridSize": [6, 6],
+    "start": { "x": 0, "y": 5, "dir": 0 },
+    "goal": { "x": 5, "y": 0 },
+    "allowedCommands": ["forward", "left", "right", "while", "if"],
     "obstacles": [
-      [
-        0,
-        3
-      ],
-      [
-        1,
-        3
-      ],
-      [
-        2,
-        3
-      ],
-      [
-        4,
-        3
-      ],
-      [
-        5,
-        3
-      ],
-      [
-        6,
-        3
-      ],
-      [
-        7,
-        3
-      ]
+      [0, 0], [0, 1], [0, 2],
+      [1, 0], [1, 1], [1, 2], [1, 4], [1, 5],
+      [2, 0], [2, 1], [2, 2], [2, 4], [2, 5],
+      [3, 0], [3, 4], [3, 5],
+      [4, 0], [4, 2], [4, 3], [4, 4], [4, 5],
+      [5, 2], [5, 3], [5, 4], [5, 5]
     ],
-    "waterTiles": [
-      {
-        "x": 0,
-        "y": 4
-      },
-      {
-        "x": 1,
-        "y": 4
-      },
-      {
-        "x": 2,
-        "y": 4
-      },
-      {
-        "x": 3,
-        "y": 4
-      },
-      {
-        "x": 4,
-        "y": 4
-      },
-      {
-        "x": 5,
-        "y": 4
-      },
-      {
-        "x": 6,
-        "y": 4
-      },
-      {
-        "x": 7,
-        "y": 4
-      }
-    ],
-    "rocks": [
-      {
-        "x": 3,
-        "y": 6
-      }
-    ],
-    "triggerButtons": [
-      {
-        "x": 3,
-        "y": 7,
-        "setId": 1,
-        "color": "#10b981"
-      }
-    ],
-    "triggerDoors": [
-      {
-        "x": 3,
-        "y": 3,
-        "setId": 1,
-        "color": "#10b981"
-      }
-    ],
-    "allowedCommands": [
-      "forward",
-      "left",
-      "right",
-      "loop",
-      "while",
-      "if",
-      "markPosition",
-      "returnToMark"
+    "collectibles": [
+      { "x": 0, "y": 3 },
+      { "x": 3, "y": 3 },
+      { "x": 3, "y": 1 },
+      { "x": 5, "y": 1 }
     ]
   }
 }
