@@ -147,8 +147,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="relative w-full bg-slate-900 rounded-xl shadow-2xl overflow-hidden border-8 border-slate-800 font-comic"
-       :style="{ aspectRatio: `${gridSize[0]}/${gridSize[1]}` }">
+  <div class="relative mx-auto bg-slate-900 rounded-xl shadow-2xl overflow-hidden border-8 border-slate-800 font-comic"
+       :style="{ 
+         aspectRatio: `${gridSize[0]}/${gridSize[1]}`,
+         maxHeight: '65vh',
+         width: '100%',
+         maxWidth: `calc(65vh * ${gridSize[0]} / ${gridSize[1]})`
+       }">
     
     <div class="absolute inset-0 bg-slate-800 opacity-30"></div>
 
@@ -286,7 +291,7 @@ onMounted(() => {
     <div 
       v-for="(rock, idx) in store.rockPosList" 
       :key="`rock-v3-${idx}`"
-      class="absolute flex items-center justify-center pointer-events-none transition-all duration-300 ease-out z-10"
+      class="absolute flex items-center justify-center pointer-events-none z-10"
       :style="getRockStyle(rock)"
     >
         <div class="w-[94%] h-[94%] bg-slate-500 rounded-lg shadow-2xl border-b-4 border-slate-800 flex items-center justify-center relative overflow-hidden">
@@ -298,7 +303,7 @@ onMounted(() => {
 
     <!-- Robot -->
     <div 
-      class="absolute p-1.5 z-20 flex items-center justify-center pointer-events-none transition-all duration-300 ease-in-out"
+      class="absolute p-1.5 z-20 flex items-center justify-center pointer-events-none"
       :style="robotStyle"
     >
       <div class="relative w-full h-full flex items-center justify-center">

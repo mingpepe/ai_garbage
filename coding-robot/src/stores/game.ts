@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
-import type { Command, Position, GameStatus, LevelProgress, Level } from '../types';
+import type { Command, Position, GameStatus, LevelProgress, Level, Condition, SimpleCondition } from '../types';
 import { LEVELS as INITIAL_LEVELS } from '../utils/levels';
 import { calculateChecksum } from '../utils/checksum';
 import gsap from 'gsap';
@@ -329,13 +329,18 @@ export const useGameStore = defineStore('game', () => {
         ].includes(cmd.type);
 
         if (isPhysical) {
+            const prevX = Math.round(robotPos.value.x);
+            const prevY = Math.round(robotPos.value.y);
             const success = await executeSingleCommand(cmd, runToken);
             if (executionToken.value !== runToken) return;
             if (!success) {
                 stepStack.value = [];
                 return;
             }
-            const interactionsComplete = await handleCellInteractions(runToken);
+            const rx = Math.round(robotPos.value.x);
+            const ry = Math.round(robotPos.value.y);
+            const didMove = (prevX !== rx || prevY !== ry);
+            const interactionsComplete = await handleCellInteractions(runToken, didMove);
             if (!interactionsComplete) return;
         }
 
@@ -439,6 +444,8 @@ export const useGameStore = defineStore('game', () => {
     ].includes(cmd.type);
 
     if (isPhysical) {
+        const prevX = Math.round(robotPos.value.x);
+        const prevY = Math.round(robotPos.value.y);
         isStepRunning.value = true;
         const success = await executeSingleCommand(cmd, runToken);
         isStepRunning.value = false;
@@ -450,7 +457,10 @@ export const useGameStore = defineStore('game', () => {
             return;
         }
 
-        const interactionsComplete = await handleCellInteractions(runToken);
+        const rx = Math.round(robotPos.value.x);
+        const ry = Math.round(robotPos.value.y);
+        const didMove = (prevX !== rx || prevY !== ry);
+        const interactionsComplete = await handleCellInteractions(runToken, didMove);
         if (!interactionsComplete) return;
     }
 
@@ -542,7 +552,7 @@ export const useGameStore = defineStore('game', () => {
         const queue = cmd.type === 'callFuncA' ? functionAQueue.value : functionBQueue.value;
 
         console.log('Running recursive execution for function:', activeFunction.value);
-        const result = await executeRecursive(queue, (c, path) => {
+        const result = await executeRecursive(queue, (_c, path) => {
             if (executionToken.value !== runToken) return;
             activeCommandId.value = path;
         }, 0, runToken, currentPath);
@@ -872,7 +882,7 @@ export const useGameStore = defineStore('game', () => {
     return 'ok';
   }
 
-  async function handleCellInteractions(runToken: number) {
+  async function handleCellInteractions(runToken: number, didMove: boolean = false) {
     const rx = Math.round(robotPos.value.x);
     const ry = Math.round(robotPos.value.y);
     
@@ -920,24 +930,27 @@ export const useGameStore = defineStore('game', () => {
             });
         }
     });
-    for (const portal of currentLevel.value.portals || []) {
-        let target: { x: number; y: number } | null = null;
-        if (portal.posA.x === rx && portal.posA.y === ry) target = portal.posB;
-        else if (portal.posB.x === rx && portal.posB.y === ry) target = portal.posA;
-        if (target) {
-            const canTeleport = await waitForRunToken(520, runToken);
-            if (!canTeleport) return false;
-            const prevX = Math.round(robotPos.value.x);
-            const prevY = Math.round(robotPos.value.y);
-            robotPos.value.x = target.x;
-            robotPos.value.y = target.y;
 
-            if (hasBoat.value && isWater(prevX, prevY) && !isWater(robotPos.value.x, robotPos.value.y)) {
-                hasBoat.value = false;
+    if (didMove) {
+        for (const portal of currentLevel.value.portals || []) {
+            let target: { x: number; y: number } | null = null;
+            if (portal.posA.x === rx && portal.posA.y === ry) target = portal.posB;
+            else if (portal.posB.x === rx && portal.posB.y === ry) target = portal.posA;
+            if (target) {
+                const canTeleport = await waitForRunToken(520, runToken);
+                if (!canTeleport) return false;
+                const prevX = Math.round(robotPos.value.x);
+                const prevY = Math.round(robotPos.value.y);
+                robotPos.value.x = target.x;
+                robotPos.value.y = target.y;
+
+                if (hasBoat.value && isWater(prevX, prevY) && !isWater(robotPos.value.x, robotPos.value.y)) {
+                    hasBoat.value = false;
+                }
+
+                if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+                return waitForRunToken(320, runToken);
             }
-
-            if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
-            return waitForRunToken(320, runToken);
         }
     }
 
@@ -1263,6 +1276,7 @@ export const useGameStore = defineStore('game', () => {
     functionBQueue,
     gameStatus,
     activeCommandId,
+    activeFunction,
     currentActiveTarget,
     isProgramLocked,
     isStepRunning,

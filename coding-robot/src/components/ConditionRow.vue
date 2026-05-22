@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import type { Condition, SimpleCondition, LogicCondition } from '../types';
-import { useGameStore } from '../stores/game';
+import type { Condition, SimpleCondition } from '../types';
 
 const props = defineProps<{
   condition: Condition;
 }>();
-
-const store = useGameStore();
 
 const subjects = [
   { value: 'front', label: 'Front' },

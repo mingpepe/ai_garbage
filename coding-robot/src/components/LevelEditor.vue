@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useGameStore } from '../stores/game';
 import draggable from 'vuedraggable';
 import { 
@@ -398,7 +398,9 @@ function getPortal(x: number, y: number) {
                     :style="{
                         gridTemplateColumns: `repeat(${localLevel.gridSize[0]}, minmax(0, 1fr))`,
                         gridTemplateRows: `repeat(${localLevel.gridSize[1]}, minmax(0, 1fr))`,
-                        width: `min(660px, 95%)`,
+                        width: '100%',
+                        maxHeight: '65vh',
+                        maxWidth: `min(660px, calc(65vh * ${localLevel.gridSize[0]} / ${localLevel.gridSize[1]}))`,
                         aspectRatio: `${localLevel.gridSize[0]}/${localLevel.gridSize[1]}`
                     }">
                     <div v-for="y in localLevel.gridSize[1]" :key="`row-${y}`" class="contents">
