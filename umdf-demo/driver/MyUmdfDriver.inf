@@ -1,0 +1,64 @@
+;
+; MyUmdfDriver.inf
+; Setup Information File for installing the UMDF v2 Demo Driver
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = Sample
+ClassGuid   = {78A1C341-4539-11d3-B88D-00C04FAD5171}
+Provider    = %ManufacturerName%
+CatalogFile = MyUmdfDriver.cat
+DriverVer   = 06/03/2026,1.0.0.0
+PnpKeepResources = 1
+
+[DestinationDirs]
+DefaultDestDir = 12,UMDF ; Install dll into \Windows\System32\drivers\UMDF
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+MyUmdfDriver.dll = 1,,
+
+; ================= Device Installation =================
+
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64
+
+[Standard.NTamd64]
+%DeviceDesc% = MyUmdfDriver_Install, Root\UMDF_Demo_Device ; Software-device ID for virtual installation
+
+[MyUmdfDriver_Install.NT]
+CopyFiles = MyUmdfDriver_CopyFiles
+
+[MyUmdfDriver_CopyFiles]
+MyUmdfDriver.dll
+
+; ================= WDF (UMDF) Service Configurations =================
+
+[MyUmdfDriver_Install.NT.Services]
+AddService = WUDFRd,0x000001fa,WUDFRd_ServiceInstall ; Install the UMDF Reflector as the service driver
+
+[WUDFRd_ServiceInstall]
+DisplayName   = %ReflectorDisplayName%
+ServiceType   = 1 ; SERVICE_KERNEL_DRIVER
+StartType     = 3 ; SERVICE_DEMAND_START
+ErrorControl  = 1 ; SERVICE_ERROR_NORMAL
+ServiceBinary = %12%\WUDFRd.sys
+
+[MyUmdfDriver_Install.NT.Wdf]
+UmdfService      = MyUmdfDriver, MyUmdfDriver_WdfInstall
+UmdfServiceOrder = MyUmdfDriver
+
+[MyUmdfDriver_WdfInstall]
+UmdfLibraryVersion = 2.0.0 ; Specify UMDF v2
+ServiceBinary      = %12%\UMDF\MyUmdfDriver.dll
+
+; ================= Strings Section =================
+
+[Strings]
+ManufacturerName     = "UMDF Demo Provider"
+DiskName             = "UMDF Demo Installation Disk"
+DeviceDesc           = "User-Mode Driver Framework (UMDF) v2 Demo Device"
+ReflectorDisplayName = "Windows Driver Foundation Reflector Service"
