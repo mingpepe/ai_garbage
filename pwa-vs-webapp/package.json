@@ -1,0 +1,11 @@
+{
+  "name": "pwa-vs-webapp-poc",
+  "version": "1.0.0",
+  "description": "Proof of Concept demonstrating the difference between PWA and Web App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "ISC"
+}

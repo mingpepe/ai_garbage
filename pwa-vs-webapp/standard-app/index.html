@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Standard Web App (傳統網頁應用)</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <h1>
+        🌐 Standard Web App
+      </h1>
+      <div id="connection-status" class="status-badge status-online">
+        <span class="dot"></span>
+        <span class="status-text">Online</span>
+      </div>
+    </header>
+
+    <!-- Sync status panel -->
+    <div class="sync-panel">
+      <span>模擬雲端資料庫同步:</span>
+      <span id="sync-status" class="sync-status sync-success">已同步</span>
+    </div>
+
+    <!-- Note form -->
+    <form id="note-form" class="note-form">
+      <input type="text" id="note-input" class="note-input" placeholder="新增一項筆記..." required autocomplete="off">
+      <button type="submit" class="btn-add">新增</button>
+    </form>
+
+    <!-- Notes list -->
+    <ul id="notes-list" class="notes-list">
+      <!-- Notes items dynamically added here -->
+    </ul>
+
+    <div class="footer-nav">
+      <a href="../index.html">← 返回 PWA 比較儀表板</a>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

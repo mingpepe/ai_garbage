@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWA vs Web App: 概念驗證與區別對比</title>
+  <link rel="stylesheet" href="portal.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>PWA vs Standard Web App</h1>
+      <p class="subtitle">透過這個概念驗證（Proof of Concept），親身體驗漸進式網頁應用（PWA）與傳統 Web App 的核心區別。</p>
+    </header>
+
+    <!-- Side by Side Apps -->
+    <div class="app-grid">
+      <!-- Standard Web App Card -->
+      <div class="app-card card-standard">
+        <div class="card-header">
+          <h2>Standard Web App</h2>
+          <p class="card-desc">傳統的網頁應用程式。依賴瀏覽器環境運行，需要網路連線才能讀取和使用。</p>
+        </div>
+        <ul class="features-list">
+          <li><span class="status-icon status-no">✕</span> 離線運作 (Offline Support)</li>
+          <li><span class="status-icon status-no">✕</span> 安裝至桌面 (Installable)</li>
+          <li><span class="status-icon status-no">✕</span> 獨立視窗運行 (Standalone Mode)</li>
+          <li><span class="status-icon status-yes">✓</span> 響應式設計 (Responsive UI)</li>
+          <li><span class="status-icon status-no">✕</span> 背景服務線程 (Service Worker)</li>
+        </ul>
+        <a href="./standard-app/" target="_blank" class="btn btn-standard">開啟 Standard Web App</a>
+      </div>
+
+      <!-- PWA Card -->
+      <div class="app-card card-pwa">
+        <div class="card-header">
+          <h2>Progressive Web App (PWA)</h2>
+          <p class="card-desc">漸進式網頁應用。結合網頁與原生 App 的優勢，提供離線可用、可安裝以及無瀏覽器外框的體驗。</p>
+        </div>
+        <ul class="features-list">
+          <li><span class="status-icon status-yes">✓</span> 離線運作 (Offline Support)</li>
+          <li><span class="status-icon status-yes">✓</span> 安裝至桌面 (Installable)</li>
+          <li><span class="status-icon status-yes">✓</span> 獨立視窗運行 (Standalone Mode)</li>
+          <li><span class="status-icon status-yes">✓</span> 響應式設計 (Responsive UI)</li>
+          <li><span class="status-icon status-yes">✓</span> 背景服務線程 (Service Worker)</li>
+        </ul>
+        <a href="./pwa-app/" target="_blank" class="btn btn-pwa">開啟 PWA 應用程式</a>
+      </div>
+    </div>
+
+    <!-- Guide Panel -->
+    <div class="guide-panel">
+      <h3>💡 如何進行測試與觀察區別？</h3>
+      <ol class="steps-list">
+        <li>
+          <strong>步驟一：點擊上方按鈕開啟兩個應用程式</strong><br>
+          請分別在獨立的瀏覽器分頁中打開「Standard Web App」與「PWA 應用程式」。
+        </li>
+        <li>
+          <strong>步驟二：體驗安裝功能 (PWA 專屬)</strong><br>
+          在 PWA 網頁的右上方，你會看到一個<strong>「安裝此 App」</strong>的按鈕（或者瀏覽器網址列右側會出現安裝圖示）。點擊它，這將會把 PWA 安裝至你的電腦/手機，並且它會以<strong>獨立的無邊框視窗</strong>開啟，看起來就像原生應用程式一樣！
+        </li>
+        <li>
+          <strong>步驟三：模擬離線狀態 (核心測試)</strong><br>
+          在兩個應用程式的網頁上，按下鍵盤的 <span class="code-tip">F12</span> 打開開發者工具。切換到 <strong>Network (網路)</strong> 標籤頁，將狀態從 <strong>Online</strong> 改為 <strong>Offline (離線)</strong>。
+        </li>
+        <li>
+          <strong>步驟四：重新整理頁面 (F5)</strong><br>
+          - <strong>Standard Web App</strong>：會出現瀏覽器的「無法連線至網際網路」錯誤畫面。<br>
+          - <strong>PWA 應用程式</strong>：頁面會照常順暢載入！你可以繼續新增、刪除待辦事項，甚至關閉分頁再重新開啟，一切依舊正常運作。
+        </li>
+      </ol>
+    </div>
+
+    <!-- Detailed Tech Table -->
+    <div class="comparison-table-section">
+      <h3>🔍 技術架構細節對比</h3>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>特點</th>
+              <th>Standard Web App</th>
+              <th>Progressive Web App (PWA)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>進入管道</td>
+              <td>瀏覽器網址列輸入 URL</td>
+              <td>可從 URL 進入，也可像原生 App 從桌面圖示啟動</td>
+            </tr>
+            <tr>
+              <td>快取機制</td>
+              <td>標準 HTTP 瀏覽器快取 (容易因離線或快取過期失效)</td>
+              <td><strong>Service Worker Cache Storage</strong> (完全由程式控制，離線必備)</td>
+            </tr>
+            <tr>
+              <td>設定檔文件</td>
+              <td>無特別要求</td>
+              <td>必須具備 <strong>manifest.json</strong> (定義圖示、顏色、顯示模式)</td>
+            </tr>
+            <tr>
+              <td>執行緒環境</td>
+              <td>單一主執行緒 (UI Thread)</td>
+              <td>擁有 <strong>Service Worker</strong> 背景獨立執行緒，可處理快取攔截、推送通知等</td>
+            </tr>
+            <tr>
+              <td>離線資料讀寫</td>
+              <td>雖然能用 LocalStorage，但若網頁本身打不開就毫無意義</td>
+              <td>即使完全斷網，頁面結構 (App Shell) 照樣載入，並搭配 LocalStorage 實現離線操作</td>
+            </tr>
+            <tr>
+              <td>安全要求</td>
+              <td>HTTP 或 HTTPS 皆可</td>
+              <td><strong>必須使用 HTTPS</strong>（本機開發測試 localhost 除外）才能啟用 Service Worker</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
