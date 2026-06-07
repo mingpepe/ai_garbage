@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { LEVELS } from './levels';
 import { type Level, type Difficulty, type SymmetryType } from './types';
 import { checkGridCompletion, getHintCell, isTemplateArea, getMirrorCell, getMirroredShape } from './utils/gameLogic';
@@ -37,7 +37,7 @@ const App: React.FC = () => {
   const [totalScore, setTotalScore] = useState<number>(INITIAL_PROGRESS.totalScore);
   const [isPerfect, setIsPerfect] = useState(false);
   const [isEasyMode, setIsEasyMode] = useState(false);
-  const [inputBuffer, setInputBuffer] = useState('');
+  const inputBuffer = useRef('');
   const [hoveredCell, setHoveredCell] = useState<{ r: number, c: number } | null>(null);
   const [animatingCell, setAnimCell] = useState<{ r: number, c: number, type: 'pulse' | 'jelly' | 'hint' } | null>(null);
 
@@ -49,13 +49,10 @@ const App: React.FC = () => {
       }
       const char = e.key.toLowerCase();
       if (/^[a-z]$/.test(char)) {
-        setInputBuffer(prev => {
-          const newBuffer = (prev + char).slice(-4);
-          if (newBuffer === 'easy') {
-            setIsEasyMode(true);
-          }
-          return newBuffer;
-        });
+        inputBuffer.current = (inputBuffer.current + char).slice(-4);
+        if (inputBuffer.current === 'easy') {
+          setIsEasyMode(true);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
