@@ -940,6 +940,13 @@ function init() {
         checkApprovalBtn.disabled = false;
     });
 
+    // Register Service Worker for PWA offline support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registered successfully:', reg))
+            .catch(err => console.error('Service Worker registration failed:', err));
+    }
+
     // Parse Lucide SVG elements
     lucide.createIcons();
 }
