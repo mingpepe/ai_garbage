@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenote - Minimalist Cloud Notepad</title>
+    <meta name="description" content="Zenote is a client-side minimalist web notepad featuring category management, instant search, live Markdown preview, and cloud synchronization.">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="theme-dark">
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="edit-3" class="logo-icon"></i>
+                    <span>Zenote</span>
+                </div>
+                <button id="new-note-btn" class="btn btn-primary" title="New Note" aria-label="Create new note">
+                    <i data-lucide="plus"></i>
+                    <span>New Note</span>
+                </button>
+            </div>
+
+            <!-- Search and Filter -->
+            <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search notes..." aria-label="Search notes">
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="category-filters">
+                <button class="filter-pill active" data-category="all">All</button>
+                <button class="filter-pill" data-category="personal">Personal</button>
+                <button class="filter-pill" data-category="work">Work</button>
+                <button class="filter-pill" data-category="ideas">Ideas</button>
+                <button class="filter-pill" data-category="todo">Todo</button>
+            </div>
+
+            <!-- Notes List -->
+            <div class="notes-list-container">
+                <div id="notes-list" class="notes-list">
+                    <!-- Dynamic Notes Item will be injected here -->
+                </div>
+                <div id="empty-state" class="empty-state hidden">
+                    <i data-lucide="folder-open"></i>
+                    <p>No notes found</p>
+                </div>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="user-profile-wrapper">
+                    <div class="user-profile" id="user-profile">
+                        <i data-lucide="user" class="user-icon"></i>
+                        <span id="user-email" class="user-email">guest@zenote.com</span>
+                    </div>
+                    <div class="footer-actions">
+                        <button id="import-btn" class="btn-icon" title="Import JSON Backup" aria-label="Import JSON">
+                            <i data-lucide="download-cloud"></i>
+                        </button>
+                        <button id="export-btn" class="btn-icon" title="Export All Notes" aria-label="Export JSON">
+                            <i data-lucide="upload-cloud"></i>
+                        </button>
+                        <button id="logout-btn" class="btn-icon text-danger" title="Logout Account" aria-label="Logout">
+                            <i data-lucide="log-out"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="theme-switcher-wrapper">
+                    <div class="theme-switcher">
+                        <button id="theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
+                            <i data-lucide="sun" class="sun-icon"></i>
+                            <i data-lucide="moon" class="moon-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="workspace">
+            <div id="editor-view" class="editor-view">
+                <!-- Editor Top Bar -->
+                <header class="workspace-header">
+                    <div class="note-meta-editor">
+                        <div class="select-wrapper">
+                            <select id="note-category-select" aria-label="Choose Category">
+                                <option value="personal">Personal</option>
+                                <option value="work">Work</option>
+                                <option value="ideas">Ideas</option>
+                                <option value="todo">Todo</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                        </div>
+                        <span id="save-indicator" class="save-status">
+                            <i data-lucide="cloud-lightning" class="status-icon success"></i>
+                            <span>Auto-saved</span>
+                        </span>
+                    </div>
+                    <div class="workspace-actions">
+                        <button id="toggle-preview-btn" class="btn btn-secondary" title="Toggle Preview Mode">
+                            <i data-lucide="eye"></i>
+                            <span>Preview</span>
+                        </button>
+                        <button id="download-txt-btn" class="btn btn-secondary" title="Download as Text File">
+                            <i data-lucide="download"></i>
+                            <span>Download</span>
+                        </button>
+                        <button id="delete-note-btn" class="btn btn-danger" title="Delete Note">
+                            <i data-lucide="trash-2"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Editor / Preview Area -->
+                <div class="content-container">
+                    <!-- Edit Mode -->
+                    <div id="edit-pane" class="pane edit-pane">
+                        <input type="text" id="note-title-input" class="note-title-input" placeholder="Untitled note..." aria-label="Note Title">
+                        <textarea id="note-content-input" class="note-content-input" placeholder="Start writing... Supports basic Markdown formatting (# Header, **Bold**, - List, `Code` etc.)" aria-label="Note Content"></textarea>
+                    </div>
+
+                    <!-- Preview Mode (Hidden by default) -->
+                    <div id="preview-pane" class="pane preview-pane hidden">
+                        <h1 id="preview-title" class="preview-title"></h1>
+                        <div id="preview-body" class="preview-body markdown-body"></div>
+                    </div>
+                </div>
+
+                <!-- Footer Status Bar -->
+                <footer class="workspace-footer">
+                    <div class="stat-item">
+                        <span class="stat-label">Characters:</span>
+                        <span id="char-count" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Words:</span>
+                        <span id="word-count" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Read Time:</span>
+                        <span id="read-time" class="stat-value">0 min</span>
+                    </div>
+                    <div class="stat-item date-modified">
+                        <span class="stat-label">Last Modified:</span>
+                        <span id="modified-time" class="stat-value">Just now</span>
+                    </div>
+                </footer>
+            </div>
+
+            <!-- Welcome / Empty Workspace View -->
+            <div id="welcome-view" class="welcome-view hidden">
+                <div class="welcome-content">
+                    <div class="welcome-icon-wrapper">
+                        <i data-lucide="edit-3"></i>
+                    </div>
+                    <h1>Welcome to Zenote</h1>
+                    <p>Record your thoughts, ideas, and tasks. All data is saved securely in your browser for complete privacy.</p>
+                    <button id="welcome-new-btn" class="btn btn-primary">
+                        <i data-lucide="plus"></i>
+                        <span>Create Your First Note</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Account Pending Approval View -->
+            <div id="pending-view" class="welcome-view hidden">
+                <div class="welcome-content">
+                    <div class="welcome-icon-wrapper" style="color: var(--cat-ideas);">
+                        <i data-lucide="shield-alert"></i>
+                    </div>
+                    <h1>Account Pending Approval</h1>
+                    <p>Your account was successfully registered and is currently awaiting administrator approval. You can start creating and saving notes once approved.</p>
+                    <button id="check-approval-btn" class="btn btn-secondary" title="Refresh approval status">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Refresh Approval Status</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden input for file importing -->
+    <input type="file" id="import-file-input" accept=".json" class="hidden" aria-hidden="true">
+
+    <!-- Auth Overlay (Login / Register) -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <i data-lucide="edit-3" class="logo-icon"></i>
+                    <span>Zenote</span>
+                </div>
+                <h2 id="auth-title">Sign in to Zenote</h2>
+                <p id="auth-subtitle">Capture your thoughts and sync across devices</p>
+            </div>
+            
+            <form id="auth-form" class="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="mail" class="input-icon"></i>
+                        <input type="email" id="auth-email" required placeholder="name@example.com">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock" class="input-icon"></i>
+                        <input type="password" id="auth-password" required placeholder="••••••••" minlength="6">
+                    </div>
+                </div>
+                
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary auth-submit-btn">
+                    <span>Sign In</span>
+                    <i data-lucide="arrow-right" class="btn-arrow"></i>
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>or</span>
+            </div>
+
+            <button type="button" id="auth-guest-btn" class="btn btn-secondary auth-guest-btn">
+                <i data-lucide="user"></i>
+                <span>Continue as Guest</span>
+            </button>
+            
+            <div class="auth-footer">
+                <p id="auth-switch-text">Don't have an account? <a href="#" id="auth-switch-link">Sign up</a></p>
+                <div id="auth-error-msg" class="auth-error-msg hidden">
+                    <i data-lucide="alert-circle" class="error-icon"></i>
+                    <span id="auth-error-text">Error message</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
