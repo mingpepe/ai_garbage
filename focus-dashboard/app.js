@@ -1,7 +1,6 @@
 // --- Supabase Configuration ---
-// Paste your Supabase project URL and Anon Key here (must match client-notepad to share accounts!)
-const SUPABASE_URL = ''; 
-const SUPABASE_ANON_KEY = '';
+const SUPABASE_URL = 'https://caplmkwpriwwxdyghybp.supabase.co'; 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhcGxta3dwcml3d3hkeWdoeWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjMyOTYsImV4cCI6MjA5NjQ5OTI5Nn0.2J9W6apoYBVzvhpMqmR6PFhGQzWUuM46p46TIUaBCQY';
 
 // Initialize Supabase Client
 let supabaseClient = null;
