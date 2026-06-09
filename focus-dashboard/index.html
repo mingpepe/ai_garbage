@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zenfocus - Pomodoro Focus Dashboard</title>
+    <meta name="description" content="Zenfocus is a minimalist Pomodoro focus dashboard with integrated task tracking and cloud analytics.">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Style Sheet -->
+    <link rel="stylesheet" href="style.css">
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8b5cf6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+</head>
+<body class="theme-dark">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="compass" class="logo-icon"></i>
+                    <span>Zenfocus</span>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-tab="timer">
+                    <i data-lucide="timer"></i>
+                    <span>Focus Timer</span>
+                </button>
+                <button class="nav-item" data-tab="tasks">
+                    <i data-lucide="check-square"></i>
+                    <span>Tasks Tracker</span>
+                </button>
+                <button class="nav-item" data-tab="analytics">
+                    <i data-lucide="bar-chart-2"></i>
+                    <span>Analytics</span>
+                </button>
+            </nav>
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <div class="user-profile-wrapper">
+                    <div class="user-profile" id="user-profile">
+                        <i data-lucide="user" class="user-icon"></i>
+                        <span id="user-email" class="user-email">guest@zenfocus.com</span>
+                    </div>
+                    <div class="footer-actions">
+                        <button id="logout-btn" class="btn-icon text-danger" title="Logout Account" aria-label="Logout">
+                            <i data-lucide="log-out"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="theme-switcher-wrapper">
+                    <div class="theme-switcher">
+                        <button id="theme-toggle" class="btn-icon" title="Toggle Theme" aria-label="Toggle Theme">
+                            <i data-lucide="sun" class="sun-icon"></i>
+                            <i data-lucide="moon" class="moon-icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="workspace">
+            <!-- Timer View -->
+            <div id="tab-view-timer" class="tab-pane active">
+                <div class="timer-container">
+                    <!-- Session Mode Tabs -->
+                    <div class="timer-modes">
+                        <button class="mode-btn active" data-mode="focus">Focus</button>
+                        <button class="mode-btn" data-mode="short">Short Break</button>
+                        <button class="mode-btn" data-mode="long">Long Break</button>
+                    </div>
+
+                    <!-- Circular Progress Timer -->
+                    <div class="timer-display-wrapper">
+                        <svg class="progress-ring" width="300" height="300">
+                            <circle class="progress-ring-bg" stroke="var(--border-color)" stroke-width="8" fill="transparent" r="130" cx="150" cy="150"/>
+                            <circle class="progress-ring-circle" stroke="var(--accent-color)" stroke-width="8" fill="transparent" r="130" cx="150" cy="150"/>
+                        </svg>
+                        <div class="timer-content">
+                            <div id="timer-time" class="timer-time">25:00</div>
+                            <div id="timer-status" class="timer-status">Get to work!</div>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="timer-controls">
+                        <button id="timer-toggle-btn" class="btn btn-primary btn-large">
+                            <i data-lucide="play" id="play-icon"></i>
+                            <span>Start</span>
+                        </button>
+                        <button id="timer-reset-btn" class="btn btn-secondary btn-large" title="Reset Session">
+                            <i data-lucide="refresh-cw"></i>
+                        </button>
+                    </div>
+
+                    <!-- Active Task Mini-widget -->
+                    <div class="active-task-container">
+                        <span class="active-task-label">Focusing on:</span>
+                        <div id="active-task-title" class="active-task-title">No task selected</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Tracker View -->
+            <div id="tab-view-tasks" class="tab-pane">
+                <div class="tasks-container">
+                    <header class="view-header">
+                        <h1>Tasks Tracker</h1>
+                        <p>Manage your items and focus on them sequentially.</p>
+                    </header>
+
+                    <!-- Add Task Form -->
+                    <form id="task-form" class="task-form">
+                        <input type="text" id="task-title-input" required placeholder="What are you working on?" aria-label="Task Title">
+                        <div class="select-wrapper">
+                            <select id="task-category-select" aria-label="Task Category">
+                                <option value="work">Work</option>
+                                <option value="study">Study</option>
+                                <option value="health">Health</option>
+                                <option value="personal">Personal</option>
+                            </select>
+                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i data-lucide="plus"></i>
+                            <span>Add</span>
+                        </button>
+                    </form>
+
+                    <!-- Task List filters -->
+                    <div class="task-filters">
+                        <button class="task-filter-btn active" data-filter="all">All</button>
+                        <button class="task-filter-btn" data-filter="active">Active</button>
+                        <button class="task-filter-btn" data-filter="completed">Completed</button>
+                    </div>
+
+                    <!-- Tasks List -->
+                    <div class="task-list-wrapper">
+                        <div id="tasks-list" class="tasks-list">
+                            <!-- Dynamic Task rows will be injected here -->
+                        </div>
+                        <div id="tasks-empty-state" class="empty-state hidden">
+                            <i data-lucide="check-circle-2"></i>
+                            <p>No tasks found. Add one above!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="tab-view-analytics" class="tab-pane">
+                <div class="analytics-container">
+                    <header class="view-header">
+                        <h1>Focus Analytics</h1>
+                        <p>Track your efficiency stats and session achievements.</p>
+                    </header>
+
+                    <!-- Stats Widgets Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Total Focus Time</span>
+                                <i data-lucide="clock" class="stat-card-icon text-accent"></i>
+                            </div>
+                            <div class="stat-card-value" id="stat-total-time">0m</div>
+                            <div class="stat-card-desc">Accrued focus sessions</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Sessions Completed</span>
+                                <i data-lucide="award" class="stat-card-icon text-success"></i>
+                            </div>
+                            <div class="stat-card-value" id="stat-sessions-count">0</div>
+                            <div class="stat-card-desc">Interval sessions finished</div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <span class="stat-card-title">Today's Focus</span>
+                                <i data-lucide="calendar" class="stat-card-icon text-info"></i>
+                            </div>
+                            <div class="stat-card-value" id="stat-today-time">0m</div>
+                            <div class="stat-card-desc">Out of 50m daily goal</div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sessions History -->
+                    <div class="history-wrapper">
+                        <h3>Recent Sessions Log</h3>
+                        <div class="table-container">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Task Name</th>
+                                        <th>Category</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-tbody">
+                                    <!-- Dynamic Session rows will be injected here -->
+                                </tbody>
+                            </table>
+                            <div id="history-empty-state" class="empty-state">
+                                <i data-lucide="info"></i>
+                                <p>No completed focus sessions recorded yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Pending Approval View -->
+            <div id="pending-view" class="welcome-view hidden">
+                <div class="welcome-content">
+                    <div class="welcome-icon-wrapper" style="color: var(--cat-ideas);">
+                        <i data-lucide="shield-alert"></i>
+                    </div>
+                    <h1>Account Pending Approval</h1>
+                    <p>Your account was successfully registered and is currently awaiting administrator approval. You can use the timer dashboard once approved.</p>
+                    <button id="check-approval-btn" class="btn btn-secondary" title="Refresh approval status">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Refresh Approval Status</span>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Auth Overlay (Login / Register) -->
+    <div id="auth-overlay" class="auth-overlay">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <i data-lucide="compass" class="logo-icon"></i>
+                    <span>Zenfocus</span>
+                </div>
+                <h2 id="auth-title">Sign in to Zenfocus</h2>
+                <p id="auth-subtitle">Track your focus intervals and habits</p>
+            </div>
+            
+            <form id="auth-form" class="auth-form">
+                <div class="form-group">
+                    <label for="auth-email">Email Address</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="mail" class="input-icon"></i>
+                        <input type="email" id="auth-email" required placeholder="name@example.com">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="auth-password">Password</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="lock" class="input-icon"></i>
+                        <input type="password" id="auth-password" required placeholder="••••••••" minlength="6">
+                    </div>
+                </div>
+                
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary auth-submit-btn">
+                    <span>Sign In</span>
+                    <i data-lucide="arrow-right" class="btn-arrow"></i>
+                </button>
+            </form>
+
+            <div class="auth-divider">
+                <span>or</span>
+            </div>
+
+            <button type="button" id="auth-guest-btn" class="btn btn-secondary auth-guest-btn">
+                <i data-lucide="user"></i>
+                <span>Continue as Guest</span>
+            </button>
+            
+            <div class="auth-footer">
+                <p id="auth-switch-text">Don't have an account? <a href="#" id="auth-switch-link">Sign up</a></p>
+                <div id="auth-error-msg" class="auth-error-msg hidden">
+                    <i data-lucide="alert-circle" class="error-icon"></i>
+                    <span id="auth-error-text">Error message</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
