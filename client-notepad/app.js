@@ -78,6 +78,84 @@ const logoutBtn = document.getElementById('logout-btn');
 const pendingView = document.getElementById('pending-view');
 const checkApprovalBtn = document.getElementById('check-approval-btn');
 
+// --- Custom Notification & Confirm Dialogs & Mobile Views ---
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+
+    const iconMap = {
+        success: 'check-circle',
+        error: 'alert-circle',
+        warning: 'alert-triangle',
+        info: 'info'
+    };
+    const icon = iconMap[type] || 'info';
+
+    toast.innerHTML = `
+        <i data-lucide="${icon}" class="toast-icon"></i>
+        <span class="toast-message">${message}</span>
+    `;
+
+    container.appendChild(toast);
+    lucide.createIcons();
+
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
+}
+
+function customConfirm(message) {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById('custom-confirm');
+        const messageEl = document.getElementById('custom-confirm-message');
+        const confirmBtn = document.getElementById('custom-confirm-confirm');
+        const cancelBtn = document.getElementById('custom-confirm-cancel');
+
+        if (!overlay || !messageEl || !confirmBtn || !cancelBtn) {
+            resolve(confirm(message));
+            return;
+        }
+
+        messageEl.textContent = message;
+        overlay.classList.remove('hidden');
+
+        function cleanup(result) {
+            overlay.classList.add('hidden');
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(result);
+        }
+
+        function onConfirm() {
+            cleanup(true);
+        }
+
+        function onCancel() {
+            cleanup(false);
+        }
+
+        confirmBtn.addEventListener('click', onConfirm);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
+function setMobileView(view) {
+    const appContainer = document.querySelector('.app-container');
+    if (appContainer) {
+        if (view === 'editor') {
+            appContainer.classList.remove('view-list');
+            appContainer.classList.add('view-editor');
+        } else {
+            appContainer.classList.remove('view-editor');
+            appContainer.classList.add('view-list');
+        }
+    }
+}
+
 // --- Helper Functions ---
 
 // Safe Icon Changer for Lucide (since Lucide replaces <i> with <svg>)
@@ -265,7 +343,7 @@ async function handleAuthSubmit(e) {
             if (error) throw error;
             
             if (data.user && !data.session) {
-                alert('Registration successful! Please check your email inbox to confirm your account before logging in.');
+                showToast('Registration successful! Please check your email inbox to confirm your account before logging in.', 'success');
                 toggleAuthMode();
             }
         }
@@ -295,6 +373,7 @@ function handleGuestLogin() {
     
     loadLocalStorage();
     renderApp();
+    setMobileView('list');
     lucide.createIcons();
 }
 
@@ -308,6 +387,7 @@ async function handleLogout(e) {
     state.user = null;
     state.activeNoteId = null;
     state.isApproved = false;
+    setMobileView('list');
     
     if (supabaseClient) {
         await supabaseClient.auth.signOut();
@@ -531,6 +611,7 @@ async function createNewNote() {
     
     saveLocalStorage();
     renderApp();
+    setMobileView('editor');
     
     noteTitleInput.focus();
     
@@ -559,7 +640,7 @@ async function deleteActiveNote() {
     const index = state.notes.findIndex(note => note.id === state.activeNoteId);
     if (index === -1) return;
 
-    if (confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+    if (await customConfirm('Are you sure you want to delete this note? This action cannot be undone.')) {
         const deletedId = state.activeNoteId;
         state.notes.splice(index, 1);
         
@@ -572,6 +653,7 @@ async function deleteActiveNote() {
 
         saveLocalStorage();
         renderApp();
+        setMobileView('list');
         
         // Sync deletion to Supabase
         if (supabaseClient && state.user && !state.isGuest) {
@@ -648,6 +730,7 @@ function selectNote(noteId) {
     state.activeNoteId = noteId;
     saveLocalStorage();
     renderApp();
+    setMobileView('editor');
 }
 
 // Toggle preview panels and format markdown
@@ -677,7 +760,7 @@ function updatePreviewButtonUI() {
 // Export notes array to JSON file
 function exportNotes() {
     if (state.notes.length === 0) {
-        alert('There are no notes to export!');
+        showToast('There are no notes to export!', 'warning');
         return;
     }
     const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.notes, null, 2));
@@ -690,7 +773,7 @@ function exportNotes() {
 }
 
 // Import JSON note backups
-function handleImportFile(event) {
+async function handleImportFile(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -707,7 +790,7 @@ function handleImportFile(event) {
                 throw new Error('Data fields missing. Backup file might be corrupted.');
             }
 
-            const isMerge = confirm(`Successfully parsed ${imported.length} notes. Do you want to merge them into your existing notes? (Select Cancel to overwrite all existing notes.)`);
+            const isMerge = await customConfirm(`Successfully parsed ${imported.length} notes. Do you want to merge them into your existing notes? (Select Cancel to overwrite all existing notes.)`);
             
             if (isMerge) {
                 const existingIds = new Set(state.notes.map(n => n.id));
@@ -744,9 +827,9 @@ function handleImportFile(event) {
             }
             
             renderApp();
-            alert('Import and sync successful!');
+            showToast('Import and sync successful!', 'success');
         } catch (err) {
-            alert('Import failed: ' + err.message);
+            showToast('Import failed: ' + err.message, 'error');
         }
     };
     reader.readAsText(file);
@@ -946,6 +1029,15 @@ function init() {
             .then(reg => console.log('Service Worker registered successfully:', reg))
             .catch(err => console.error('Service Worker registration failed:', err));
     }
+
+    // Mobile back button
+    const backBtn = document.getElementById('back-to-list-btn');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            setMobileView('list');
+        });
+    }
+    setMobileView('list');
 
     // Parse Lucide SVG elements
     lucide.createIcons();

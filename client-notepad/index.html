@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant" translate="no">
 <head>
     <meta charset="UTF-8">
+    <meta name="google" content="notranslate">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zenote - Minimalist Cloud Notepad</title>
     <meta name="description" content="Zenote is a client-side minimalist web notepad featuring category management, instant search, live Markdown preview, and cloud synchronization.">
@@ -99,6 +100,9 @@
                 <!-- Editor Top Bar -->
                 <header class="workspace-header">
                     <div class="note-meta-editor">
+                        <button id="back-to-list-btn" class="btn-icon mobile-only" title="Back to list" aria-label="Back to list">
+                            <i data-lucide="arrow-left"></i>
+                        </button>
                         <div class="select-wrapper">
                             <select id="note-category-select" aria-label="Choose Category">
                                 <option value="personal">Personal</option>
@@ -249,6 +253,26 @@
                     <i data-lucide="alert-circle" class="error-icon"></i>
                     <span id="auth-error-text">Error message</span>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="custom-confirm" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <i data-lucide="help-circle" class="modal-icon text-warning"></i>
+                <h3 id="custom-confirm-title">Confirm Action</h3>
+            </div>
+            <div class="modal-body">
+                <p id="custom-confirm-message">Are you sure?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="custom-confirm-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="custom-confirm-confirm" class="btn btn-primary">Confirm</button>
             </div>
         </div>
     </div>
