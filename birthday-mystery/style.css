@@ -13,10 +13,13 @@
   --panel-glass: rgba(255, 255, 255, 0.85);
   --panel-border: rgba(255, 255, 255, 0.4);
   
-  /* Shirt colors */
+  /* Shirt / Option colors */
   --color-red: #ff4d4d;
   --color-yellow: #ffd54f;
   --color-blue: #4d94ff;
+  --color-green: #4ade80;
+  --color-pink: #f472b6;
+  --color-brown: #78350f;
   --color-empty: #e2e8f0;
   
   /* Outline / Text colors */
@@ -617,6 +620,9 @@ button:active {
 .badge-red { background-color: var(--color-red); }
 .badge-yellow { background-color: var(--color-yellow); }
 .badge-blue { background-color: var(--color-blue); }
+.badge-green { background-color: var(--color-green); }
+.badge-pink { background-color: var(--color-pink); }
+.badge-brown { background-color: var(--color-brown); }
 
 /* Wardrobe / Closet (Bottom Panel) */
 .closet-section {
@@ -838,6 +844,9 @@ button:active {
 .red-bg { background-color: var(--color-red); }
 .yellow-bg { background-color: var(--color-yellow); }
 .blue-bg { background-color: var(--color-blue); }
+.green-bg { background-color: var(--color-green); }
+.pink-bg { background-color: var(--color-pink); }
+.brown-bg { background-color: var(--color-brown); }
 
 /* Custom Drag Ghost/Cursor styling */
 .dragging {
@@ -940,6 +949,7 @@ button:active {
 .rabbit-jump { animation: bounce-slow 1.2s infinite; }
 .monkey-jump { animation: bounce-slow 1.2s infinite 0.3s; }
 .kitty-jump { animation: bounce-slow 1.2s infinite 0.6s; }
+.elephant-jump { animation: bounce-slow 1.2s infinite 0.9s; }
 .bear-clap { animation: floatCard 2s infinite; }
 
 /* Responsive Adjustments */
