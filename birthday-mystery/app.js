@@ -414,6 +414,45 @@ const LEVELS = [
       engText: "Level 3: Toy Clean-up! Sort the toys into the Red, Yellow, Blue, and Green chests.",
       zhtText: "第三關！大象加入了！聽聽提示，把玩具收進正確顏色的玩具箱吧！"
     }
+  },
+  {
+    id: 4,
+    title: "Level 4: The Animal Train Ride 🚂",
+    themeClass: "theme-train",
+    bgGradient: "linear-gradient(180deg, #fef08a 0%, #ffffff 100%)", // Sunny yellow sky
+    tableColor: "linear-gradient(180deg, #fca5a5, #ef4444)", // Red tracks/platform
+    tableBorder: "#dc2626",
+    centerItem: "train-engine",
+    characters: ["monkey", "kitty", "rabbit"],
+    itemType: "train-car",
+    options: ["red", "yellow", "blue"],
+    solution: {
+      monkey: "red",
+      kitty: "yellow",
+      rabbit: "blue"
+    },
+    clues: {
+      monkey: {
+        speech: "我是小猴子。我最喜歡紅色，所以我選了最前面的紅色車廂喔！",
+        engText: "Monkey: 'I like red, so I chose the red carriage!'",
+        zhtText: "小猴子：「我最喜歡紅色，所以我選了最前面的紅色車廂喔！」"
+      },
+      kitty: {
+        speech: "我是小貓咪。我不坐最後一節藍色車廂，也正看著坐在紅色車廂的朋友揮手呢！",
+        engText: "Kitty: 'I am not sitting in the last blue carriage, and I am waving at my friend in the red carriage!'",
+        zhtText: "小貓咪：「我不坐最後的藍色車廂，也正看著坐在紅色車廂的朋友揮手呢！」"
+      },
+      rabbit: {
+        speech: "我是小兔子。小猴子坐在我前面的車廂呢！",
+        engText: "Rabbit: 'Little Monkey sits in a carriage in front of mine!'",
+        zhtText: "小兔子：「小猴子坐在我前面的車廂呢！」"
+      }
+    },
+    intro: {
+      speech: "第四關！好朋友要坐玩具火車出發囉！車廂有紅色、黃色和藍色。聽聽小動物說的話，幫牠們坐上正確的車廂吧！",
+      engText: "Level 4: Toy Train Ride! Help the friends board their correct colored carriages (Red, Yellow, or Blue).",
+      zhtText: "第四關！玩具火車！聽聽提示，幫小動物們坐上正確顏色的車廂吧！"
+    }
   }
 ];
 
@@ -703,6 +742,30 @@ const CENTER_PIECE_TEMPLATES = {
         <path d="M 44 37 Q 50 42 56 37" fill="#ef4444" />
       </svg>
     </div>
+  `,
+  "train-engine": `
+    <div class="cake-container" id="birthday-cake" style="cursor: pointer;">
+      <svg viewBox="0 0 100 100" width="80" height="80">
+        <line x1="10" y1="82" x2="90" y2="82" stroke="#475569" stroke-width="4" />
+        <line x1="20" y1="82" x2="20" y2="86" stroke="#475569" stroke-width="3" />
+        <line x1="40" y1="82" x2="40" y2="86" stroke="#475569" stroke-width="3" />
+        <line x1="60" y1="82" x2="60" y2="86" stroke="#475569" stroke-width="3" />
+        <line x1="80" y1="82" x2="80" y2="86" stroke="#475569" stroke-width="3" />
+        <rect x="25" y="44" width="46" height="26" fill="#ef4444" rx="2" />
+        <rect x="58" y="32" width="16" height="38" fill="#3b82f6" rx="2" />
+        <path d="M 54 32 L 78 32 L 74 26 L 58 26 Z" fill="#1e3a8a" />
+        <rect x="30" y="30" width="8" height="14" fill="#475569" />
+        <ellipse cx="34" cy="30" rx="5" ry="2" fill="#1e293b" />
+        <circle cx="34" cy="22" r="3" fill="#cbd5e1" opacity="0.6" />
+        <circle cx="38" cy="16" r="4.5" fill="#cbd5e1" opacity="0.4" />
+        <circle cx="44" cy="10" r="6" fill="#cbd5e1" opacity="0.2" />
+        <circle cx="36" cy="74" r="8" fill="#1e293b" />
+        <circle cx="36" cy="74" r="3" fill="#94a3b8" />
+        <circle cx="64" cy="74" r="8" fill="#1e293b" />
+        <circle cx="64" cy="74" r="3" fill="#94a3b8" />
+        <polygon points="18,70 26,58 26,70" fill="#f59e0b" />
+      </svg>
+    </div>
   `
 };
 
@@ -742,6 +805,21 @@ const OPTION_TEMPLATES = {
       <rect x="36" y="35" width="8" height="10" rx="1" fill="#eab308" stroke="#ca8a04" stroke-width="1.5" />
       <circle cx="40" cy="40" r="1.5" fill="#000" />
     </svg>
+  `,
+  "train-car": (colorFill, colorStroke) => `
+    <svg viewBox="0 0 80 80" width="70" height="70">
+      <line x1="5" y1="68" x2="75" y2="68" stroke="#64748b" stroke-width="3" />
+      <rect x="2" y="48" width="6" height="4" fill="#475569" />
+      <rect x="72" y="48" width="6" height="4" fill="#475569" />
+      <rect x="8" y="24" width="64" height="32" rx="4" fill="${colorFill}" stroke="${colorStroke}" stroke-width="2" />
+      <rect x="16" y="30" width="12" height="12" rx="1" fill="#e0f2fe" stroke="${colorStroke}" stroke-width="1.5" />
+      <rect x="34" y="30" width="12" height="12" rx="1" fill="#e0f2fe" stroke="${colorStroke}" stroke-width="1.5" />
+      <rect x="52" y="30" width="12" height="12" rx="1" fill="#e0f2fe" stroke="${colorStroke}" stroke-width="1.5" />
+      <circle cx="22" cy="62" r="6" fill="#1e293b" />
+      <circle cx="22" cy="62" r="2.5" fill="#e2e8f0" />
+      <circle cx="58" cy="62" r="6" fill="#1e293b" />
+      <circle cx="58" cy="62" r="2.5" fill="#e2e8f0" />
+    </svg>
   `
 };
 
@@ -769,6 +847,11 @@ function getOptionLabel(level, option) {
     if (option === 'blue') return 'Blue Box 🔵';
     if (option === 'green') return 'Green Box 🟢';
   }
+  if (level.itemType === 'train-car') {
+    if (option === 'red') return 'Red Carriage 🔴';
+    if (option === 'yellow') return 'Yellow Carriage 🟡';
+    if (option === 'blue') return 'Blue Carriage 🔵';
+  }
   // Default Shirts
   return option.charAt(0).toUpperCase() + option.slice(1);
 }
@@ -777,6 +860,7 @@ function getOptionLabel(level, option) {
 function getClosetTitleText(itemType) {
   if (itemType === 'cupcake') return '🧁 Distribute Cupcakes! 🧁';
   if (itemType === 'toy-chest') return '🧸 Sort Toys into Chests! 🧸';
+  if (itemType === 'train-car') return '🚂 Assign Train Carriages! 🚂';
   return '👚 Dress the Friends! 👚';
 }
 
@@ -784,6 +868,7 @@ function getClosetTitleText(itemType) {
 function getClosetInstructionText(itemType) {
   if (itemType === 'cupcake') return 'Click a cupcake below, then click an animal friend to feed them! (Or drag it)';
   if (itemType === 'toy-chest') return 'Click a toy chest below, then click an animal friend to sort their toys! (Or drag it)';
+  if (itemType === 'train-car') return 'Click a carriage below, then click an animal friend to seat them! (Or drag it)';
   return 'Click a shirt below, then click an animal friend to dress them! (Or drag it)';
 }
 
