@@ -926,6 +926,51 @@ function loadLevel(levelIndex) {
     `;
   });
 
+  // Render visual hint for Level 4 if active
+  const visualHint = document.getElementById('level-visual-hint');
+  if (visualHint) {
+    if (levelIndex === 3) { // Level 4
+      visualHint.innerHTML = `
+        <div class="train-hint-box">
+          <span class="train-hint-label">🚂 Carriage Order Clue:</span>
+          <svg viewBox="0 0 120 40" width="160" height="52" style="display: block; margin: 4px auto;">
+            <!-- Track -->
+            <line x1="5" y1="32" x2="115" y2="32" stroke="#64748b" stroke-width="1.5" />
+            <!-- Engine -->
+            <rect x="5" y="14" width="16" height="12" fill="#475569" rx="1.5" />
+            <rect x="15" y="8" width="4" height="10" fill="#ef4444" rx="0.5" />
+            <ellipse cx="9" cy="14" rx="2" ry="1" fill="#cbd5e1" opacity="0.8" />
+            <circle cx="9" cy="28" r="2.5" fill="#1e293b" />
+            <circle cx="17" cy="28" r="2.5" fill="#1e293b" />
+            <!-- Connector -->
+            <line x1="21" y1="22" x2="26" y2="22" stroke="#64748b" stroke-dasharray="1.5,1.5" stroke-width="1.5" />
+            <!-- Carriage 1 (Red) -->
+            <rect x="26" y="14" width="18" height="10" fill="#ef4444" rx="1.5" stroke="#dc2626" stroke-width="1.2" />
+            <circle cx="31" cy="26" r="2.5" fill="#1e293b" />
+            <circle cx="39" cy="26" r="2.5" fill="#1e293b" />
+            <!-- Connector -->
+            <line x1="44" y1="22" x2="49" y2="22" stroke="#64748b" stroke-dasharray="1.5,1.5" stroke-width="1.5" />
+            <!-- Carriage 2 (Yellow) -->
+            <rect x="49" y="14" width="18" height="10" fill="#fbbf24" rx="1.5" stroke="#d97706" stroke-width="1.2" />
+            <circle cx="54" cy="26" r="2.5" fill="#1e293b" />
+            <circle cx="62" cy="26" r="2.5" fill="#1e293b" />
+            <!-- Connector -->
+            <line x1="67" y1="22" x2="72" y2="22" stroke="#94a3b8" stroke-dasharray="1.5,1.5" stroke-width="1.2" />
+            <!-- Carriage 3 (Dotted outline representing unknown, which is Blue) -->
+            <rect x="72" y="14" width="18" height="10" fill="none" rx="1.5" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="1.5,1.5" />
+            <text x="79" y="22" font-size="8" fill="#94a3b8" font-family="Fredoka" font-weight="bold">?</text>
+            <circle cx="77" cy="26" r="2" fill="#64748b" opacity="0.5" />
+            <circle cx="85" cy="26" r="2" fill="#64748b" opacity="0.5" />
+          </svg>
+        </div>
+      `;
+      visualHint.classList.remove('hidden');
+    } else {
+      visualHint.classList.add('hidden');
+      visualHint.innerHTML = "";
+    }
+  }
+
   // 5. Render Animal Seats/Characters
   const friendsRow = document.getElementById('friends-row');
   friendsRow.innerHTML = "";
