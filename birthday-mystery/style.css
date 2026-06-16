@@ -131,30 +131,9 @@ button:active {
   border: 3px solid #ffb74d;
   box-shadow: var(--shadow-lg), 0 0 25px rgba(255, 183, 77, 0.2);
   border-radius: 24px;
-  padding: 16px 36px 16px 24px;
+  padding: 16px 24px;
   z-index: 90;
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.close-bubble-btn {
-  position: absolute;
-  top: 8px;
-  right: 12px;
-  font-size: 1.6rem;
-  font-weight: bold;
-  background: none;
-  border: none;
-  color: #c2410c;
-  cursor: pointer;
-  line-height: 1;
-  transition: transform 0.2s;
-  padding: 0 4px;
-  z-index: 100;
-}
-
-.close-bubble-btn:hover {
-  transform: scale(1.2);
-  color: #ff4d4d;
 }
 
 .bubble-content {
@@ -1027,108 +1006,4 @@ button:active {
   .clue-text {
     font-size: 0.85rem;
   }
-}
-
-/* Developer Mode styling */
-.dev-login-panel {
-  margin-top: 24px;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding-top: 16px;
-  border-top: 2px dashed #cbd5e1;
-}
-
-.dev-input {
-  font-family: var(--font-kids);
-  padding: 6px 12px;
-  border: 2px solid #cbd5e1;
-  border-radius: 12px;
-  outline: none;
-  font-size: 0.9rem;
-  width: 150px;
-  transition: border-color 0.2s;
-}
-
-.dev-input:focus {
-  border-color: var(--accent-gold);
-}
-
-.dev-btn {
-  font-family: var(--font-kids);
-  background: #64748b;
-  color: white;
-  font-weight: 600;
-  padding: 6px 16px;
-  border-radius: 12px;
-  font-size: 0.9rem;
-}
-
-.dev-btn:hover {
-  background: #475569;
-}
-
-.dev-level-select {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f1f5f9;
-  border-radius: 16px;
-  border: 2px solid #cbd5e1;
-}
-
-.dev-select-title {
-  font-size: 0.95rem;
-  color: #475569;
-  margin-bottom: 8px;
-  font-weight: 700;
-}
-
-.dev-level-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.dev-lvl-btn {
-  font-family: var(--font-kids);
-  background: white;
-  color: #1e293b;
-  border: 2px solid #cbd5e1;
-  padding: 6px 14px;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  box-shadow: var(--shadow-sm);
-}
-
-.dev-lvl-btn:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
-  transform: translateY(-2px);
-}
-
-/* Visual Train Hint for Level 4 */
-.level-visual-hint {
-  width: 100%;
-  margin-bottom: 16px;
-}
-
-.train-hint-box {
-  background: rgba(255, 255, 255, 0.7);
-  border: 2.5px dashed #a8a29e;
-  border-radius: 20px;
-  padding: 10px 14px;
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.train-hint-label {
-  font-family: var(--font-kids);
-  font-size: 0.85rem;
-  color: #57534e;
-  font-weight: 800;
-  display: block;
-  margin-bottom: 6px;
 }
