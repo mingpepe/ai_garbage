@@ -766,7 +766,7 @@ const CENTER_PIECE_TEMPLATES = {
         <line x1="40" y1="82" x2="40" y2="86" stroke="#475569" stroke-width="3" />
         <line x1="60" y1="82" x2="60" y2="86" stroke="#475569" stroke-width="3" />
         <line x1="80" y1="82" x2="80" y2="86" stroke="#475569" stroke-width="3" />
-        <rect x="25" y="44" width="46" height="26" fill="#ef4444" rx="2" />
+        <rect x="25" y="44" width="46" height="26" fill="#fbbf24" rx="2" />
         <rect x="58" y="32" width="16" height="38" fill="#3b82f6" rx="2" />
         <path d="M 54 32 L 78 32 L 74 26 L 58 26 Z" fill="#1e3a8a" />
         <rect x="30" y="30" width="8" height="14" fill="#475569" />
@@ -778,7 +778,7 @@ const CENTER_PIECE_TEMPLATES = {
         <circle cx="36" cy="74" r="3" fill="#94a3b8" />
         <circle cx="64" cy="74" r="8" fill="#1e293b" />
         <circle cx="64" cy="74" r="3" fill="#94a3b8" />
-        <polygon points="18,70 26,58 26,70" fill="#f59e0b" />
+        <polygon points="18,70 26,58 26,70" fill="#ef4444" />
       </svg>
     </div>
   `
