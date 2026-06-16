@@ -315,9 +315,9 @@ const LEVELS = [
         zhtText: "小兔子：「我不喜歡紅色，所以我沒有穿紅色的衣服。」"
       },
       monkey: {
-        speech: "我是小猴子。我穿著和香蕉一樣顏色的衣服喔！",
-        engText: "Monkey: 'I am wearing a shirt that is the color of a banana!'",
-        zhtText: "小猴子：「我穿著和香蕉一樣顏色的衣服喔！」"
+        speech: "我是小猴子。我的衣服不是紅色的，也不是藍色的喔！",
+        engText: "Monkey: 'My shirt is not red, and it's also not blue!'",
+        zhtText: "小猴子：「我的衣服不是紅色的，也不是藍色的喔！」"
       },
       kitty: {
         speech: "我是小貓咪。我正看著穿藍色衣服的朋友，高興地拍拍手呢！",
@@ -354,9 +354,9 @@ const LEVELS = [
         zhtText: "小兔子：「我不喜歡粉紅色的草莓蛋糕，所以我沒有拿草莓蛋糕喔！」"
       },
       monkey: {
-        speech: "我是小猴子。我拿了最喜歡的巧克力杯子蛋糕，它是咖啡色的喔！",
-        engText: "Monkey: 'I took the chocolate cupcake! It's brown!'",
-        zhtText: "小猴子：「我拿了巧克力杯子蛋糕，它是咖啡色的喔！」"
+        speech: "我是小猴子。我沒有拿綠色的蛋糕，也沒有拿粉紅色的蛋糕喔！",
+        engText: "Monkey: 'I didn't take green, and I didn't take pink!'",
+        zhtText: "小猴子：「我沒有拿綠色的蛋糕，也沒有拿粉紅色的蛋糕喔！」"
       },
       kitty: {
         speech: "我是小貓咪。我正看著拿綠色抹茶蛋糕的朋友，高興地拍拍手呢！",
@@ -389,14 +389,14 @@ const LEVELS = [
     },
     clues: {
       elephant: {
-        speech: "我是大象。我的玩具箱是跟草地一樣的綠色喔！",
-        engText: "Elephant: 'My toy box is green like the grass!'",
-        zhtText: "大象：「我的玩具箱是像草地一樣的綠色喔！」"
+        speech: "我是大象。我的玩具箱不是紅色的，不是黃色的，也不是藍色的喔！",
+        engText: "Elephant: 'My toy box is not red, not yellow, and not blue!'",
+        zhtText: "大象：「我的玩具箱不是紅色的，不是黃色的，也不是藍色的喔！」"
       },
       monkey: {
-        speech: "我是小猴子。我的玩具箱是黃色的喔！",
-        engText: "Monkey: 'My toy box is yellow!'",
-        zhtText: "小猴子：「我的玩具箱是黃色的喔！」"
+        speech: "我是小猴子。我的玩具箱不是綠色的，不是紅色的，也不是藍色的喔！",
+        engText: "Monkey: 'My toy box is not green, not red, and not blue!'",
+        zhtText: "小猴子：「我的玩具箱不是綠色的，不是紅色的，也不是藍色的喔！」"
       },
       rabbit: {
         speech: "我是小兔子。我的玩具箱不是紅色的喔！",
@@ -433,19 +433,19 @@ const LEVELS = [
     },
     clues: {
       monkey: {
-        speech: "我是小猴子。我最喜歡紅色，所以我選了最前面的紅色車廂喔！",
-        engText: "Monkey: 'I like red, so I chose the red carriage!'",
-        zhtText: "小猴子：「我最喜歡紅色，所以我選了最前面的紅色車廂喔！」"
+        speech: "我是小猴子。小貓咪的車廂，就在我的正後方喔！",
+        engText: "Monkey: 'Kitty's carriage is right behind mine!'",
+        zhtText: "小猴子：「小貓咪的車廂，就在我的正後方喔！」"
       },
       kitty: {
-        speech: "我是小貓咪。我不坐最後一節藍色車廂，也正看著坐在紅色車廂的朋友揮手呢！",
-        engText: "Kitty: 'I am not sitting in the last blue carriage, and I am waving at my friend in the red carriage!'",
-        zhtText: "小貓咪：「我不坐最後的藍色車廂，也正看著坐在紅色車廂的朋友揮手呢！」"
+        speech: "我是小貓咪。我沒有坐在藍色車廂，而且我後面的車廂是藍色的喔！",
+        engText: "Kitty: 'I am not in the blue carriage, and the carriage behind me is blue!'",
+        zhtText: "小貓咪：「我沒有坐在藍色車廂，而且我後面的車廂是藍色的喔！」"
       },
       rabbit: {
-        speech: "我是小兔子。小猴子坐在我前面的車廂呢！",
-        engText: "Rabbit: 'Little Monkey sits in a carriage in front of mine!'",
-        zhtText: "小兔子：「小猴子坐在我前面的車廂呢！」"
+        speech: "我是小兔子。小猴子的車廂，不是黃色的喔！",
+        engText: "Rabbit: 'Monkey's carriage is not yellow!'",
+        zhtText: "小兔子：「小猴子的車廂，不是黃色的喔！」"
       }
     },
     intro: {
@@ -544,33 +544,48 @@ function speakAndShowSubtitle(scriptKeyOrObj) {
   speechText.innerHTML = `<strong>${scriptObj.engText}</strong><br><small style="opacity: 0.85">${scriptObj.zhtText}</small>`;
   speechBubble.classList.remove('hidden');
 
-  const utterance = new SpeechSynthesisUtterance(scriptObj.speech);
-  activeUtterance = utterance; // Keep global ref
-  
-  if (voiceSelection) {
-    utterance.voice = voiceSelection;
-  }
-  
-  utterance.rate = 1.0; 
-  utterance.pitch = 1.0; 
-
-  utterance.onend = () => {
-    activeUtterance = null;
-    if (scriptKeyOrObj !== 'win') {
-      setTimeout(() => {
-        speechBubble.classList.add('hidden');
-      }, 1500);
+  // Workaround for Chrome/Edge speechSynthesis.cancel() hanging issue:
+  // Introduce a short delay before speaking the next utterance.
+  setTimeout(() => {
+    const utterance = new SpeechSynthesisUtterance(scriptObj.speech);
+    activeUtterance = utterance; // Keep global ref
+    
+    if (voiceSelection) {
+      utterance.voice = voiceSelection;
     }
-  };
+    
+    // Set all voices to standard pitch and rate (same configuration as Rabbit/default) 
+    // to prevent silent failures on various devices and platforms.
+    utterance.pitch = 1.0;
+    utterance.rate = 1.0; 
 
-  utterance.onerror = () => {
-    activeUtterance = null;
-    setTimeout(() => {
-      speechBubble.classList.add('hidden');
-    }, 1500);
-  };
+    utterance.onend = () => {
+      if (activeUtterance === utterance) {
+        activeUtterance = null;
+      }
+      if (scriptKeyOrObj !== 'win') {
+        setTimeout(() => {
+          if (!activeUtterance) {
+            speechBubble.classList.add('hidden');
+          }
+        }, 1500);
+      }
+    };
 
-  window.speechSynthesis.speak(utterance);
+    utterance.onerror = (e) => {
+      console.error("SpeechSynthesis error:", e);
+      if (activeUtterance === utterance) {
+        activeUtterance = null;
+      }
+      setTimeout(() => {
+        if (!activeUtterance) {
+          speechBubble.classList.add('hidden');
+        }
+      }, 1500);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, 50);
 }
 
 // SVG Vector templates for Animals
@@ -1325,6 +1340,76 @@ function setupEventListeners() {
       loadLevel(currentLevelIndex);
     }
   });
+
+  // Close speech subtitle bubble manually
+  const closeSpeechBtn = document.getElementById('close-speech-btn');
+  if (closeSpeechBtn) {
+    closeSpeechBtn.addEventListener('click', () => {
+      window.speechSynthesis.cancel();
+      document.getElementById('speech-bubble').classList.add('hidden');
+    });
+  }
+
+  // Secret Dev Mode unlocking via typing "guess" on the splash screen
+  let devKeySequence = '';
+  window.addEventListener('keydown', (e) => {
+    const splash = document.getElementById('splash-screen');
+    // Only detect when the splash screen is visible
+    if (splash && !splash.classList.contains('hidden')) {
+      if (e.key.length === 1) {
+        devKeySequence += e.key.toLowerCase();
+        // Keep only the last 5 characters
+        if (devKeySequence.length > 5) {
+          devKeySequence = devKeySequence.slice(-5);
+        }
+        
+        if (devKeySequence === 'guess') {
+          SFX.playClick();
+          const devSelect = document.getElementById('dev-level-select');
+          const skipBtn = document.getElementById('dev-skip-btn');
+          if (devSelect) devSelect.classList.remove('hidden');
+          if (skipBtn) skipBtn.classList.remove('hidden');
+          alert("Developer Mode Unlocked! 🛠️ You can now skip levels.");
+          devKeySequence = ''; // Clear buffer
+        }
+      }
+    }
+  });
+
+  // Dev Level skip buttons
+  document.querySelectorAll('.dev-lvl-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await SFX.init();
+      SFX.isMuted = false;
+      await SFX.startMusic();
+      document.getElementById('music-btn').textContent = "🎵 On";
+
+      currentLevelIndex = parseInt(btn.dataset.level, 10);
+      loadLevel(currentLevelIndex);
+
+      // Transition to game board
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
+        splash.style.transition = 'opacity 0.4s ease';
+        splash.style.opacity = '0';
+        setTimeout(() => {
+          splash.classList.add('hidden');
+          document.querySelector('.game-container').classList.remove('hidden');
+          splash.style.opacity = '1';
+        }, 400);
+      }
+    });
+  });
+
+  // Header Dev Skip Button
+  const devSkipBtn = document.getElementById('dev-skip-btn');
+  if (devSkipBtn) {
+    devSkipBtn.addEventListener('click', () => {
+      SFX.playClick();
+      currentLevelIndex = (currentLevelIndex + 1) % LEVELS.length;
+      loadLevel(currentLevelIndex);
+    });
+  }
 }
 
 // Initial Setup on DOM load

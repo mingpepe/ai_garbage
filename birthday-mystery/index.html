@@ -16,6 +16,7 @@
 
   <!-- Speech subtitle overlay for accessibility and visual confirmation -->
   <div id="speech-bubble" class="hidden">
+    <button id="close-speech-btn" class="close-bubble-btn" title="Close and mute voice">×</button>
     <div class="bubble-content">
       <span id="speech-text"></span>
     </div>
@@ -37,6 +38,17 @@
 
       <button id="start-btn" class="pulse-btn">🎉 Enter the Party! 🎉</button>
       <p class="splash-note">This game uses voice prompts. Make sure your sound is turned ON! 🔊</p>
+
+
+      <div id="dev-level-select" class="dev-level-select hidden">
+        <h4 class="dev-select-title">🛠️ Skip directly to:</h4>
+        <div class="dev-level-buttons">
+          <button class="dev-lvl-btn" data-level="0">Level 1 👚</button>
+          <button class="dev-lvl-btn" data-level="1">Level 2 🧁</button>
+          <button class="dev-lvl-btn" data-level="2">Level 3 🧸</button>
+          <button class="dev-lvl-btn" data-level="3">Level 4 🚂</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -47,6 +59,7 @@
       <div class="header-left">
         <button id="home-btn" class="icon-btn" title="Back to main menu">🏠</button>
         <button id="music-btn" class="icon-btn" title="Toggle background music">🎵 Off</button>
+        <button id="dev-skip-btn" class="icon-btn hidden" title="Skip Level (Dev Mode)">🛠️ Skip</button>
       </div>
       <h2 class="game-title">
         🎂 <span id="game-title-text">Big Bear's Birthday Mystery</span> 
