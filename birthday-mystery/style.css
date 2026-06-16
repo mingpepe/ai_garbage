@@ -1007,3 +1007,68 @@ button:active {
     font-size: 0.85rem;
   }
 }
+
+/* Subtitle speech bubble close button */
+.close-bubble-btn {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-size: 1.6rem;
+  font-weight: bold;
+  background: none;
+  border: none;
+  color: #c2410c;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.2s;
+  padding: 0 4px;
+  z-index: 100;
+}
+
+.close-bubble-btn:hover {
+  transform: scale(1.2);
+  color: #ff4d4d;
+}
+
+/* Developer Mode styling */
+.dev-level-select {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f1f5f9;
+  border-radius: 16px;
+  border: 2px solid #cbd5e1;
+}
+
+.dev-select-title {
+  font-size: 0.95rem;
+  color: #475569;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.dev-level-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dev-lvl-btn {
+  font-family: var(--font-kids);
+  background: white;
+  color: #1e293b;
+  border: 2px solid #cbd5e1;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dev-lvl-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  transform: translateY(-2px);
+}
