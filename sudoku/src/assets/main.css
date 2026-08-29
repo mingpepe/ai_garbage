@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-zinc-950 text-zinc-100 font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .neon-text-cyan {
+    color: #00f5ff;
+    text-shadow: 0 0 8px #00f5ff80;
+  }
+  .neon-text-violet {
+    color: #bf5af2;
+    text-shadow: 0 0 8px #bf5af280;
+  }
+  .neon-text-green {
+    color: #32d74b;
+    text-shadow: 0 0 8px #32d74b80;
+  }
+  .neon-border-cyan {
+    border-color: #00f5ff;
+    box-shadow: 0 0 6px #00f5ff40, inset 0 0 6px #00f5ff10;
+  }
+  .neon-border-violet {
+    border-color: #bf5af2;
+    box-shadow: 0 0 6px #bf5af240, inset 0 0 6px #bf5af210;
+  }
+  .neon-glow-green {
+    box-shadow: 0 0 20px #32d74b60;
+  }
+}
