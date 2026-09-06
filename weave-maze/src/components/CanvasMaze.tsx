@@ -20,6 +20,7 @@ interface CanvasMazeProps {
   isWon: boolean;
   heldDir: Direction;
   isVantageFogEnabled?: boolean;
+  visionRadius?: number;
 }
 
 export const CanvasMaze: React.FC<CanvasMazeProps> = ({
@@ -36,7 +37,8 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
   onBridgeCross,
   isWon,
   heldDir,
-  isVantageFogEnabled = true,
+  isVantageFogEnabled = false,
+  visionRadius = 2.5,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -71,6 +73,9 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
 
   const isVantageFogEnabledRef = useRef(isVantageFogEnabled);
   isVantageFogEnabledRef.current = isVantageFogEnabled;
+
+  const visionRadiusRef = useRef(visionRadius);
+  visionRadiusRef.current = visionRadius;
 
   // Vantage Point Elevation Factor (0.0: ground fog, 1.0: high vantage point full panorama)
   const vantageFactorRef = useRef<number>(0.0);
@@ -203,6 +208,7 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
             timeSec,
             vantageFactor: vantageFactorRef.current,
             isVantageFogEnabled: isVantageFogEnabledRef.current,
+            visionRadius: visionRadiusRef.current,
           });
 
           ctx.restore();

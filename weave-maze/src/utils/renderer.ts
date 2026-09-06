@@ -53,6 +53,7 @@ export interface RenderContext {
   timeSec: number;
   vantageFactor?: number;
   isVantageFogEnabled?: boolean;
+  visionRadius?: number;
 }
 
 /**
@@ -318,14 +319,15 @@ export function renderMaze(rc: RenderContext) {
     endC.cy,
     cellSize,
     rc.vantageFactor ?? 0,
-    rc.isVantageFogEnabled ?? true,
+    rc.isVantageFogEnabled ?? false,
+    rc.visionRadius ?? 2.5,
     timeSec
   );
 }
 
 /**
  * Renders Vantage Point Garden Shroud (Fog of War)
- * On ground / tunnel: intimate local view around the player (radius ~3 cells), with distant garden masked.
+ * On ground / tunnel: intimate local view around the player (configurable radius), with distant garden completely obscured.
  * On high bridge: vision smoothly expands, lifting the shroud to reveal the panoramic woven maze layout.
  */
 function drawVantageShroud(
@@ -339,6 +341,7 @@ function drawVantageShroud(
   cellSize: number,
   vantageFactor: number,
   isVantageFogEnabled: boolean,
+  visionRadiusCells: number = 2.5,
   timeSec: number
 ) {
   if (!isVantageFogEnabled) return;
@@ -350,38 +353,41 @@ function drawVantageShroud(
 
   ctx.save();
 
-  // Base vision radius at ground level: roughly 2.8 cells
-  const baseRadius = Math.max(85, cellSize * 2.8);
+  // Base vision radius at ground level: customizable by user in grid cells
+  const baseRadius = Math.max(30, cellSize * visionRadiusCells);
   const maxRadius = Math.max(canvasWidth, canvasHeight) * 1.5;
 
   // Ease-out curve for natural visual transition
   const easeFactor = Math.sin((Math.max(0, Math.min(1, vantageFactor)) * Math.PI) / 2);
   const currentRadius = baseRadius + (maxRadius - baseRadius) * easeFactor;
-  const currentAlpha = (1 - easeFactor) * 0.96;
+  const currentAlpha = 1.0 - easeFactor; // Completely opaque (100%) on ground!
 
   if (currentAlpha > 0.01) {
-    // 1. Create botanical radial vignette mask
+    // 1. Dense opaque botanical radial vignette mask
+    // Deep dark enchanted forest green (matches PALETTE.bg)
     const grad = ctx.createRadialGradient(
       playerScreenX,
       playerScreenY,
-      currentRadius * 0.62,
+      currentRadius * 0.42,
       playerScreenX,
       playerScreenY,
       currentRadius
     );
 
-    grad.addColorStop(0, 'rgba(12, 28, 19, 0)');
-    grad.addColorStop(0.72, `rgba(12, 28, 19, ${currentAlpha * 0.65})`);
-    grad.addColorStop(1, `rgba(12, 28, 19, ${currentAlpha})`);
+    grad.addColorStop(0, 'rgba(10, 24, 16, 0)');
+    grad.addColorStop(0.52, `rgba(10, 24, 16, ${currentAlpha * 0.22})`);
+    grad.addColorStop(0.78, `rgba(10, 24, 16, ${currentAlpha * 0.82})`);
+    grad.addColorStop(0.94, `rgba(10, 24, 16, ${currentAlpha * 0.98})`);
+    grad.addColorStop(1, `rgba(10, 24, 16, ${currentAlpha})`);
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    // 2. Goal Orientation Beacon (faint mystical water-lily light guiding direction through fog)
+    // 2. Goal Orientation Beacon (faint mystical water-lily light guiding direction through deep fog)
     const distToGoal = Math.hypot(playerScreenX - goalScreenX, playerScreenY - goalScreenY);
     if (distToGoal > currentRadius * 0.75) {
       const pulse = (Math.sin(timeSec * 2.4) + 1) * 0.5;
-      const beaconR = cellSize * (1.1 + pulse * 0.25);
+      const beaconR = cellSize * (0.95 + pulse * 0.2);
       const bGrad = ctx.createRadialGradient(
         goalScreenX,
         goalScreenY,
@@ -390,8 +396,8 @@ function drawVantageShroud(
         goalScreenY,
         beaconR
       );
-      bGrad.addColorStop(0, `rgba(56, 189, 248, ${(0.42 + pulse * 0.15) * (1 - easeFactor)})`);
-      bGrad.addColorStop(0.6, `rgba(56, 189, 248, ${0.12 * (1 - easeFactor)})`);
+      bGrad.addColorStop(0, `rgba(56, 189, 248, ${(0.32 + pulse * 0.1) * (1 - easeFactor)})`);
+      bGrad.addColorStop(0.65, `rgba(56, 189, 248, ${0.08 * (1 - easeFactor)})`);
       bGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
 
       ctx.fillStyle = bGrad;

@@ -12,6 +12,7 @@ import {
   Wrench,
   Activity,
   Gauge,
+  Scan,
 } from 'lucide-react';
 import { DifficultyId, DifficultyPreset } from '../types/maze';
 
@@ -36,11 +37,13 @@ interface ControlPanelProps {
   isEngineeringMode: boolean;
   solutionStepsCount: number;
   isVantageFogEnabled: boolean;
+  visionRadius: number;
   onSelectDifficulty: (preset: DifficultyPreset) => void;
   onChangeCustomSize: (w: number, h: number) => void;
   onChangeWeaveProb: (prob: number) => void;
   onChangeBraidFactor: (factor: number) => void;
   onChangeMoveSpeed: (speed: number) => void;
+  onChangeVisionRadius: (radius: number) => void;
   onToggleSolution: () => void;
   onToggleTrail: () => void;
   onToggleVantageFog: () => void;
@@ -61,11 +64,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   isEngineeringMode,
   solutionStepsCount,
   isVantageFogEnabled,
+  visionRadius,
   onSelectDifficulty,
   onChangeCustomSize,
   onChangeWeaveProb,
   onChangeBraidFactor,
   onChangeMoveSpeed,
+  onChangeVisionRadius,
   onToggleSolution,
   onToggleTrail,
   onToggleVantageFog,
@@ -270,20 +275,49 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               {/* Vantage Fog Toggle (Engineering Mode) */}
               <button
                 onClick={onToggleVantageFog}
-                className={`w-full py-2 px-3 rounded-xl border text-xs font-medium transition-all flex items-center justify-between ${
+                className={`w-full py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-between ${
                   isVantageFogEnabled
-                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-200'
+                    ? 'bg-purple-500/30 border-purple-500 text-purple-200 shadow-md shadow-purple-500/20'
                     : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:bg-slate-750'
                 }`}
               >
                 <span className="flex items-center gap-1.5">
                   <Eye className="w-3.5 h-3.5 text-purple-300" />
-                  <span>登高遠眺迷霧 (Vantage Fog)</span>
+                  <span>迷宮迷霧 (Fog of War)</span>
                 </span>
                 <span className="font-mono text-[11px] font-bold text-purple-300">
-                  {isVantageFogEnabled ? '正常開啟' : '全圖透視'}
+                  {isVantageFogEnabled ? '已開啟 (有迷霧)' : '已關閉 (無迷霧)'}
                 </span>
               </button>
+
+              {/* Vision Radius Slider (Engineering Mode) */}
+              <div className="space-y-1.5 bg-slate-900/80 p-2.5 rounded-xl border border-purple-500/30">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-purple-200 flex items-center gap-1.5 font-medium">
+                    <Scan className="w-3.5 h-3.5 text-purple-400" />
+                    視野範圍 (Vision Radius):
+                  </span>
+                  <span className="font-mono text-purple-300 font-bold">
+                    {visionRadius.toFixed(1)} 格
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1.0}
+                  max={6.0}
+                  step={0.1}
+                  value={visionRadius}
+                  onChange={(e) => onChangeVisionRadius(Number(e.target.value))}
+                  className="w-full accent-purple-400 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400">
+                  <span>狹窄 (1.0)</span>
+                  <span className="text-purple-300 font-medium">
+                    {visionRadius <= 1.8 ? '極近視野' : visionRadius <= 3.2 ? '標準樹籬' : '開闊視野'}
+                  </span>
+                  <span>寬廣 (6.0)</span>
+                </div>
+              </div>
 
               {/* Braid Factor Slider */}
               <div className="space-y-1.5 pt-1">

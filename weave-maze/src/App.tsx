@@ -41,7 +41,8 @@ export const App: React.FC = () => {
   const [solutionPath, setSolutionPath] = useState<PathStep[] | null>(null);
   const [showSolution, setShowSolution] = useState<boolean>(false);
   const [showTrail, setShowTrail] = useState<boolean>(true);
-  const [isVantageFogEnabled, setIsVantageFogEnabled] = useState<boolean>(true);
+  const [isVantageFogEnabled, setIsVantageFogEnabled] = useState<boolean>(false); // 預設無迷霧
+  const [visionRadius, setVisionRadius] = useState<number>(2.5); // 視野範圍 (格)
 
   // Player State
   const [player, setPlayer] = useState<PlayerState>({
@@ -316,9 +317,10 @@ export const App: React.FC = () => {
             isWon={isWon}
             heldDir={heldDir}
             isVantageFogEnabled={isVantageFogEnabled}
+            visionRadius={visionRadius}
           />
 
-          {/* Floating Quick Layer Status Badge with Vantage Highlighting */}
+          {/* Floating Quick Layer Status Badge */}
           <div className="absolute top-4 left-4 z-10 pointer-events-none">
             <div
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md shadow-xl transition-all duration-300 flex items-center gap-2 ${
@@ -331,20 +333,20 @@ export const App: React.FC = () => {
             >
               {currentLayer === 'BRIDGE' && (
                 <>
-                  <span className="text-sm">🔭</span>
-                  <span>正在高架橋制高點 · 全景遠眺中</span>
+                  <span className="text-sm">{isVantageFogEnabled ? '🔭' : '🌉'}</span>
+                  <span>{isVantageFogEnabled ? '正在高架橋制高點 · 全景遠眺中' : '正在高架橋上通行'}</span>
                 </>
               )}
               {currentLayer === 'TUNNEL' && (
                 <>
                   <span className="text-sm">🚇</span>
-                  <span>正在地下涵洞穿越 · 陰影微光</span>
+                  <span>正在地下涵洞穿越</span>
                 </>
               )}
               {currentLayer === 'GROUND' && (
                 <>
                   <span className="text-sm">🌱</span>
-                  <span>地面花園小徑 · 樹籬探索中</span>
+                  <span>{isVantageFogEnabled ? '地面花園小徑 · 樹籬探索中' : '地面花園小徑'}</span>
                 </>
               )}
             </div>
@@ -366,11 +368,13 @@ export const App: React.FC = () => {
           isEngineeringMode={isEngineeringMode}
           solutionStepsCount={solutionPath ? solutionPath.length - 1 : 0}
           isVantageFogEnabled={isVantageFogEnabled}
+          visionRadius={visionRadius}
           onSelectDifficulty={handleSelectDifficulty}
           onChangeCustomSize={handleChangeCustomSize}
           onChangeWeaveProb={setWeaveProb}
           onChangeBraidFactor={setBraidFactor}
           onChangeMoveSpeed={setMoveSpeed}
+          onChangeVisionRadius={setVisionRadius}
           onToggleSolution={() => setShowSolution((prev) => !prev)}
           onToggleTrail={() => setShowTrail((prev) => !prev)}
           onToggleVantageFog={() => setIsVantageFogEnabled((prev) => !prev)}
