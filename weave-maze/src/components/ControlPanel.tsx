@@ -35,6 +35,7 @@ interface ControlPanelProps {
   isCustomSize: boolean;
   isEngineeringMode: boolean;
   solutionStepsCount: number;
+  isVantageFogEnabled: boolean;
   onSelectDifficulty: (preset: DifficultyPreset) => void;
   onChangeCustomSize: (w: number, h: number) => void;
   onChangeWeaveProb: (prob: number) => void;
@@ -42,6 +43,7 @@ interface ControlPanelProps {
   onChangeMoveSpeed: (speed: number) => void;
   onToggleSolution: () => void;
   onToggleTrail: () => void;
+  onToggleVantageFog: () => void;
   onGenerateNewMaze: () => void;
 }
 
@@ -58,6 +60,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   isCustomSize,
   isEngineeringMode,
   solutionStepsCount,
+  isVantageFogEnabled,
   onSelectDifficulty,
   onChangeCustomSize,
   onChangeWeaveProb,
@@ -65,6 +68,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   onChangeMoveSpeed,
   onToggleSolution,
   onToggleTrail,
+  onToggleVantageFog,
   onGenerateNewMaze,
 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -261,6 +265,24 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               >
                 {showSolution ? <EyeOff className="w-4 h-4 text-pink-300" /> : <Eye className="w-4 h-4 text-pink-400" />}
                 <span>{showSolution ? '隱藏最佳解答路徑' : '顯示最佳解答路徑 (Solution)'}</span>
+              </button>
+
+              {/* Vantage Fog Toggle (Engineering Mode) */}
+              <button
+                onClick={onToggleVantageFog}
+                className={`w-full py-2 px-3 rounded-xl border text-xs font-medium transition-all flex items-center justify-between ${
+                  isVantageFogEnabled
+                    ? 'bg-purple-500/20 border-purple-500/40 text-purple-200'
+                    : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:bg-slate-750'
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-purple-300" />
+                  <span>登高遠眺迷霧 (Vantage Fog)</span>
+                </span>
+                <span className="font-mono text-[11px] font-bold text-purple-300">
+                  {isVantageFogEnabled ? '正常開啟' : '全圖透視'}
+                </span>
               </button>
 
               {/* Braid Factor Slider */}

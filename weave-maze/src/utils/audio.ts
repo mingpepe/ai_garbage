@@ -64,7 +64,7 @@ class SoundSystem {
   }
 
   /**
-   * Sound when crossing an elevated bridge
+   * Sound when crossing an elevated bridge (Vantage Point chime)
    */
   public playBridge() {
     if (!this.enabled) return;
@@ -73,23 +73,23 @@ class SoundSystem {
 
     const now = this.ctx.currentTime;
     
-    // High wooden marimba chime
-    [660, 880].forEach((freq, idx) => {
+    // Uplifting multi-harmonic marimba & vantage chime (D5 -> A5 -> D6)
+    [587.33, 880.00, 1174.66].forEach((freq, idx) => {
       if (!this.ctx || !this.masterGain) return;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
       
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.05);
       
-      gain.gain.setValueAtTime(0.3, now + idx * 0.04);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.04 + 0.15);
+      gain.gain.setValueAtTime(0.26, now + idx * 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.05 + 0.32);
       
       osc.connect(gain);
       gain.connect(this.masterGain);
       
-      osc.start(now + idx * 0.04);
-      osc.stop(now + idx * 0.04 + 0.16);
+      osc.start(now + idx * 0.05);
+      osc.stop(now + idx * 0.05 + 0.35);
     });
   }
 

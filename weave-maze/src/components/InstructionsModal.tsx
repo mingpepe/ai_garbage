@@ -38,13 +38,16 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
           </p>
           <ul className="text-xs space-y-1.5 text-slate-300 list-disc list-inside">
             <li>
-              <strong className="text-amber-300">🌉 上層高架橋 (Bridge)</strong>：道路在上方跨越，具有明顯的投影與欄杆。
+              <strong className="text-amber-300">🌉 上層高架橋 (Bridge)</strong>：道路在上方跨越，具有明顯的立體投影與木棧欄杆。
             </li>
             <li>
-              <strong className="text-indigo-300">🚇 下層涵洞 (Tunnel)</strong>：道路從橋下方穿過，道路帶有深色陰影。
+              <strong className="text-indigo-300">🚇 下層涵洞 (Tunnel)</strong>：道路從橋下方穿過，道路帶有深色涵洞陰影。
             </li>
             <li>
-              <strong className="text-rose-400">⚠️ 不可中途轉彎</strong>：在上層或下層直線穿行時，不能在交點處直接跳到垂直的另一層道路（兩條路互不相通）！
+              <strong className="text-rose-400">⚠️ 絕對獨立不相通</strong>：上層與下層道路完全立體隔離，在交點處不能切換道路。
+            </li>
+            <li>
+              <strong className="text-emerald-300">🔭 登高望遠 (Vantage Point)</strong>：身處地面時樹籬遮蔽遠景；但<strong>登上高架橋時視野會完全開闊</strong>，整座迷宮與前方佈局一覽無遺！請善用橋樑作為制高點規劃路線。
             </li>
           </ul>
         </div>

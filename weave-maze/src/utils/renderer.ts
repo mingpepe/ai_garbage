@@ -51,6 +51,8 @@ export interface RenderContext {
   solutionPath: PathStep[] | null;
   showSolution: boolean;
   timeSec: number;
+  vantageFactor?: number;
+  isVantageFogEnabled?: boolean;
 }
 
 /**
@@ -302,6 +304,137 @@ export function renderMaze(rc: RenderContext) {
   if (!isPlayerInTunnel) {
     drawPlayer(ctx, playerScreenX, playerScreenY, cellSize, player, timeSec);
   }
+
+  // ==========================================
+  // PASS 6: VANTAGE POINT BOTANICAL SHROUD (FOG OF WAR)
+  // ==========================================
+  drawVantageShroud(
+    ctx,
+    canvasWidth,
+    canvasHeight,
+    playerScreenX,
+    playerScreenY,
+    endC.cx,
+    endC.cy,
+    cellSize,
+    rc.vantageFactor ?? 0,
+    rc.isVantageFogEnabled ?? true,
+    timeSec
+  );
+}
+
+/**
+ * Renders Vantage Point Garden Shroud (Fog of War)
+ * On ground / tunnel: intimate local view around the player (radius ~3 cells), with distant garden masked.
+ * On high bridge: vision smoothly expands, lifting the shroud to reveal the panoramic woven maze layout.
+ */
+function drawVantageShroud(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  playerScreenX: number,
+  playerScreenY: number,
+  goalScreenX: number,
+  goalScreenY: number,
+  cellSize: number,
+  vantageFactor: number,
+  isVantageFogEnabled: boolean,
+  timeSec: number
+) {
+  if (!isVantageFogEnabled) return;
+  if (vantageFactor >= 0.999) {
+    // If fully on bridge with full panorama, draw golden sunbeam aura around player
+    drawBridgeVantageAura(ctx, playerScreenX, playerScreenY, cellSize, timeSec, 1.0);
+    return;
+  }
+
+  ctx.save();
+
+  // Base vision radius at ground level: roughly 2.8 cells
+  const baseRadius = Math.max(85, cellSize * 2.8);
+  const maxRadius = Math.max(canvasWidth, canvasHeight) * 1.5;
+
+  // Ease-out curve for natural visual transition
+  const easeFactor = Math.sin((Math.max(0, Math.min(1, vantageFactor)) * Math.PI) / 2);
+  const currentRadius = baseRadius + (maxRadius - baseRadius) * easeFactor;
+  const currentAlpha = (1 - easeFactor) * 0.96;
+
+  if (currentAlpha > 0.01) {
+    // 1. Create botanical radial vignette mask
+    const grad = ctx.createRadialGradient(
+      playerScreenX,
+      playerScreenY,
+      currentRadius * 0.62,
+      playerScreenX,
+      playerScreenY,
+      currentRadius
+    );
+
+    grad.addColorStop(0, 'rgba(12, 28, 19, 0)');
+    grad.addColorStop(0.72, `rgba(12, 28, 19, ${currentAlpha * 0.65})`);
+    grad.addColorStop(1, `rgba(12, 28, 19, ${currentAlpha})`);
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // 2. Goal Orientation Beacon (faint mystical water-lily light guiding direction through fog)
+    const distToGoal = Math.hypot(playerScreenX - goalScreenX, playerScreenY - goalScreenY);
+    if (distToGoal > currentRadius * 0.75) {
+      const pulse = (Math.sin(timeSec * 2.4) + 1) * 0.5;
+      const beaconR = cellSize * (1.1 + pulse * 0.25);
+      const bGrad = ctx.createRadialGradient(
+        goalScreenX,
+        goalScreenY,
+        0,
+        goalScreenX,
+        goalScreenY,
+        beaconR
+      );
+      bGrad.addColorStop(0, `rgba(56, 189, 248, ${(0.42 + pulse * 0.15) * (1 - easeFactor)})`);
+      bGrad.addColorStop(0.6, `rgba(56, 189, 248, ${0.12 * (1 - easeFactor)})`);
+      bGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+
+      ctx.fillStyle = bGrad;
+      ctx.beginPath();
+      ctx.arc(goalScreenX, goalScreenY, beaconR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 3. If currently elevating on a bridge, draw sunlight shimmer aura
+  if (vantageFactor > 0.05) {
+    drawBridgeVantageAura(ctx, playerScreenX, playerScreenY, cellSize, timeSec, easeFactor);
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Draws sunlit vantage shimmer when player is standing high on an elevated bridge
+ */
+function drawBridgeVantageAura(
+  ctx: CanvasRenderingContext2D,
+  playerScreenX: number,
+  playerScreenY: number,
+  cellSize: number,
+  timeSec: number,
+  intensity: number = 1.0
+) {
+  ctx.save();
+  const auraSize = cellSize * 1.35;
+  const pulse = (Math.sin(timeSec * 3.5) + 1) * 0.5;
+
+  ctx.shadowColor = 'rgba(251, 191, 36, 0.8)';
+  ctx.shadowBlur = (14 + pulse * 8) * intensity;
+
+  ctx.strokeStyle = `rgba(251, 191, 36, ${(0.55 + pulse * 0.3) * intensity})`;
+  ctx.lineWidth = Math.max(2, cellSize * 0.06);
+
+  ctx.beginPath();
+  ctx.arc(playerScreenX, playerScreenY, auraSize * 0.5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
 }
 
 /**

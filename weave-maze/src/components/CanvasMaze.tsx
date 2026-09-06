@@ -19,6 +19,7 @@ interface CanvasMazeProps {
   onBridgeCross: () => void;
   isWon: boolean;
   heldDir: Direction;
+  isVantageFogEnabled?: boolean;
 }
 
 export const CanvasMaze: React.FC<CanvasMazeProps> = ({
@@ -35,6 +36,7 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
   onBridgeCross,
   isWon,
   heldDir,
+  isVantageFogEnabled = true,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -66,6 +68,12 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
 
   const heldDirRef = useRef(heldDir);
   heldDirRef.current = heldDir;
+
+  const isVantageFogEnabledRef = useRef(isVantageFogEnabled);
+  isVantageFogEnabledRef.current = isVantageFogEnabled;
+
+  // Vantage Point Elevation Factor (0.0: ground fog, 1.0: high vantage point full panorama)
+  const vantageFactorRef = useRef<number>(0.0);
 
   // Main 60 FPS Real-Time Continuous Keyboard Physics Loop
   useEffect(() => {
@@ -159,6 +167,11 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
         }
       }
 
+      // Update Vantage Point elevation factor smoothly (0.0 to 1.0)
+      const targetVantage = (p.currentLayer === 'BRIDGE' || won || showSolutionRef.current) ? 1.0 : 0.0;
+      const vantageSpeed = targetVantage > vantageFactorRef.current ? 4.8 : 3.0;
+      vantageFactorRef.current += (targetVantage - vantageFactorRef.current) * Math.min(1, vantageSpeed * dt);
+
       // Render to Canvas at 60 FPS
       const canvas = canvasRef.current;
       const container = containerRef.current;
@@ -188,6 +201,8 @@ export const CanvasMaze: React.FC<CanvasMazeProps> = ({
             solutionPath: solutionPathRef.current,
             showSolution: showSolutionRef.current,
             timeSec,
+            vantageFactor: vantageFactorRef.current,
+            isVantageFogEnabled: isVantageFogEnabledRef.current,
           });
 
           ctx.restore();

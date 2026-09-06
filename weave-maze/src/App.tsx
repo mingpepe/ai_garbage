@@ -41,6 +41,7 @@ export const App: React.FC = () => {
   const [solutionPath, setSolutionPath] = useState<PathStep[] | null>(null);
   const [showSolution, setShowSolution] = useState<boolean>(false);
   const [showTrail, setShowTrail] = useState<boolean>(true);
+  const [isVantageFogEnabled, setIsVantageFogEnabled] = useState<boolean>(true);
 
   // Player State
   const [player, setPlayer] = useState<PlayerState>({
@@ -314,22 +315,38 @@ export const App: React.FC = () => {
             onBridgeCross={handleBridgeCross}
             isWon={isWon}
             heldDir={heldDir}
+            isVantageFogEnabled={isVantageFogEnabled}
           />
 
-          {/* Floating Quick Layer Status Badge */}
+          {/* Floating Quick Layer Status Badge with Vantage Highlighting */}
           <div className="absolute top-4 left-4 z-10 pointer-events-none">
             <div
-              className={`px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-md shadow-lg transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border backdrop-blur-md shadow-xl transition-all duration-300 flex items-center gap-2 ${
                 currentLayer === 'BRIDGE'
-                  ? 'bg-amber-500/30 text-amber-200 border-amber-500/50'
+                  ? 'bg-amber-500/30 text-amber-200 border-amber-400/70 shadow-amber-500/25 ring-2 ring-amber-400/30 animate-pulse'
                   : currentLayer === 'TUNNEL'
-                  ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/50'
-                  : 'bg-slate-900/60 text-slate-300 border-slate-700/60'
+                  ? 'bg-indigo-500/30 text-indigo-200 border-indigo-500/50 shadow-indigo-500/20'
+                  : 'bg-slate-900/70 text-slate-300 border-slate-700/60'
               }`}
             >
-              {currentLayer === 'BRIDGE' && '🌉 正在高架橋上通行'}
-              {currentLayer === 'TUNNEL' && '🚇 正在地下涵洞穿越'}
-              {currentLayer === 'GROUND' && '🌱 地面道路'}
+              {currentLayer === 'BRIDGE' && (
+                <>
+                  <span className="text-sm">🔭</span>
+                  <span>正在高架橋制高點 · 全景遠眺中</span>
+                </>
+              )}
+              {currentLayer === 'TUNNEL' && (
+                <>
+                  <span className="text-sm">🚇</span>
+                  <span>正在地下涵洞穿越 · 陰影微光</span>
+                </>
+              )}
+              {currentLayer === 'GROUND' && (
+                <>
+                  <span className="text-sm">🌱</span>
+                  <span>地面花園小徑 · 樹籬探索中</span>
+                </>
+              )}
             </div>
           </div>
         </main>
@@ -348,6 +365,7 @@ export const App: React.FC = () => {
           isCustomSize={isCustomSize}
           isEngineeringMode={isEngineeringMode}
           solutionStepsCount={solutionPath ? solutionPath.length - 1 : 0}
+          isVantageFogEnabled={isVantageFogEnabled}
           onSelectDifficulty={handleSelectDifficulty}
           onChangeCustomSize={handleChangeCustomSize}
           onChangeWeaveProb={setWeaveProb}
@@ -355,6 +373,7 @@ export const App: React.FC = () => {
           onChangeMoveSpeed={setMoveSpeed}
           onToggleSolution={() => setShowSolution((prev) => !prev)}
           onToggleTrail={() => setShowTrail((prev) => !prev)}
+          onToggleVantageFog={() => setIsVantageFogEnabled((prev) => !prev)}
           onGenerateNewMaze={() => handleGenerateNewMaze()}
         />
       </div>

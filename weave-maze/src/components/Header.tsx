@@ -72,10 +72,10 @@ export const Header: React.FC<HeaderProps> = ({
           <Layers className="w-3.5 h-3.5" />
           <span>
             {currentLayer === 'BRIDGE'
-              ? '🌉 上層高架橋'
+              ? '🔭 制高點瞭望 (Vantage)'
               : currentLayer === 'TUNNEL'
               ? '🚇 下層涵洞'
-              : '🌱 地面道路'}
+              : '🌱 地面花園'}
           </span>
         </div>
 
