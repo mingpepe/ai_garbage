@@ -130,6 +130,18 @@ export function generateWeaveMaze(options: GeneratorOptions): MazeData {
             const nny = y + vec.dy * 2;
 
             if (isInBounds(nnx, nny, width, height) && !visited[nny][nnx]) {
+              // Condition D: Neighbor must not be adjacent to any existing weave cell
+              const hasAdjacentWeave = ALL_DIRECTIONS.some((d) => {
+                const cv = DIRECTION_VECTORS[d];
+                const ax = nx + cv.dx;
+                const ay = ny + cv.dy;
+                return isInBounds(ax, ay, width, height) && cells[ay][ax].isWeave;
+              });
+
+              if (hasAdjacentWeave) {
+                continue;
+              }
+
               // Create the Weave Cell!
               neighbor.isWeave = true;
               weaveCount++;

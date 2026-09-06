@@ -13,7 +13,9 @@ export function validateCorridorPosition(
   maze: MazeData,
   x: number,
   y: number,
-  currentLayer: LayerType
+  currentLayer: LayerType,
+  fromX?: number,
+  fromY?: number
 ): { valid: boolean; layer: LayerType } {
   const { width, height, cells } = maze;
 
@@ -39,6 +41,18 @@ export function validateCorridorPosition(
     // Vertical Track (North-South corridor)
     const isInVerticalTrack = Math.abs(dx) <= limit && Math.abs(dy) <= 0.5;
     const verticalLayer: LayerType = isBridgeHorizontal ? 'TUNNEL' : 'BRIDGE';
+
+    // When crossing across cell boundary into this weave cell, adapt layer based on crossing direction
+    if (fromX !== undefined && fromY !== undefined) {
+      const prevGx = Math.round(fromX);
+      const prevGy = Math.round(fromY);
+      if (prevGx !== gx && isInHorizontalTrack) {
+        return { valid: true, layer: horizontalLayer };
+      }
+      if (prevGy !== gy && isInVerticalTrack) {
+        return { valid: true, layer: verticalLayer };
+      }
+    }
 
     // If already in BRIDGE or TUNNEL, stay strictly on that track
     if (currentLayer === 'BRIDGE') {
@@ -132,7 +146,7 @@ export function updateContinuousPhysics(
   const deltaY = vy * dt;
 
   // 1. Try full 2D movement vector
-  const tryFull = validateCorridorPosition(maze, currentX + deltaX, currentY + deltaY, currentLayer);
+  const tryFull = validateCorridorPosition(maze, currentX + deltaX, currentY + deltaY, currentLayer, currentX, currentY);
   if (tryFull.valid) {
     return {
       x: currentX + deltaX,
@@ -144,7 +158,7 @@ export function updateContinuousPhysics(
 
   // 2. Try Wall Sliding (X-axis only)
   if (deltaX !== 0) {
-    const tryX = validateCorridorPosition(maze, currentX + deltaX, currentY, currentLayer);
+    const tryX = validateCorridorPosition(maze, currentX + deltaX, currentY, currentLayer, currentX, currentY);
     if (tryX.valid) {
       return {
         x: currentX + deltaX,
@@ -157,7 +171,7 @@ export function updateContinuousPhysics(
 
   // 3. Try Wall Sliding (Y-axis only)
   if (deltaY !== 0) {
-    const tryY = validateCorridorPosition(maze, currentX, currentY + deltaY, currentLayer);
+    const tryY = validateCorridorPosition(maze, currentX, currentY + deltaY, currentLayer, currentX, currentY);
     if (tryY.valid) {
       return {
         x: currentX,
