@@ -47,7 +47,7 @@ export const InstructionsModal: React.FC<InstructionsModalProps> = ({ isOpen, on
               <strong className="text-rose-400">⚠️ 絕對獨立不相通</strong>：上層與下層道路完全立體隔離，在交點處不能切換道路。
             </li>
             <li>
-              <strong className="text-emerald-300">🔭 登高望遠 (Vantage Point)</strong>：身處地面時樹籬遮蔽遠景；但<strong>登上高架橋時視野會完全開闊</strong>，整座迷宮與前方佈局一覽無遺！請善用橋樑作為制高點規劃路線。
+              <strong className="text-emerald-300">🔭 登高望遠 (Vantage Point)</strong>：身處地面時樹籬遮蔽遠景；但<strong>登上高架橋時視野會擴大為 2 倍</strong>，能看清更多前方佈局！請善用橋樑作為制高點規劃路線。
             </li>
           </ul>
         </div>

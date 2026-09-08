@@ -334,7 +334,7 @@ export const App: React.FC = () => {
               {currentLayer === 'BRIDGE' && (
                 <>
                   <span className="text-sm">{isVantageFogEnabled ? '🔭' : '🌉'}</span>
-                  <span>{isVantageFogEnabled ? '正在高架橋制高點 · 全景遠眺中' : '正在高架橋上通行'}</span>
+                  <span>{isVantageFogEnabled ? '正在高架橋制高點 · 2倍視野遠眺中' : '正在高架橋上通行'}</span>
                 </>
               )}
               {currentLayer === 'TUNNEL' && (

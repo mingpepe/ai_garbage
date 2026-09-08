@@ -328,7 +328,7 @@ export function renderMaze(rc: RenderContext) {
 /**
  * Renders Vantage Point Garden Shroud (Fog of War)
  * On ground / tunnel: intimate local view around the player (configurable radius), with distant garden completely obscured.
- * On high bridge: vision smoothly expands, lifting the shroud to reveal the panoramic woven maze layout.
+ * On high bridge: vision smoothly expands to 2x base radius.
  */
 function drawVantageShroud(
   ctx: CanvasRenderingContext2D,
@@ -345,66 +345,58 @@ function drawVantageShroud(
   timeSec: number
 ) {
   if (!isVantageFogEnabled) return;
-  if (vantageFactor >= 0.999) {
-    // If fully on bridge with full panorama, draw golden sunbeam aura around player
-    drawBridgeVantageAura(ctx, playerScreenX, playerScreenY, cellSize, timeSec, 1.0);
-    return;
-  }
 
   ctx.save();
 
   // Base vision radius at ground level: customizable by user in grid cells
+  // On bridge (vantageFactor -> 1.0), vision expands to 2x base radius
   const baseRadius = Math.max(30, cellSize * visionRadiusCells);
-  const maxRadius = Math.max(canvasWidth, canvasHeight) * 1.5;
 
   // Ease-out curve for natural visual transition
   const easeFactor = Math.sin((Math.max(0, Math.min(1, vantageFactor)) * Math.PI) / 2);
-  const currentRadius = baseRadius + (maxRadius - baseRadius) * easeFactor;
-  const currentAlpha = 1.0 - easeFactor; // Completely opaque (100%) on ground!
+  const currentRadius = baseRadius * (1 + easeFactor);
 
-  if (currentAlpha > 0.01) {
-    // 1. Dense opaque botanical radial vignette mask
-    // Deep dark enchanted forest green (matches PALETTE.bg)
-    const grad = ctx.createRadialGradient(
-      playerScreenX,
-      playerScreenY,
-      currentRadius * 0.42,
-      playerScreenX,
-      playerScreenY,
-      currentRadius
+  // 1. Dense opaque botanical radial vignette mask
+  // Deep dark enchanted forest green (matches PALETTE.bg)
+  const grad = ctx.createRadialGradient(
+    playerScreenX,
+    playerScreenY,
+    currentRadius * 0.42,
+    playerScreenX,
+    playerScreenY,
+    currentRadius
+  );
+
+  grad.addColorStop(0, 'rgba(10, 24, 16, 0)');
+  grad.addColorStop(0.52, 'rgba(10, 24, 16, 0.22)');
+  grad.addColorStop(0.78, 'rgba(10, 24, 16, 0.82)');
+  grad.addColorStop(0.94, 'rgba(10, 24, 16, 0.98)');
+  grad.addColorStop(1, 'rgba(10, 24, 16, 1)');
+
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+  // 2. Goal Orientation Beacon (faint mystical water-lily light guiding direction through deep fog)
+  const distToGoal = Math.hypot(playerScreenX - goalScreenX, playerScreenY - goalScreenY);
+  if (distToGoal > currentRadius * 0.75) {
+    const pulse = (Math.sin(timeSec * 2.4) + 1) * 0.5;
+    const beaconR = cellSize * (0.95 + pulse * 0.2);
+    const bGrad = ctx.createRadialGradient(
+      goalScreenX,
+      goalScreenY,
+      0,
+      goalScreenX,
+      goalScreenY,
+      beaconR
     );
+    bGrad.addColorStop(0, `rgba(56, 189, 248, ${0.32 + pulse * 0.1})`);
+    bGrad.addColorStop(0.65, 'rgba(56, 189, 248, 0.08)');
+    bGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
 
-    grad.addColorStop(0, 'rgba(10, 24, 16, 0)');
-    grad.addColorStop(0.52, `rgba(10, 24, 16, ${currentAlpha * 0.22})`);
-    grad.addColorStop(0.78, `rgba(10, 24, 16, ${currentAlpha * 0.82})`);
-    grad.addColorStop(0.94, `rgba(10, 24, 16, ${currentAlpha * 0.98})`);
-    grad.addColorStop(1, `rgba(10, 24, 16, ${currentAlpha})`);
-
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // 2. Goal Orientation Beacon (faint mystical water-lily light guiding direction through deep fog)
-    const distToGoal = Math.hypot(playerScreenX - goalScreenX, playerScreenY - goalScreenY);
-    if (distToGoal > currentRadius * 0.75) {
-      const pulse = (Math.sin(timeSec * 2.4) + 1) * 0.5;
-      const beaconR = cellSize * (0.95 + pulse * 0.2);
-      const bGrad = ctx.createRadialGradient(
-        goalScreenX,
-        goalScreenY,
-        0,
-        goalScreenX,
-        goalScreenY,
-        beaconR
-      );
-      bGrad.addColorStop(0, `rgba(56, 189, 248, ${(0.32 + pulse * 0.1) * (1 - easeFactor)})`);
-      bGrad.addColorStop(0.65, `rgba(56, 189, 248, ${0.08 * (1 - easeFactor)})`);
-      bGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
-
-      ctx.fillStyle = bGrad;
-      ctx.beginPath();
-      ctx.arc(goalScreenX, goalScreenY, beaconR, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.fillStyle = bGrad;
+    ctx.beginPath();
+    ctx.arc(goalScreenX, goalScreenY, beaconR, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // 3. If currently elevating on a bridge, draw sunlight shimmer aura
