@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: radial-gradient(circle at 50% 50%, #fef3c7 0%, #fde68a 100%);
+  min-height: 100vh;
+  user-select: none;
+  touch-action: manipulation;
+}
