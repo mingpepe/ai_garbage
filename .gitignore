@@ -57,6 +57,7 @@ MANIFEST
 chess_app
 test_app
 core
+!**/core/
 *.a
 *.lib
 *.so
