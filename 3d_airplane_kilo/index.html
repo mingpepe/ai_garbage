@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skyline — 3D Free Flight</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden; background: #0b1220;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  canvas { position: fixed; inset: 0; z-index: 0; display: block; }
+
+  #vignette {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(4, 10, 22, 0.5) 100%);
+  }
+
+  #hud {
+    position: fixed; top: 18px; left: 18px; z-index: 10;
+    padding: 14px 20px 13px; color: #eaf6ff; user-select: none;
+    background: rgba(7, 14, 28, 0.45);
+    border: 1px solid rgba(103, 232, 249, 0.28);
+    border-radius: 12px;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+  .hud-title {
+    font-size: 10px; letter-spacing: 0.38em; color: #67e8f9;
+    margin-bottom: 9px; text-shadow: 0 0 12px rgba(103, 232, 249, 0.6);
+  }
+  .hud-grid { display: flex; gap: 26px; align-items: flex-end; }
+  .hud-item .label {
+    display: block; font-size: 8px; letter-spacing: 0.26em;
+    opacity: 0.55; margin-bottom: 2px;
+  }
+  .hud-item .value {
+    font-size: 22px; font-weight: 600; line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px rgba(103, 232, 249, 0.35);
+  }
+  .hud-item .unit { font-size: 10px; opacity: 0.55; margin-left: 4px; }
+  #hudMode { color: #67e8f9; letter-spacing: 0.12em; }
+
+  #reticle {
+    position: fixed; left: 50%; top: 50%; z-index: 8;
+    width: 46px; height: 46px; transform: translate(-50%, -50%);
+    opacity: 0; transition: opacity 0.35s; pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  #reticle::before, #reticle::after {
+    content: ""; position: absolute; background: rgba(140, 240, 255, 0.9);
+    box-shadow: 0 0 8px rgba(103, 232, 249, 0.8);
+  }
+  #reticle::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-0.5px); }
+  #reticle::after { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-0.5px); }
+  .reticle-ring {
+    position: absolute; inset: 6px; border: 1px solid rgba(140, 240, 255, 0.55);
+    border-radius: 50%;
+  }
+
+  #hint {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 10; padding: 8px 18px; white-space: nowrap;
+    font-size: 11px; letter-spacing: 0.08em; color: #cfe6f5;
+    background: rgba(7, 14, 28, 0.4);
+    border: 1px solid rgba(103, 232, 249, 0.18);
+    border-radius: 999px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    user-select: none;
+  }
+  #hint b { color: #67e8f9; font-weight: 600; }
+
+  #fade {
+    position: fixed; inset: 0; z-index: 50; background: #0b1220;
+    transition: opacity 1.4s ease; pointer-events: none;
+  }
+
+  @media (max-width: 640px) {
+    .hud-grid { gap: 16px; }
+    .hud-item .value { font-size: 17px; }
+    #hint { font-size: 9px; padding: 6px 12px; }
+  }
+</style>
+</head>
+<body>
+<div id="vignette"></div>
+
+<div id="hud">
+  <div class="hud-title">SKYLINE · FREE FLIGHT</div>
+  <div class="hud-grid">
+    <div class="hud-item">
+      <span class="label">SPEED</span>
+      <span class="value" id="hudSpd">0</span><span class="unit">km/h</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">ALTITUDE</span>
+      <span class="value" id="hudAlt">0</span><span class="unit">m</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">VERT. SPEED</span>
+      <span class="value" id="hudVs">+0.0</span><span class="unit">m/s</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">HEADING</span>
+      <span class="value" id="hudHdg">000°</span>
+    </div>
+    <div class="hud-item">
+      <span class="label">CAMERA</span>
+      <span class="value" id="hudMode">CHASE</span>
+    </div>
+  </div>
+</div>
+
+<div id="reticle"><div class="reticle-ring"></div></div>
+
+<div id="hint">
+  <b>W/S</b> pitch &nbsp;·&nbsp; <b>A/D</b> roll &amp; yaw &nbsp;·&nbsp; <b>SPACE</b> throttle &nbsp;·&nbsp;
+  <b>SHIFT</b> brake &nbsp;·&nbsp; <b>C</b> camera &nbsp;·&nbsp; <b>R</b> reset &nbsp;·&nbsp; <b>drag</b> orbit
+</div>
+
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+"use strict";
+
+// ---------------- Configuration ----------------
+const TERRAIN_SIZE = 5200;
+const TERRAIN_SEG = 288;
+const WORLD_BOUND = TERRAIN_SIZE / 2 - 220;
+const CEILING = 720;
+const MIN_SPEED = 16;
+const MAX_SPEED = 200;
+const CRUISE_SPEED = 62;
+const PITCH_RATE = 1.15;
+const ROLL_RATE = 1.7;
+const YAW_RATE = 0.55;
+const CAM_NAMES = ["CHASE", "COCKPIT", "ORBIT"];
+const SUN_DIR = new THREE.Vector3(-0.55, 0.42, -0.35).normalize();
+
+// ---------------- Seeded value noise ----------------
+function hash2(ix, iz) {
+  let n = Math.imul(ix, 374761393) + Math.imul(iz, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  n = n ^ (n >>> 16);
+  return (n >>> 0) / 4294967295;
+}
+function fadeCurve(t) { return t * t * (3 - 2 * t); }
+function valueNoise(x, z) {
+  const ix = Math.floor(x), iz = Math.floor(z);
+  const fx = x - ix, fz = z - iz;
+  const a = hash2(ix, iz), b = hash2(ix + 1, iz);
+  const c = hash2(ix, iz + 1), d = hash2(ix + 1, iz + 1);
+  const ux = fadeCurve(fx), uz = fadeCurve(fz);
+  return a + (b - a) * ux + (c - a) * uz + (a - b - c + d) * ux * uz;
+}
+function fbm(x, z, octaves) {
+  let sum = 0, amp = 0.5, freq = 1, norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    sum += valueNoise(x * freq, z * freq) * amp;
+    norm += amp;
+    amp *= 0.5;
+    freq *= 2.03;
+  }
+  return sum / norm; // 0..1
+}
+
+// Rolling plains blended with ridged mountain masks; dips below 0 form lakes
+function terrainHeight(x, z) {
+  const base = fbm(x * 0.00035 + 11.3, z * 0.00035 - 4.7, 5);
+  const mask = fbm(x * 0.00009 + 31.1, z * 0.00009 + 17.9, 4);
+  const mountains = Math.pow(Math.max(0, Math.min(1, (mask - 0.48) / 0.22)), 1.6);
+  const hills = Math.pow(base, 1.4) * 42;
+  const peaks = mountains * (200 + fbm(x * 0.0012, z * 0.0012, 3) * 160);
+  return hills + peaks - 6.8;
+}
+
+// ---------------- Renderer / scene / camera ----------------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xc7dcee, 0.00038);
+
+const camera = new THREE.PerspectiveCamera(66, window.innerWidth / window.innerHeight, 0.1, 12000);
+
+// Gradient sky dome with sun disc and glow (shader ignores fog on purpose)
+const skyMesh = new THREE.Mesh(
+  new THREE.SphereGeometry(6000, 32, 16),
+  new THREE.ShaderMaterial({
+    side: THREE.BackSide,
+    depthWrite: false,
+    uniforms: {
+      topColor: { value: new THREE.Color(0x1f5fc4) },
+      horizonColor: { value: new THREE.Color(0xc7dcee) },
+      sunDirection: { value: SUN_DIR },
+      sunColor: { value: new THREE.Color(0xfff0d2) }
+    },
+    vertexShader: [
+      "varying vec3 vDir;",
+      "void main() {",
+      "  vDir = position;",
+      "  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+      "}"
+    ].join("\n"),
+    fragmentShader: [
+      "uniform vec3 topColor;",
+      "uniform vec3 horizonColor;",
+      "uniform vec3 sunDirection;",
+      "uniform vec3 sunColor;",
+      "varying vec3 vDir;",
+      "void main() {",
+      "  vec3 d = normalize(vDir);",
+      "  float h = clamp(d.y, -1.0, 1.0);",
+      "  float t = pow(clamp(1.0 - h, 0.0, 1.0), 1.8);",
+      "  vec3 col = mix(topColor, horizonColor, t);",
+      "  col = mix(col, horizonColor * 0.94, smoothstep(0.0, -0.25, h));",
+      "  float sd = max(dot(d, normalize(sunDirection)), 0.0);",
+      "  col += sunColor * pow(sd, 800.0) * 2.0;",
+      "  col += sunColor * pow(sd, 24.0) * 0.22;",
+      "  col += sunColor * pow(sd, 4.0) * 0.06;",
+      "  gl_FragColor = vec4(col, 1.0);",
+      "}"
+    ].join("\n")
+  })
+);
+scene.add(skyMesh);
+
+// ---------------- Lighting ----------------
+const hemi = new THREE.HemisphereLight(0xbfd6f5, 0x51663f, 0.55);
+scene.add(hemi);
+
+const sun = new THREE.DirectionalLight(0xfff1d8, 1.25);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -150;
+sun.shadow.camera.right = 150;
+sun.shadow.camera.top = 150;
+sun.shadow.camera.bottom = -150;
+sun.shadow.camera.near = 10;
+sun.shadow.camera.far = 1000;
+sun.shadow.bias = -0.0006;
+scene.add(sun);
+scene.add(sun.target);
+
+// ---------------- Terrain with vertex colors ----------------
+const grassLow = new THREE.Color(0x3f7a34);
+const grassHigh = new THREE.Color(0x7fae5a);
+const sand = new THREE.Color(0xc9b083);
+const rock = new THREE.Color(0x6b6259);
+const snow = new THREE.Color(0xf4f8ff);
+
+function buildTerrain() {
+  const geo = new THREE.PlaneGeometry(TERRAIN_SIZE, TERRAIN_SIZE, TERRAIN_SEG, TERRAIN_SEG);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    pos.setY(i, terrainHeight(pos.getX(i), pos.getZ(i)));
+  }
+  geo.computeVertexNormals();
+  const nrm = geo.attributes.normal;
+  const colors = new Float32Array(pos.count * 3);
+  const c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), h = pos.getY(i), z = pos.getZ(i);
+    const steep = 1 - nrm.getY(i); // 0 flat … ~1 vertical
+    c.copy(grassLow).lerp(grassHigh, THREE.MathUtils.clamp(h / 55, 0, 1));
+    if (h < 3.2) c.lerp(sand, THREE.MathUtils.clamp((3.2 - h) / 3.2, 0, 1) * 0.9);
+    const rockMix = Math.max(
+      THREE.MathUtils.smoothstep(steep, 0.28, 0.62),
+      THREE.MathUtils.smoothstep(h, 85, 140) * 0.55
+    );
+    c.lerp(rock, Math.min(rockMix, 1));
+    const snowMix = THREE.MathUtils.smoothstep(h, 125, 175) *
+      (1 - THREE.MathUtils.smoothstep(steep, 0.55, 0.95));
+    c.lerp(snow, snowMix);
+    const v = 0.9 + 0.2 * fbm(x * 0.02, z * 0.02, 2);
+    colors[i * 3] = c.r * v;
+    colors[i * 3 + 1] = c.g * v;
+    colors[i * 3 + 2] = c.b * v;
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    vertexColors: true, flatShading: true, roughness: 1, metalness: 0
+  }));
+  mesh.receiveShadow = true;
+  return mesh;
+}
+scene.add(buildTerrain());
+
+// Water plane for the low-lying lake basins
+const water = new THREE.Mesh(
+  new THREE.PlaneGeometry(TERRAIN_SIZE * 1.02, TERRAIN_SIZE * 1.02),
+  new THREE.MeshStandardMaterial({
+    color: 0x1b6f9e, transparent: true, opacity: 0.82,
+    roughness: 0.25, metalness: 0.35
+  })
+);
+water.rotation.x = -Math.PI / 2;
+water.position.y = 0;
+scene.add(water);
+
+// ---------------- Procedural clouds ----------------
+const clouds = new THREE.Group();
+function buildClouds() {
+  const mat = new THREE.MeshLambertMaterial({
+    color: 0xffffff, transparent: true, opacity: 0.92, flatShading: true
+  });
+  const blobGeos = [new THREE.IcosahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 1)];
+  for (let i = 0; i < 26; i++) {
+    const cloud = new THREE.Group();
+    const blobs = 5 + Math.floor(Math.random() * 5);
+    for (let b = 0; b < blobs; b++) {
+      const m = new THREE.Mesh(blobGeos[b % 2], mat);
+      const s = 5 + Math.random() * 11;
+      m.scale.set(s * (1.2 + Math.random()), s * 0.5, s * (0.9 + Math.random() * 0.6));
+      m.position.set(
+        (Math.random() - 0.5) * s * 3.2,
+        (Math.random() - 0.5) * s * 0.7,
+        (Math.random() - 0.5) * s * 2.0
+      );
+      cloud.add(m);
+    }
+    cloud.position.set(
+      (Math.random() - 0.5) * 4600,
+      230 + Math.random() * 240,
+      (Math.random() - 0.5) * 4600
+    );
+    cloud.userData = {
+      baseY: cloud.position.y,
+      bob: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2
+    };
+    clouds.add(cloud);
+  }
+}
+buildClouds();
+scene.add(clouds);
+
+// ---------------- Procedural airplane ----------------
+function buildAirplane() {
+  const plane = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe9edf3, metalness: 0.55, roughness: 0.35 });
+  const accentMat = new THREE.MeshStandardMaterial({ color: 0xe0483e, metalness: 0.4, roughness: 0.4 });
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x101c2a, metalness: 0.9, roughness: 0.12 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x2b3138, metalness: 0.45, roughness: 0.5 });
+
+  function add(geo, mat, x, y, z, rx, ry, rz) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.rotation.set(rx || 0, ry || 0, rz || 0);
+    m.castShadow = true;
+    plane.add(m);
+    return m;
+  }
+
+  // Fuselage and nose cone (forward = -Z)
+  add(new THREE.CylinderGeometry(0.55, 0.30, 6.0, 14), bodyMat, 0, 0, 0, Math.PI / 2);
+  add(new THREE.ConeGeometry(0.55, 1.4, 14), bodyMat, 0, 0, -3.7, -Math.PI / 2);
+  // Canopy
+  const canopy = add(new THREE.SphereGeometry(0.52, 14, 10), glassMat, 0, 0.52, -1.05);
+  canopy.scale.set(0.85, 0.62, 1.7);
+  // Main wing and winglets
+  add(new THREE.BoxGeometry(8.2, 0.14, 1.6), bodyMat, 0, -0.08, -0.35);
+  add(new THREE.BoxGeometry(0.1, 0.95, 0.75), accentMat, 4.1, 0.42, -0.35);
+  add(new THREE.BoxGeometry(0.1, 0.95, 0.75), accentMat, -4.1, 0.42, -0.35);
+  // Tail planes
+  add(new THREE.BoxGeometry(2.7, 0.1, 0.9), bodyMat, 0, 0.08, 2.65);
+  add(new THREE.BoxGeometry(0.1, 1.45, 1.25), accentMat, 0, 0.72, 2.7);
+  // Spinning propeller
+  const prop = new THREE.Group();
+  prop.position.set(0, 0, -4.55);
+  const bladeGeo = new THREE.BoxGeometry(0.16, 2.9, 0.06);
+  const b1 = new THREE.Mesh(bladeGeo, darkMat); b1.castShadow = true;
+  const b2 = new THREE.Mesh(bladeGeo, darkMat);
+  b2.rotation.z = Math.PI / 2; b2.castShadow = true;
+  const spinner = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.62, 14), accentMat);
+  spinner.rotation.x = -Math.PI / 2;
+  spinner.position.z = -0.2;
+  spinner.castShadow = true;
+  prop.add(b1, b2, spinner);
+  plane.add(prop);
+  // Blur disc that fades in with airspeed
+  const blur = new THREE.Mesh(
+    new THREE.CircleGeometry(1.5, 32),
+    new THREE.MeshBasicMaterial({
+      color: 0xe8f0f8, transparent: true, opacity: 0.05,
+      side: THREE.DoubleSide, depthWrite: false
+    })
+  );
+  blur.position.z = -4.55;
+  plane.add(blur);
+  // Emitter reference for the engine trail
+  const hub = new THREE.Object3D();
+  hub.position.set(0, 0, -4.55);
+  plane.add(hub);
+  return { group: plane, prop, blur, hub };
+}
+
+const jet = buildAirplane();
+const plane = jet.group;
+scene.add(plane);
+
+// ---------------- Engine trail particles ----------------
+const TRAIL_COUNT = 260;
+const trailPos = new Float32Array(TRAIL_COUNT * 3);
+const trailVel = new Float32Array(TRAIL_COUNT * 3);
+const trailAlpha = new Float32Array(TRAIL_COUNT);
+const trailLife = new Float32Array(TRAIL_COUNT);
+const trailMaxLife = new Float32Array(TRAIL_COUNT);
+for (let i = 0; i < TRAIL_COUNT; i++) trailPos[i * 3 + 1] = -9999;
+
+const trailGeo = new THREE.BufferGeometry();
+const trailPosAttr = new THREE.BufferAttribute(trailPos, 3).setUsage(THREE.DynamicDrawUsage);
+const trailAlphaAttr = new THREE.BufferAttribute(trailAlpha, 1).setUsage(THREE.DynamicDrawUsage);
+trailGeo.setAttribute("position", trailPosAttr);
+trailGeo.setAttribute("aAlpha", trailAlphaAttr);
+const trailPoints = new THREE.Points(trailGeo, new THREE.ShaderMaterial({
+  transparent: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  uniforms: { uSize: { value: 2.4 } },
+  vertexShader: [
+    "attribute float aAlpha;",
+    "varying float vAlpha;",
+    "uniform float uSize;",
+    "void main() {",
+    "  vAlpha = aAlpha;",
+    "  vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+    "  gl_PointSize = uSize * (140.0 / -mv.z);",
+    "  gl_Position = projectionMatrix * mv;",
+    "}"
+  ].join("\n"),
+  fragmentShader: [
+    "varying float vAlpha;",
+    "void main() {",
+    "  float d = length(gl_PointCoord - 0.5);",
+    "  float a = smoothstep(0.5, 0.05, d) * vAlpha;",
+    "  gl_FragColor = vec4(0.72, 0.88, 1.0, a);",
+    "}"
+  ].join("\n")
+}));
+trailPoints.frustumCulled = false;
+scene.add(trailPoints);
+
+let trailCursor = 0;
+let trailAcc = 0;
+const tmpEmit = new THREE.Vector3();
+
+function emitTrail(dt, speedFactor) {
+  trailAcc += dt * 140 * speedFactor;
+  if (trailAcc < 1) return;
+  jet.hub.getWorldPosition(tmpEmit);
+  const bx = -forwardVec.x * state.speed * 0.45;
+  const by = -forwardVec.y * state.speed * 0.45;
+  const bz = -forwardVec.z * state.speed * 0.45;
+  while (trailAcc >= 1) {
+    trailAcc -= 1;
+    const i = trailCursor;
+    trailCursor = (trailCursor + 1) % TRAIL_COUNT;
+    trailPos[i * 3] = tmpEmit.x + (Math.random() - 0.5) * 0.3;
+    trailPos[i * 3 + 1] = tmpEmit.y + (Math.random() - 0.5) * 0.3;
+    trailPos[i * 3 + 2] = tmpEmit.z + (Math.random() - 0.5) * 0.3;
+    trailVel[i * 3] = bx + (Math.random() - 0.5) * 2.5;
+    trailVel[i * 3 + 1] = by + (Math.random() - 0.5) * 2.5 + 0.6;
+    trailVel[i * 3 + 2] = bz + (Math.random() - 0.5) * 2.5;
+    trailMaxLife[i] = 0.7 + Math.random() * 0.6;
+    trailLife[i] = trailMaxLife[i];
+  }
+}
+
+function updateTrail(dt) {
+  for (let i = 0; i < TRAIL_COUNT; i++) {
+    if (trailLife[i] <= 0) continue;
+    trailLife[i] -= dt;
+    const a = Math.max(trailLife[i] / trailMaxLife[i], 0);
+    trailAlpha[i] = a * a * 0.5;
+    trailPos[i * 3] += trailVel[i * 3] * dt;
+    trailPos[i * 3 + 1] += trailVel[i * 3 + 1] * dt;
+    trailPos[i * 3 + 2] += trailVel[i * 3 + 2] * dt;
+  }
+  trailPosAttr.needsUpdate = true;
+  trailAlphaAttr.needsUpdate = true;
+}
+
+// ---------------- Flight state ----------------
+const state = { speed: CRUISE_SPEED, targetSpeed: CRUISE_SPEED };
+const velocity = new THREE.Vector3(0, 0, -CRUISE_SPEED);
+const forwardVec = new THREE.Vector3(0, 0, -1);
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
+const Z_AXIS = new THREE.Vector3(0, 0, 1);
+const tmpQ = new THREE.Quaternion();
+const tmpV = new THREE.Vector3();
+const tmpV2 = new THREE.Vector3();
+const tmpOffset = new THREE.Vector3();
+const tmpLook = new THREE.Vector3();
+
+const SPAWN = new THREE.Vector3(0, 0, 300);
+SPAWN.y = Math.max(terrainHeight(0, 300) + 45, 70);
+
+function resetFlight() {
+  plane.position.copy(SPAWN);
+  plane.quaternion.identity();
+  velocity.set(0, 0, -CRUISE_SPEED);
+  state.targetSpeed = CRUISE_SPEED;
+  state.speed = CRUISE_SPEED;
+  camPos.copy(SPAWN).add(tmpOffset.set(0, 3.4, 11.5));
+  smoothedLook.copy(SPAWN).add(tmpLook.set(0, 1, -14));
+}
+
+function updateFlight(dt) {
+  const pitchIn = ((keys.KeyW || keys.ArrowUp) ? 1 : 0) - ((keys.KeyS || keys.ArrowDown) ? 1 : 0);
+  const rollIn = ((keys.KeyD || keys.ArrowRight) ? 1 : 0) - ((keys.KeyA || keys.ArrowLeft) ? 1 : 0);
+  const q = plane.quaternion;
+  // Local pitch, roll, and yaw coupled into banked turns
+  tmpQ.setFromAxisAngle(X_AXIS, pitchIn * PITCH_RATE * dt);
+  q.multiply(tmpQ);
+  tmpQ.setFromAxisAngle(Z_AXIS, -rollIn * ROLL_RATE * dt);
+  q.multiply(tmpQ);
+  tmpQ.setFromAxisAngle(Y_AXIS, -rollIn * 0.45 * YAW_RATE * dt);
+  q.multiply(tmpQ);
+
+  // Throttle with inertia: velocity chases the forward vector
+  if (keys.Space) state.targetSpeed += 55 * dt;
+  else if (keys.ShiftLeft || keys.ShiftRight) state.targetSpeed -= 70 * dt;
+  else state.targetSpeed += (CRUISE_SPEED - state.targetSpeed) * (1 - Math.exp(-0.25 * dt));
+  state.targetSpeed = THREE.MathUtils.clamp(state.targetSpeed, MIN_SPEED, MAX_SPEED);
+
+  forwardVec.set(0, 0, -1).applyQuaternion(q);
+  tmpV.copy(forwardVec).multiplyScalar(state.targetSpeed);
+  velocity.lerp(tmpV, 1 - Math.exp(-1.7 * dt));
+  plane.position.addScaledVector(velocity, dt);
+  state.speed = velocity.length();
+
+  // Terrain avoidance and ceiling
+  const ground = terrainHeight(plane.position.x, plane.position.z) + 3.5;
+  if (plane.position.y < ground) {
+    plane.position.y = ground;
+    if (velocity.y < 0) velocity.y = 0;
+  }
+  if (plane.position.y > CEILING) {
+    plane.position.y = CEILING;
+    if (velocity.y > 0) velocity.y = 0;
+  }
+  // Soft world boundary
+  if (Math.abs(plane.position.x) > WORLD_BOUND) {
+    plane.position.x = THREE.MathUtils.clamp(plane.position.x, -WORLD_BOUND, WORLD_BOUND);
+    velocity.x *= 0.9;
+  }
+  if (Math.abs(plane.position.z) > WORLD_BOUND) {
+    plane.position.z = THREE.MathUtils.clamp(plane.position.z, -WORLD_BOUND, WORLD_BOUND);
+    velocity.z *= 0.9;
+  }
+}
+
+function updatePropeller(dt, speedFactor) {
+  jet.prop.rotation.z -= dt * (8 + state.speed * 0.55);
+  jet.blur.material.opacity = 0.04 + speedFactor * 0.16;
+  jet.prop.visible = speedFactor < 0.85; // blades hand off to the blur disc
+}
+
+function updateClouds(dt, t) {
+  for (const cloud of clouds.children) {
+    cloud.position.x += 6 * dt;
+    if (cloud.position.x > 2500) cloud.position.x = -2500;
+    cloud.position.y = cloud.userData.baseY +
+      Math.sin(t * cloud.userData.bob + cloud.userData.phase) * 3;
+  }
+}
+
+// ---------------- Camera system ----------------
+let camMode = 0;
+const camPos = new THREE.Vector3();
+const smoothedLook = new THREE.Vector3();
+const orbit = { yaw: 0, pitch: 0.35, radius: 30 };
+
+function setCameraMode(i) {
+  camMode = ((i % CAM_NAMES.length) + CAM_NAMES.length) % CAM_NAMES.length;
+  if (camMode === 2) {
+    // Seed the orbit from the current camera offset around the plane
+    tmpV.copy(camera.position).sub(plane.position);
+    orbit.radius = THREE.MathUtils.clamp(tmpV.length(), 10, 220);
+    orbit.yaw = Math.atan2(tmpV.x, tmpV.z);
+    orbit.pitch = Math.asin(THREE.MathUtils.clamp(tmpV.y / orbit.radius, -1, 1));
+  }
+  plane.visible = camMode !== 1;
+  trailPoints.visible = camMode !== 1;
+  document.getElementById("hudMode").textContent = CAM_NAMES[camMode];
+  document.getElementById("reticle").style.opacity = camMode === 1 ? 1 : 0;
+}
+
+function updateCamera(dt) {
+  const speedFactor = THREE.MathUtils.clamp(
+    (state.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED), 0, 1
+  );
+  if (camMode === 0) {
+    // Chase: damped follow behind and above the jet
+    tmpOffset.set(0, 3.4, 11.5).applyQuaternion(plane.quaternion);
+    camPos.lerp(tmpOffset.add(plane.position), 1 - Math.exp(-4.2 * dt));
+    camera.position.copy(camPos);
+    tmpLook.copy(forwardVec).multiplyScalar(14).add(plane.position);
+    tmpLook.y += 1.5;
+    smoothedLook.lerp(tmpLook, 1 - Math.exp(-6 * dt));
+    camera.lookAt(smoothedLook);
+  } else if (camMode === 1) {
+    // Cockpit: locked to the airframe
+    tmpOffset.set(0, 1.15, 0.4).applyQuaternion(plane.quaternion);
+    camera.position.copy(tmpOffset.add(plane.position));
+    camera.quaternion.copy(plane.quaternion);
+  } else {
+    // Free orbit around the jet
+    const cy = Math.cos(orbit.pitch);
+    tmpV.set(
+      orbit.radius * cy * Math.sin(orbit.yaw),
+      orbit.radius * Math.sin(orbit.pitch) + 2.5,
+      orbit.radius * cy * Math.cos(orbit.yaw)
+    ).add(plane.position);
+    camPos.lerp(tmpV, 1 - Math.exp(-10 * dt));
+    camera.position.copy(camPos);
+    tmpV2.copy(plane.position);
+    tmpV2.y += 1.2;
+    camera.lookAt(tmpV2);
+  }
+  // Speed-sensitive field of view for a sense of velocity
+  const targetFov = 66 + speedFactor * 18;
+  camera.fov += (targetFov - camera.fov) * (1 - Math.exp(-3 * dt));
+  camera.updateProjectionMatrix();
+}
+
+function updateSkyAndSun() {
+  skyMesh.position.copy(camera.position);
+  sun.position.copy(plane.position).addScaledVector(SUN_DIR, 420);
+  sun.target.position.copy(plane.position);
+  sun.target.updateMatrixWorld();
+}
+
+// ---------------- HUD ----------------
+const hudSpd = document.getElementById("hudSpd");
+const hudAlt = document.getElementById("hudAlt");
+const hudVs = document.getElementById("hudVs");
+const hudHdg = document.getElementById("hudHdg");
+
+function updateHUD() {
+  hudSpd.textContent = Math.round(state.speed * 3.6);
+  hudAlt.textContent = Math.max(0, Math.round(plane.position.y));
+  hudVs.textContent = (velocity.y >= 0 ? "+" : "") + velocity.y.toFixed(1);
+  const hdg = (Math.atan2(forwardVec.x, -forwardVec.z) * 180 / Math.PI + 360) % 360;
+  hudHdg.textContent = String(Math.round(hdg)).padStart(3, "0") + "°";
+}
+
+// ---------------- Input ----------------
+const keys = {};
+let dragging = false;
+let lastX = 0;
+let lastY = 0;
+
+window.addEventListener("keydown", (e) => {
+  if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+       "ShiftLeft", "ShiftRight"].includes(e.code)) e.preventDefault();
+  if (e.repeat) return;
+  keys[e.code] = true;
+  if (e.code === "KeyC") setCameraMode(camMode + 1);
+  if (e.code === "KeyR") resetFlight();
+});
+window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  if (camMode !== 2) return;
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+window.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  orbit.yaw -= (e.clientX - lastX) * 0.005;
+  orbit.pitch = THREE.MathUtils.clamp(orbit.pitch - (e.clientY - lastY) * 0.005, -1.45, 1.45);
+  lastX = e.clientX;
+  lastY = e.clientY;
+});
+window.addEventListener("pointerup", () => { dragging = false; });
+renderer.domElement.addEventListener("wheel", (e) => {
+  if (camMode !== 2) return;
+  orbit.radius = THREE.MathUtils.clamp(orbit.radius * (1 + e.deltaY * 0.001), 9, 220);
+}, { passive: true });
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+});
+
+// ---------------- Boot & main loop ----------------
+resetFlight();
+setCameraMode(0);
+
+const clock = new THREE.Clock();
+const fadeEl = document.getElementById("fade");
+let started = false;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+  const speedFactor = THREE.MathUtils.clamp(
+    (state.speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED), 0, 1
+  );
+
+  updateFlight(dt);
+  plane.updateMatrixWorld(true);
+  updatePropeller(dt, speedFactor);
+  emitTrail(dt, speedFactor);
+  updateTrail(dt);
+  updateClouds(dt, t);
+  updateCamera(dt);
+  updateSkyAndSun();
+  updateHUD();
+
+  renderer.render(scene, camera);
+  if (!started) {
+    started = true;
+    fadeEl.style.opacity = "0";
+  }
+}
+animate();
+</script>
+</body>
+</html>
