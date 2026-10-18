@@ -1,0 +1,83 @@
+[*]
+[*] GTKWave Save File for MCU Bus & DMA Hardware Simulator
+[*]
+[dumpfile] "mcu_bus.vcd"
+[timestart] 0
+[size] 1440 900
+[pos] -1 -1
+*-16.000000 185000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] tb_mcu_top.
+[treeopen] tb_mcu_top.dut.
+@200
+-=== CLOCK & RESET ===
+@28
+tb_mcu_top.clk
+tb_mcu_top.rst_n
+@200
+-=== AHB SYSTEM BUS & ARBITER ===
+@28
+tb_mcu_top.dut.u_arbiter.cpu_req
+tb_mcu_top.dut.u_arbiter.dma_req
+tb_mcu_top.dut.u_arbiter.cpu_grant
+tb_mcu_top.dut.u_arbiter.dma_grant
+tb_mcu_top.dut.u_arbiter.bus_master[1:0]
+tb_mcu_top.dut.hwrite
+@22
+tb_mcu_top.dut.haddr[31:0]
+tb_mcu_top.dut.hwdata[31:0]
+tb_mcu_top.dut.hrdata[31:0]
+@200
+-=== DMA CONTROLLER INTERNAL ===
+@820
+tb_mcu_top.dut.u_dma.dma_state_ascii[95:0]
+@28
+tb_mcu_top.dut.u_dma.dma_state[2:0]
+tb_mcu_top.dut.u_dma.dreq_uart_rx
+tb_mcu_top.dut.u_dma.dreq_i2c_tx
+tb_mcu_top.dut.u_dma.irq_dma
+@22
+tb_mcu_top.dut.u_dma.data_latch[7:0]
+tb_mcu_top.dut.u_dma.reg_cndtr[15:0]
+tb_mcu_top.dut.u_dma.reg_ccr[15:0]
+tb_mcu_top.dut.u_dma.reg_cpar[31:0]
+tb_mcu_top.dut.u_dma.reg_cmar[31:0]
+tb_mcu_top.dut.u_dma.reg_isr[3:0]
+@200
+-=== UART0 RX PERIPHERAL ===
+@28
+tb_mcu_top.ext_uart_rx_valid
+@22
+tb_mcu_top.ext_uart_rx_data[7:0]
+tb_mcu_top.dut.u_uart.fifo_count[2:0]
+tb_mcu_top.dut.u_uart.last_popped_byte[7:0]
+@200
+-=== I2C0 TX PERIPHERAL & WIRE ===
+@22
+tb_mcu_top.dut.u_i2c.fifo_count[1:0]
+@28
+tb_mcu_top.dut.u_i2c.is_transmitting
+@22
+tb_mcu_top.dut.u_i2c.shift_byte[7:0]
+tb_mcu_top.dut.u_i2c.shift_cnt[2:0]
+@28
+tb_mcu_top.i2c_scl
+tb_mcu_top.i2c_sda
+tb_mcu_top.i2c_wire_tx_done
+@22
+tb_mcu_top.i2c_last_wire_byte[7:0]
+@200
+-=== CPU CORE & NVIC ===
+@820
+tb_mcu_top.dut.u_cpu.cpu_state_ascii[63:0]
+@22
+tb_mcu_top.dut.u_nvic.ispr[3:0]
+tb_mcu_top.dut.u_nvic.iabr[3:0]
+@200
+-=== SRAM MEMORY [0..3] ===
+@22
+tb_mcu_top.dut.u_sram.sram_byte0[7:0]
+tb_mcu_top.dut.u_sram.sram_byte1[7:0]
+tb_mcu_top.dut.u_sram.sram_byte2[7:0]
+tb_mcu_top.dut.u_sram.sram_byte3[7:0]
+[pattern_trace] 1
+[pattern_trace] 0

@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCU Bus &amp; DMA Hardware-Level Simulator (with GTKWave UI)</title>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --card-bg: #151d2f;
+      --border-color: #26334d;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-green: #10b981;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #ef4444;
+      --accent-cyan: #06b6d4;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border-color);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge {
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 5px 11px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    button:hover {
+      background: #2b3952;
+      border-color: #3f5175;
+    }
+    button.btn-primary {
+      background: #2563eb;
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+    button.btn-primary:hover {
+      background: #1d4ed8;
+    }
+    button.btn-success {
+      background: #059669;
+      border-color: #047857;
+      color: #fff;
+    }
+    button.btn-success:hover {
+      background: #047857;
+    }
+    button.btn-purple {
+      background: #7c3aed;
+      border-color: #6d28d9;
+      color: #fff;
+    }
+    button.btn-purple:hover {
+      background: #6d28d9;
+    }
+    button.btn-amber {
+      background: #d97706;
+      border-color: #b45309;
+      color: #fff;
+    }
+    button.btn-amber:hover {
+      background: #b45309;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .slider-container input[type=range] {
+      width: 70px;
+      cursor: pointer;
+    }
+    main {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: 300px 1fr 340px;
+      gap: 12px;
+    }
+    @media (max-width: 1200px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card {
+      background: #0b0f19;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      padding: 2px 0;
+    }
+    .metric-row .label {
+      color: var(--text-muted);
+    }
+    .metric-row .val {
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .led {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #334155;
+      display: inline-block;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .led.active-green {
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+    .led.active-blue {
+      background: var(--accent-blue);
+      box-shadow: 0 0 8px var(--accent-blue);
+    }
+    .led.active-red {
+      background: var(--accent-rose);
+      box-shadow: 0 0 8px var(--accent-rose);
+    }
+    .pipeline-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      margin: 4px 0;
+    }
+    .step-pill {
+      font-size: 9px;
+      font-weight: 700;
+      background: #1e293b;
+      color: #94a3b8;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .step-pill.active {
+      background: #064e3b;
+      color: #34d399;
+      border-color: #10b981;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    }
+    .fifo-box {
+      display: flex;
+      gap: 6px;
+      min-height: 30px;
+      align-items: center;
+      background: #151d2f;
+      border: 1px dashed var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+    }
+    .fifo-slot {
+      background: #1e293b;
+      color: var(--accent-green);
+      font-family: monospace;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 7px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      animation: popIn 0.2s ease;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.7); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .progress-bar-bg {
+      background: #1e293b;
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent-amber);
+      width: 0%;
+      transition: width 0.15s ease;
+    }
+    .sram-pre {
+      font-family: monospace;
+      font-size: 10px;
+      color: var(--accent-cyan);
+      line-height: 1.35;
+      max-height: 85px;
+      overflow-y: auto;
+    }
+    .log-box {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-family: monospace;
+      font-size: 10px;
+      height: 135px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column-reverse;
+      line-height: 1.4;
+    }
+    .log-entry {
+      margin-bottom: 2px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-entry.dma { color: #34d399; }
+    .log-entry.cpu { color: #60a5fa; }
+    .log-entry.wire { color: #fbbf24; }
+    .log-entry.warn { color: #f87171; }
+    .log-entry.sys { color: #94a3b8; }
+
+    /* ======================================================================
+       GTKWAVE WAVEFORM VIEWER SECTION STYLES
+       ====================================================================== */
+    .gtkw-section {
+      padding: 0 16px 16px 16px;
+    }
+    .gtkw-container {
+      background: #0b101b;
+      border: 1px solid #2b3b59;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .gtkw-toolbar {
+      background: #131c2e;
+      border-bottom: 1px solid #26334d;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .gtkw-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.4px;
+    }
+    .gtkw-marker-box {
+      background: #070b12;
+      border: 1px solid #334155;
+      border-radius: 5px;
+      padding: 4px 10px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .gtkw-body {
+      display: grid;
+      grid-template-columns: 310px 1fr;
+      max-height: 440px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #05080f;
+    }
+    .gtkw-left-pane {
+      border-right: 2px solid #26334d;
+      background: #080d17;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+    .gtkw-left-header {
+      height: 32px;
+      background: #0f172a;
+      border-bottom: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      font-size: 10px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    .gtkw-sig-row {
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      border-bottom: 1px solid #111827;
+      font-family: monospace;
+      font-size: 11px;
+      cursor: pointer;
+      gap: 6px;
+    }
+    .gtkw-sig-row:hover {
+      background: rgba(56, 189, 248, 0.1);
+    }
+    .gtkw-sig-row.selected {
+      background: rgba(37, 99, 235, 0.28);
+    }
+    .gtkw-grp-badge {
+      font-size: 8px;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 3px;
+      background: #1e293b;
+      color: #94a3b8;
+      min-width: 34px;
+      text-align: center;
+    }
+    .gtkw-sig-name {
+      flex: 1;
+      color: #e2e8f0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .gtkw-sig-val {
+      font-weight: 700;
+      text-align: right;
+      min-width: 82px;
+    }
+    .gtkw-right-pane {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+    #gtkwaveCanvas {
+      width: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <div class="brand">⚡ MCU BUS &amp; DMA SIMULATOR</div>
+      <div class="badge">
+        <span style="color:var(--text-muted)">CYCLE:</span>
+        <span id="cycleCount" style="color:var(--accent-green); font-size:14px; font-weight:800;">1</span>
+      </div>
+      <div class="badge">
+        <span id="dmaStateBadge" style="color:var(--accent-amber)">DMA: IDLE</span>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnStepCycle" class="btn-primary">Step Cycle (1 Cyc)</button>
+      <button id="btnStepDma" class="btn-purple">Step DMA Byte</button>
+      <button id="btnRunPause" class="btn-success">▶ Run</button>
+      <button id="btnReset">↺ Reset</button>
+
+      <div class="slider-container">
+        <span>Speed:</span>
+        <input type="range" id="speedSlider" min="0.5" max="25" step="0.5" value="4" />
+        <span id="speedVal">4.0 Hz</span>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button id="btnPresetP2P">P2P (UART→I2C)</button>
+      <button id="btnPresetP2M">P2M (UART→SRAM)</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT PANEL: BUS ARBITER & CPU -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>AHB Bus Arbiter &amp; Matrix</span>
+        <span id="busContentionBadge" style="color:var(--accent-rose); font-size:10px;">0 Contention(s)</span>
+      </div>
+
+      <div class="card" id="busCard" style="border-left: 4px solid #6b7280;">
+        <div class="metric-row" style="margin-bottom: 4px;">
+          <span class="label" style="font-weight:700">GRANTED MASTER:</span>
+          <span id="busWinnerVal" style="font-size:13px; font-weight:800; color:#6b7280;">IDLE</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Address Bus:</span>
+          <span id="busAddrVal" class="val">0x00000000</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Direction:</span>
+          <span id="busRwVal" class="val" style="color:var(--accent-amber)">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Data Bus:</span>
+          <span id="busDataVal" class="val" style="color:var(--accent-green)">0x00</span>
+        </div>
+        <div id="busDescVal" style="font-size:10px; color:var(--text-muted); font-style:italic; margin-top:4px;">No Bus Operation</div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:2px;">ARBITRATION METRICS</div>
+        <div class="metric-row">
+          <span class="label">DMA / CPU Grants:</span>
+          <span class="val"><span id="statDmaGrants" style="color:var(--accent-green)">0</span> / <span id="statCpuGrants" style="color:var(--accent-blue)">0</span></span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Contention / Idle:</span>
+          <span class="val"><span id="statContentions" style="color:var(--accent-rose)">0</span> / <span id="statIdle">0</span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="font-size:10px; font-weight:700; color:var(--text-muted); margin-bottom:2px;">CPU CORE &amp; NVIC</div>
+        <div class="metric-row">
+          <span class="label">Core State / Stalls:</span>
+          <span class="val"><span id="cpuStateVal" style="color:var(--accent-blue)">RUNNING</span> (<span id="cpuStallsVal" style="color:var(--accent-rose)">0</span>)</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">NVIC ISPR (Pending):</span>
+          <span id="nvicIsprVal" class="val" style="color:var(--accent-amber)">0x00</span>
+        </div>
+        <div id="cpuOpVal" style="font-size:10px; color:var(--text-muted); margin-top:3px;">Running (Background)</div>
+      </div>
+    </div>
+
+    <!-- CENTER PANEL: DMA CONTROLLER (CORE FOCUS) -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>DMA1 Controller (Channel 1)</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:4px; font-size:10px;">
+            <span class="led" id="ledUartRx"></span>
+            <span>UART_REQ</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px; font-size:10px;">
+            <span class="led" id="ledI2cTx"></span>
+            <span>I2C_REQ</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:4px; font-size:10px;">
+            <span class="led" id="ledDmaIrq"></span>
+            <span>TC_IRQ</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- State machine pipeline pills -->
+      <div class="card">
+        <div style="font-size:9px; font-weight:800; color:var(--text-muted); margin-bottom:4px; text-align:center;">INTERNAL HARDWARE ENGINE STATE PIPELINE</div>
+        <div class="pipeline-steps">
+          <span class="step-pill" id="step-IDLE">IDLE</span>
+          <span class="step-pill" id="step-WAIT_REQ">WAIT_REQ</span>
+          <span class="step-pill" id="step-REQ_SRC">REQ_SRC</span>
+          <span class="step-pill" id="step-READ_LATCH">READ_LATCH</span>
+          <span class="step-pill" id="step-REQ_DST">REQ_DST</span>
+          <span class="step-pill" id="step-WRITE_COMMIT">WRITE_COMMIT</span>
+          <span class="step-pill" id="step-UPDATE">UPDATE</span>
+          <span class="step-pill" id="step-COMPLETE">COMPLETE</span>
+        </div>
+      </div>
+
+      <!-- DMA Register Grid -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <div class="card">
+          <div class="metric-row">
+            <span class="label">CCR (Control):</span>
+            <span id="dmaCcrVal" class="val" style="color:var(--accent-amber)">0x0000</span>
+          </div>
+          <div class="metric-row">
+            <span class="label">CPAR (Source):</span>
+            <span id="dmaCparVal" class="val">0x40000008</span>
+          </div>
+          <div class="metric-row">
+            <span class="label">CMAR (Dest):</span>
+            <span id="dmaCmarVal" class="val">0x40001008</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="metric-row">
+            <span class="label">CNDTR (Remaining):</span>
+            <span id="dmaCndtrVal" class="val" style="font-size:14px; color:var(--accent-green)">5</span>
+          </div>
+          <div class="metric-row" style="background:#1e293b; padding:3px 6px; border-radius:4px; margin:2px 0;">
+            <span class="label" style="color:var(--accent-purple); font-weight:700;">Internal Latch:</span>
+            <span id="dmaLatchVal" class="val" style="color:var(--accent-purple); font-size:13px;">0x00</span>
+          </div>
+          <div class="metric-row">
+            <span class="label">Transferred / Stalls:</span>
+            <span id="dmaStatsVal" class="val">0 / 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="font-size:11px; font-style:italic; color:var(--text-main);" id="dmaActionMsg">
+        DMA Initialized
+      </div>
+
+      <!-- Peripherals Section -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <!-- UART Peripheral -->
+        <div class="card">
+          <div class="panel-title" style="margin-bottom:4px;">
+            <span style="color:var(--accent-green)">UART0 (RX)</span>
+            <span id="uartFifoBadge" style="font-size:10px;">FIFO: 0/4</span>
+          </div>
+          <div class="fifo-box" id="uartFifoBox">
+            <span style="color:var(--text-muted); font-size:10px;">[ FIFO Empty ]</span>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:6px;">
+            <input type="text" id="inputUartHex" value="5A" maxlength="4" style="width:55px; background:#1e293b; color:#fff; border:1px solid var(--border-color); border-radius:4px; padding:3px 6px; font-family:monospace; font-size:11px; text-transform:uppercase;" />
+            <button id="btnInjectUart" style="font-size:10px; padding:3px 8px; background:#059669; border-color:#047857; color:#fff;">+ Inject RX</button>
+          </div>
+        </div>
+
+        <!-- I2C Peripheral -->
+        <div class="card">
+          <div class="panel-title" style="margin-bottom:4px;">
+            <span style="color:var(--accent-blue)">I2C0 (TX)</span>
+            <span id="i2cFifoBadge" style="font-size:10px;">FIFO: 0/2</span>
+          </div>
+          <div class="fifo-box" id="i2cFifoBox">
+            <span style="color:var(--text-muted); font-size:10px;">[ FIFO Empty ]</span>
+          </div>
+          <div style="margin-top:4px;">
+            <div class="metric-row" style="font-size:10px;">
+              <span class="label">Serial Shifter:</span>
+              <span id="i2cShiftVal" class="val" style="color:var(--accent-amber)">Idle</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="i2cShiftProgress"></div>
+            </div>
+            <div class="metric-row" style="font-size:10px; margin-top:3px;">
+              <span class="label">Last Wire Byte:</span>
+              <span id="i2cWireVal" class="val" style="color:var(--accent-green)">0x00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: SRAM & EXECUTION LOG -->
+    <div class="panel">
+      <div class="panel-title">
+        <span>SRAM Memory (0x20000000)</span>
+      </div>
+      <div class="card">
+        <pre class="sram-pre" id="sramPre">0x20000000: 00 00 00 00 00 00 00 00</pre>
+      </div>
+
+      <div class="panel-title" style="margin-top:2px;">
+        <span>Cycle Trace Log</span>
+        <button id="btnClearLog" style="font-size:9px; padding:2px 6px;">Clear</button>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </main>
+
+  <!-- BOTTOM FULL-WIDTH GTKWAVE INTERNAL SIGNALS WAVEFORM VIEWER -->
+  <section class="gtkw-section">
+    <div class="gtkw-container">
+      <div class="gtkw-toolbar">
+        <div class="gtkw-title">
+          <span>📈 GTKWAVE INTERNAL SIGNAL WAVEFORM ANALYZER</span>
+          <div class="gtkw-marker-box" id="gtkwCursorInfo">Marker: 0 ns (Cycle 0)</div>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnGtkZoomIn" title="Zoom In (Ctrl+Scroll)">🔍+ Zoom In</button>
+          <button id="btnGtkZoomOut" title="Zoom Out">🔍- Zoom Out</button>
+          <button id="btnGtkZoomFit" title="Zoom Fit All">[ ] Zoom Fit</button>
+          <button id="btnGtkLeft" title="Scroll Left">◀</button>
+          <button id="btnGtkRight" title="Scroll Right">▶</button>
+        </div>
+
+        <div class="btn-group">
+          <button id="btnLoadVerilogVcd" class="btn-amber" title="Load mcu_bus.vcd generated by Icarus Verilog Testbench">📂 Load Verilog VCD (mcu_bus.vcd)</button>
+          <label for="fileVcdUpload" style="background:#1e293b; border:1px solid var(--border-color); border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; cursor:pointer;">
+            📤 Open .vcd File...
+          </label>
+          <input type="file" id="fileVcdUpload" accept=".vcd" style="display:none;" />
+        </div>
+      </div>
+
+      <div class="gtkw-body">
+        <!-- Left: Signals + Cursor Values -->
+        <div class="gtkw-left-pane">
+          <div class="gtkw-left-header">
+            <span>Signals (Internal Hierarchy)</span>
+            <span>Value @ Marker</span>
+          </div>
+          <div id="gtkwSignalList"></div>
+        </div>
+
+        <!-- Right: Multi-track Waveform Canvas -->
+        <div class="gtkw-right-pane">
+          <canvas id="gtkwaveCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

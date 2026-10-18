@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dual-Core RV32IA Emulator: Store Buffer, L1 MESI Cache, Atomics & OoO Reordering</title>
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-panel: #111827;
+      --bg-card: #1e293b;
+      --bg-card-alt: #0f172a;
+      --border: #334155;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-green: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-red: #f87171;
+      --accent-purple: #c084fc;
+      --mesi-m: #ef4444;
+      --mesi-e: #3b82f6;
+      --mesi-s: #10b981;
+      --mesi-i: #475569;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+    code, pre, .mono {
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    }
+
+    /* Top Navigation & Control Bar */
+    .topbar {
+      background: linear-gradient(180deg, #162033 0%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+    }
+    .topbar-row1 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .brand-sub {
+      font-size: 12px;
+      color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+    .controls-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    select, button {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 6px 11px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    select:hover, button:hover {
+      border-color: var(--accent-blue);
+      background: #26354d;
+    }
+    button.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #fff;
+    }
+    button.primary:hover {
+      background: #0369a1;
+    }
+    button.engine-btn.active {
+      background: #4f46e5;
+      border-color: #818cf8;
+      color: #fff;
+    }
+    .equiv-badge {
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .equiv-ok {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      color: #34d399;
+    }
+
+    /* Scrubber & Milestones Bar */
+    .scrubber-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .cycle-counter {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-amber);
+      min-width: 135px;
+    }
+    .cycle-slider {
+      flex: 1;
+      min-width: 200px;
+      accent-color: var(--accent-blue);
+      cursor: pointer;
+    }
+    .milestones-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px dashed rgba(148, 163, 184, 0.2);
+    }
+    .milestone-chip {
+      font-size: 11px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(129, 140, 248, 0.14);
+      border: 1px solid rgba(129, 140, 248, 0.35);
+      color: #c7d2fe;
+      cursor: pointer;
+    }
+    .milestone-chip:hover, .milestone-chip.active {
+      background: #4f46e5;
+      color: #fff;
+      border-color: #a5b4fc;
+    }
+
+    /* Main 3-Column Hardware Layout */
+    .hw-grid {
+      display: grid;
+      grid-template-columns: 1fr 390px 1fr;
+      gap: 14px;
+      padding: 14px 18px;
+      max-width: 1920px;
+      margin: 0 auto;
+    }
+    @media (max-width: 1400px) {
+      .hw-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .core-panel, .center-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .core0-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-blue); display: inline-block; }
+    .core1-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent-purple); display: inline-block; }
+
+    /* Sub-blocks inside Core */
+    .hw-box {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 10px;
+      position: relative;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .hw-box.highlight-active {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.25);
+    }
+    .hw-box.highlight-ooo {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 12px rgba(192, 132, 252, 0.3);
+    }
+    .hw-box.highlight-fwd {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
+    }
+    .box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    /* CPU Status & Regs */
+    .cpu-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .kv-cell {
+      background: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 4px 7px;
+      border-radius: 5px;
+      font-size: 11.5px;
+    }
+    .kv-label { color: var(--text-muted); font-size: 10px; display: block; }
+    .kv-val { font-weight: 700; color: #fff; }
+
+    .reg-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+    }
+    .reg-item {
+      background: rgba(30, 41, 59, 0.7);
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .reg-name { color: var(--accent-blue); font-weight: 600; }
+
+    /* Tables for ROB, Store Buffer, L1 Cache */
+    table.hw-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+    }
+    table.hw-table th {
+      text-align: left;
+      color: var(--text-muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    table.hw-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.45);
+    }
+    table.hw-table tr.row-changed {
+      background: rgba(251, 191, 36, 0.14);
+    }
+    table.hw-table tr.row-ooo {
+      background: rgba(192, 132, 252, 0.16);
+    }
+
+    /* State Pills */
+    .pill {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .mesi-M { background: var(--mesi-m); color: #fff; }
+    .mesi-E { background: var(--mesi-e); color: #fff; }
+    .mesi-S { background: var(--mesi-s); color: #052e16; }
+    .mesi-I { background: var(--mesi-i); color: #cbd5e1; }
+
+    .rob-DONE     { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .rob-OOO_DONE { background: rgba(192, 132, 252, 0.25); color: #e9d5ff; border: 1px solid #c084fc; }
+    .rob-MEM_WAIT { background: rgba(251, 191, 36, 0.2); color: #fde68a; border: 1px solid #f59e0b; }
+    .rob-WAIT_DEP { background: rgba(248, 113, 113, 0.2); color: #fecaca; border: 1px solid #ef4444; }
+    .rob-READY    { background: rgba(56, 189, 248, 0.15); color: #bae6fd; border: 1px solid #0284c7; }
+    .rob-EMPTY    { background: rgba(71, 85, 105, 0.2); color: #64748b; }
+
+    /* Data Path Arrows Strip */
+    .datapath-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: #162032;
+      border: 1px dashed var(--border);
+      font-size: 11px;
+    }
+    .dp-badge {
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 10.5px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .dp-badge.active-fwd {
+      background: #059669;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+    .dp-badge.active-drain {
+      background: #d97706;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+    .dp-badge.active-hit {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    }
+    .dp-badge.active-res {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid #10b981;
+      color: #34d399;
+    }
+    .dp-badge.lost-res {
+      background: rgba(239, 68, 68, 0.25);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+    }
+
+    /* Center Bus & Shared Memory */
+    .bus-visual {
+      background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .bus-visual.bus-active {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 18px rgba(251, 191, 36, 0.22);
+    }
+    .bus-cmd-banner {
+      font-size: 16px;
+      font-weight: 800;
+      margin: 4px 0;
+      color: var(--accent-amber);
+    }
+    .bus-arrows {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: 8px 0;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .explain-card {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--accent-blue);
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12.5px;
+    }
+    .explain-event-item {
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(148, 163, 184, 0.15);
+    }
+    .explain-event-item:last-child { border-bottom: none; }
+
+    /* Bottom Tabs */
+    .bottom-section {
+      padding: 0 18px 24px 18px;
+      max-width: 1920px;
+      margin: 0 auto;
+    }
+    .tabs-header {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .tab-btn {
+      border-radius: 8px 8px 0 0;
+      border-bottom: none;
+      padding: 8px 16px;
+      background: var(--bg-panel);
+      color: var(--text-muted);
+    }
+    .tab-btn.active {
+      background: var(--bg-card);
+      color: var(--accent-blue);
+      border-color: var(--border);
+    }
+    .tab-content {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 0 8px 8px 8px;
+      padding: 14px;
+    }
+    .event-log-list {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .log-row {
+      padding: 5px 8px;
+      border-radius: 4px;
+      background: var(--bg-card-alt);
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      gap: 10px;
+    }
+    .log-row:hover { background: #1e293b; }
+    .log-row.current-cycle {
+      border-left: 3px solid var(--accent-amber);
+      background: rgba(251, 191, 36, 0.12);
+    }
+    .code-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .code-pane {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      max-height: 360px;
+      overflow: auto;
+      font-size: 12px;
+    }
+    .asm-line {
+      padding: 2px 6px;
+      border-radius: 3px;
+      display: flex;
+      gap: 12px;
+    }
+    .asm-line.active-c0 { background: rgba(56, 189, 248, 0.22); border-left: 3px solid var(--accent-blue); }
+    .asm-line.active-c1 { background: rgba(192, 132, 252, 0.22); border-left: 3px solid var(--accent-purple); }
+    .asm-line.active-both { background: linear-gradient(90deg, rgba(56,189,248,0.25), rgba(192,132,252,0.25)); border-left: 3px solid var(--accent-amber); }
+
+    .guide-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    .guide-card {
+      background: var(--bg-card-alt);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .guide-card h3 {
+      color: var(--accent-blue);
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .guide-card p, .guide-card li {
+      font-size: 12.5px;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .guide-card ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOP CONTROL BAR -->
+  <div class="topbar">
+    <div class="topbar-row1">
+      <div class="brand">
+        <span class="brand-title">2-Core RV32IA Microarchitecture Visualizer</span>
+        <span class="brand-sub">Store Buffer • L1 MESI Cache • LR/SC & AMO • ROB Out-of-Order</span>
+      </div>
+
+      <div class="controls-group">
+        <label style="font-size:12px;color:var(--text-muted);">Firmware Demo:</label>
+        <select id="demoSelect" onchange="loadSelectedDemo()">
+          <option value="demo1">Demo 1: Store Buffer Forwarding, Drain & MESI Walk (I→E→M→S→I)</option>
+          <option value="demo2">Demo 2: Naive Lock Failure vs Atomic Spinlock (LR/SC & AMOSWAP)</option>
+          <option value="demo3">Demo 3: CPU Instruction Reordering (ROB OoO & Store-Load Litmus Test)</option>
+        </select>
+
+        <span style="margin-left:6px;font-size:12px;color:var(--text-muted);">Backend Engine:</span>
+        <button id="btnEngineC" class="engine-btn active" onclick="switchEngine('c')">C Emulator (emu_c)</button>
+        <button id="btnEngineV" class="engine-btn" onclick="switchEngine('verilog')">Verilog RTL (iverilog)</button>
+
+        <span id="equivBadge" class="equiv-badge equiv-ok" title="Real-time verification between C Emulator and Verilog RTL trace at current cycle">
+          ✓ C == Verilog RTL (100% Cycle Match)
+        </span>
+
+        <button onclick="rebuildAll()" title="Re-compile Firmware, C Emulator, and Verilog RTL and re-run simulations">
+          ⟳ Rebuild & Run (C + Verilog)
+        </button>
+      </div>
+    </div>
+
+    <div class="scrubber-row">
+      <div class="controls-group">
+        <button onclick="goToCycle(0)">|&lt;</button>
+        <button onclick="stepCycle(-1)">&lt; Prev</button>
+        <button id="playBtn" class="primary" onclick="togglePlay()">▶ Play</button>
+        <button onclick="stepCycle(1)">Next &gt;</button>
+        <button onclick="nextInterestingCycle()" title="Jump to next cycle with hardware/bus/cache events">Next Event &gt;&gt;</button>
+        <button onclick="goToCycle(maxCycleIdx())">&gt;|</button>
+      </div>
+
+      <span id="cycleLabel" class="cycle-counter mono">Cycle 1 / 1</span>
+      <input id="cycleSlider" class="cycle-slider" type="range" min="0" max="0" value="0" oninput="onSliderChange(this.value)" />
+
+      <select id="speedSelect" style="width:110px;">
+        <option value="600">Slow (0.6s)</option>
+        <option value="300" selected>Normal (0.3s)</option>
+        <option value="120">Fast (0.12s)</option>
+      </select>
+    </div>
+
+    <!-- Auto-Generated Key Hardware Milestones for Active Demo -->
+    <div id="milestonesBar" class="milestones-bar"></div>
+  </div>
+
+  <!-- MAIN 3-COLUMN HARDWARE ARCHITECTURE DIAGRAM -->
+  <div class="hw-grid">
+    <!-- CORE 0 COLUMN -->
+    <div class="core-panel" id="core0Panel"></div>
+
+    <!-- CENTER INTERCONNECT: MESI SNOOPING BUS + SHARED MEMORY + EXPLANATION -->
+    <div class="center-panel">
+      <div class="panel-header">
+        <div class="panel-title">⇄ MESI Coherence Bus &amp; Shared Memory</div>
+        <span class="mono" style="font-size:11px;color:var(--text-muted);">Snooping Protocol</span>
+      </div>
+
+      <!-- Bus Visualizer -->
+      <div id="busVisualBox" class="bus-visual"></div>
+
+      <!-- Current Cycle Live Hardware Explanation -->
+      <div class="hw-box">
+        <div class="box-header">
+          <span>⚡ Current Cycle Hardware Activity</span>
+          <span id="activeEngineLabel" class="mono" style="color:var(--accent-blue);">c_emulator</span>
+        </div>
+        <div id="cycleExplainBox" class="explain-card"></div>
+      </div>
+
+      <!-- Shared Memory (0x1000 .. 0x101C) -->
+      <div class="hw-box">
+        <div class="box-header">
+          <span>Shared Memory (SRAM 0x1000 - 0x101C)</span>
+          <span>64 Words</span>
+        </div>
+        <table class="hw-table mono">
+          <thead>
+            <tr>
+              <th>Address / Symbol</th>
+              <th>RAM Value</th>
+              <th>Coherence Status</th>
+            </tr>
+          </thead>
+          <tbody id="shmTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CORE 1 COLUMN -->
+    <div class="core-panel" id="core1Panel"></div>
+  </div>
+
+  <!-- BOTTOM TABS: TIMELINE / FIRMWARE DISASM / ARCHITECTURE GUIDE -->
+  <div class="bottom-section">
+    <div class="tabs-header">
+      <button class="tab-btn active" id="tabBtnLog" onclick="switchTab('log')">📜 Cycle-by-Cycle Event Timeline</button>
+      <button class="tab-btn" id="tabBtnCode" onclick="switchTab('code')">💻 Firmware C Source &amp; RV32IA Disassembly</button>
+      <button class="tab-btn" id="tabBtnGuide" onclick="switchTab('guide')">📘 Deep-Dive Guide: FW Atomics, Store Buffer, MESI &amp; Reordering</button>
+    </div>
+
+    <!-- TAB 1: EVENT LOG -->
+    <div id="tabContentLog" class="tab-content">
+      <div id="eventLogList" class="event-log-list mono"></div>
+    </div>
+
+    <!-- TAB 2: FIRMWARE CODE & OBJDUMP -->
+    <div id="tabContentCode" class="tab-content" style="display:none;">
+      <div class="code-split">
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--accent-blue);">
+            RV32IA Disassembly (Live Core 0 <span style="color:var(--accent-blue)">■</span> &amp; Core 1 <span style="color:var(--accent-purple)">■</span> PC Highlight)
+          </div>
+          <div id="disasmPane" class="code-pane mono"></div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--accent-green);">
+            Firmware C Source Code &amp; Spinlock Inline Assembly
+          </div>
+          <pre id="cSourcePane" class="code-pane mono" style="white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DEEP-DIVE ARCHITECTURE GUIDE -->
+    <div id="tabContentGuide" class="tab-content" style="display:none;">
+      <div class="guide-grid">
+        <div class="guide-card">
+          <h3>1. Atomic Instructions in Firmware vs. Hardware (LR/SC &amp; AMO)</h3>
+          <p><strong>Why Naive Locks Fail:</strong> With regular <code>lw</code> and <code>sw</code>, both Core 0 and Core 1 can read <code>LOCK == 0</code> in MESI <code>S</code> (Shared) state simultaneously. Their subsequent <code>sw 1</code> instructions enter their respective <strong>Store Buffers</strong> without preventing the other core from also entering the critical section (demonstrated in <strong>Demo 2 Phase 1</strong>).</p>
+          <ul>
+            <li><strong>RISC-V <code>lr.w</code> / <code>sc.w</code> (Load-Reserved / Store-Conditional):</strong>
+              <ul>
+                <li><strong>HW Requirement 1:</strong> Per-core <code>res_valid</code> and <code>res_addr</code> Reservation Register. <code>lr.w</code> sets <code>res_valid = 1, res_addr = addr</code>.</li>
+                <li><strong>HW Requirement 2 (Cache Snoop Integration):</strong> When the peer core issues <code>BusUpgr</code> or <code>BusRdX</code> to <code>res_addr</code>, the hardware snoop controller automatically clears <code>res_valid = 0</code>!</li>
+                <li><strong>HW Requirement 3:</strong> <code>sc.w</code> checks <code>res_valid</code> before writing. Only the first core to win the MESI bus succeeds (<code>rd = 0</code>); the losing core sees <code>res_valid == 0</code>, aborts its write, gets <code>rd = 1</code>, and loops back in FW!</li>
+              </ul>
+            </li>
+            <li><strong>RISC-V <code>amoswap.w</code> / <code>amoadd.w</code> (Atomic Memory Operations):</strong>
+              <ul>
+                <li>Drains the local Store Buffer, acquires the cache line in <code>M</code> (Modified) state via <code>BusRdX</code>/<code>BusUpgr</code>, and performs an indivisible Read-Modify-Write in a single atomic L1 phase so no snoop can intervene between the read and write.</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <div class="guide-card">
+          <h3>2. CPU → Store Buffer → L1 Cache &amp; Store-to-Load Forwarding</h3>
+          <p>Writing directly to L1 Cache on every <code>sw</code> would stall the CPU pipeline whenever L1 misses or needs a <code>BusUpgr</code> to invalidate other cores.</p>
+          <ul>
+            <li><strong>Store Buffer Enqueue:</strong> <code>sw</code> writes <code>(addr, data)</code> into the 4-entry FIFO Store Buffer in 1 cycle and retires immediately.</li>
+            <li><strong>Store-to-Load Forwarding (Demo 1 Cycle 18):</strong> When a subsequent <code>lw</code> on the <em>same</em> core accesses an address currently still in the Store Buffer, the Store Buffer comparator forwards the latest data directly to the CPU register in 1 cycle without waiting for L1!</li>
+            <li><strong>Store Buffer Drain:</strong> In the background, the oldest Store Buffer entry (<code>SB[0]</code>) drains to L1 Cache. If L1 holds <code>E</code> or <code>M</code>, it drains in 1 cycle; if L1 holds <code>S</code> or <code>I</code>, L1 issues <code>BusUpgr</code> or <code>BusRdX</code> on the coherence bus.</li>
+          </ul>
+        </div>
+
+        <div class="guide-card">
+          <h3>3. Cache-to-Cache Communication: MESI Snooping Protocol</h3>
+          <p>Each L1 Cache line holds a 2-bit state: <strong>M (Modified)</strong>, <strong>E (Exclusive)</strong>, <strong>S (Shared)</strong>, or <strong>I (Invalid)</strong>.</p>
+          <ul>
+            <li><strong>I → E (Exclusive Read):</strong> Core 0 reads <code>0x1000</code> (`BusRd`). Peer Core 1 does not have it (`Snoop MISS`), so Core 0 enters <code>E</code> state. Subsequent write upgrades <code>E → M</code> silently with zero bus traffic!</li>
+            <li><strong>M → S (Dirty Snoop Flush / Intervention, Demo 1 Cycle 40):</strong> Core 1 reads <code>0x1000</code> (`BusRd`) while Core 0 holds modified data in <code>M</code> state (and RAM is stale). Core 0 snoops <code>BusRd</code>, flushes the dirty word onto the bus &amp; RAM, and both cores transition to <code>S</code>.</li>
+            <li><strong>S → M &amp; Peer S → I (`BusUpgr`, Demo 1 Cycle 49):</strong> Core 1 writes to a <code>S</code> line, broadcasting <code>BusUpgr</code>. Core 0 snoops it and invalidates its copy (<code>S → I</code>), while Core 1 becomes <code>M</code>.</li>
+          </ul>
+        </div>
+
+        <div class="guide-card">
+          <h3>4. CPU Instruction Reordering (ROB Out-of-Order &amp; Store-Load Reordering)</h3>
+          <p>Demonstrated in <strong>Demo 3</strong> across two hardware layers:</p>
+          <ul>
+            <li><strong>Pipeline Out-of-Order Execution (4-Entry ROB, Demo 3 Phase 1):</strong> When <code>ROB[0]</code> is a slow <code>lw</code> stalled on an L1 Cache Miss (<code>MEM_WAIT</code>), dependent instructions stall in <code>WAIT_DEP</code> (RAW hazard), while younger independent ALU instructions and L1-Hit loads execute Out-of-Order (<code>OOO_DONE</code>) ahead of <code>ROB[0]</code>!</li>
+            <li><strong>Store-Load Memory Reordering (Litmus Test, Demo 3 Phase 2 vs Phase 3):</strong> Core 0 executes <code>X=1; r0=Y</code> while Core 1 executes <code>Y=1; r1=X</code>. Without <code>fence</code>, <code>X=1</code> and <code>Y=1</code> sit in each core's Store Buffer while the younger <code>lw</code> instructions bypass the Store Buffer and hit <code>S</code> state (reading <code>0</code>) in L1 Cache—resulting in <code>r0 == 0 &amp;&amp; r1 == 0</code>! Adding <code>fence rw, rw</code> stalls the <code>lw</code> until the Store Buffer drains to L1, guaranteeing sequential consistency.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const REG_NAMES = [
+      "zero","ra","sp","gp","tp","t0","t1","t2",
+      "s0","s1","a0","a1","a2","a3","a4","a5",
+      "a6","a7","s2","s3","s4","s5","s6","s7",
+      "s8","s9","s10","s11","t3","t4","t5","t6"
+    ];
+
+    let currentBundle = null;
+    let activeEngine  = 'c'; // 'c' or 'verilog'
+    let curCycleIdx   = 0;
+    let playTimer     = null;
+
+    function getActiveTrace() {
+      if (!currentBundle) return null;
+      return (activeEngine === 'verilog') ? currentBundle.verilog_trace : currentBundle.c_trace;
+    }
+
+    function maxCycleIdx() {
+      const tr = getActiveTrace();
+      return (tr && tr.cycles && tr.cycles.length > 0) ? tr.cycles.length - 1 : 0;
+    }
+
+    async function loadSelectedDemo() {
+      stopPlay();
+      const demoId = document.getElementById('demoSelect').value;
+      const res = await fetch(`/api/trace?demo=${demoId}`);
+      currentBundle = await res.json();
+      curCycleIdx = 0;
+
+      const slider = document.getElementById('cycleSlider');
+      slider.max = maxCycleIdx();
+      slider.value = 0;
+
+      buildMilestones();
+      renderEventLogList();
+      renderCodeTab();
+      renderCycle();
+    }
+
+    function switchEngine(eng) {
+      activeEngine = eng;
+      document.getElementById('btnEngineC').classList.toggle('active', eng === 'c');
+      document.getElementById('btnEngineV').classList.toggle('active', eng === 'verilog');
+      document.getElementById('activeEngineLabel').textContent = (eng === 'verilog') ? 'verilog_rtl (iverilog)' : 'c_emulator (gcc)';
+      renderEventLogList();
+      renderCycle();
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tabBtnLog').classList.toggle('active', tab === 'log');
+      document.getElementById('tabBtnCode').classList.toggle('active', tab === 'code');
+      document.getElementById('tabBtnGuide').classList.toggle('active', tab === 'guide');
+      document.getElementById('tabContentLog').style.display   = (tab === 'log')   ? 'block' : 'none';
+      document.getElementById('tabContentCode').style.display  = (tab === 'code')  ? 'block' : 'none';
+      document.getElementById('tabContentGuide').style.display = (tab === 'guide') ? 'block' : 'none';
+    }
+
+    function buildMilestones() {
+      const bar = document.getElementById('milestonesBar');
+      bar.innerHTML = '<span style="font-size:11px;color:var(--text-muted);font-weight:700;align-self:center;">Quick Jump Milestones:</span>';
+      const tr = getActiveTrace();
+      if (!tr || !tr.cycles) return;
+
+      const milestones = [];
+      const seenLabels = new Set();
+
+      tr.cycles.forEach((c, idx) => {
+        (c.events || []).forEach(ev => {
+          let label = null;
+          if (ev.includes('PHASE')) {
+            label = `Cy ${c.cycle}: ${ev.replace(/===/g, '').trim()}`;
+          } else if (ev.includes('SB FORWARD')) {
+            label = `Cy ${c.cycle}: ⚡ SB Store-to-Load Forward`;
+          } else if (ev.includes('E->M')) {
+            label = `Cy ${c.cycle}: Silent E→M Upgrade`;
+          } else if (ev.includes('M -> S')) {
+            label = `Cy ${c.cycle}: Dirty Snoop Flush (M→S)`;
+          } else if (ev.includes('S -> I') && !seenLabels.has('S->I')) {
+            seenLabels.add('S->I');
+            label = `Cy ${c.cycle}: BusUpgr Invalidate (S→I)`;
+          } else if (ev.includes('LR/SC SNOOP')) {
+            label = `Cy ${c.cycle}: 🔥 LR Reservation Snoop-Cleared!`;
+          } else if (ev.includes('SC.W FAILED') || ev.includes('SC.W ABORTED')) {
+            label = `Cy ${c.cycle}: ❌ SC.W Failed (rd=1)`;
+          } else if (ev.includes('SC.W SUCCESS')) {
+            label = `Cy ${c.cycle}: ✅ SC.W Lock Acquired (rd=0)`;
+          } else if (ev.includes('OoO LOAD HIT') && !seenLabels.has('OoO_LOAD_' + c.cores[0].phase)) {
+            seenLabels.add('OoO_LOAD_' + c.cores[0].phase);
+            label = `Cy ${c.cycle}: ⚡ OoO Load Hit / SB Bypass`;
+          }
+          if (label && !seenLabels.has(label)) {
+            seenLabels.add(label);
+            milestones.push({ idx, cycle: c.cycle, label });
+          }
+        });
+      });
+
+      milestones.push({ idx: tr.cycles.length - 1, cycle: tr.cycles[tr.cycles.length - 1].cycle, label: `Cy ${tr.cycles[tr.cycles.length - 1].cycle}: 🏁 Final Result` });
+
+      milestones.forEach(m => {
+        const chip = document.createElement('span');
+        chip.className = 'milestone-chip mono';
+        chip.dataset.idx = m.idx;
+        chip.textContent = m.label;
+        chip.onclick = () => goToCycle(m.idx);
+        bar.appendChild(chip);
+      });
+    }
+
+    function disasmForPC(pcHex, instHex) {
+      if (!currentBundle || !currentBundle.meta || !currentBundle.meta.disasm) return instHex;
+      const norm = '0x' + parseInt(pcHex, 16).toString(16).padStart(4, '0');
+      return currentBundle.meta.disasm[norm] || instHex;
+    }
+
+    function checkCycleEquivalence(idx) {
+      const badge = document.getElementById('equivBadge');
+      if (!currentBundle || !currentBundle.c_trace || !currentBundle.verilog_trace) return;
+      const cCyc = currentBundle.c_trace.cycles[idx];
+      const vCyc = currentBundle.verilog_trace.cycles[idx];
+      if (!cCyc || !vCyc) return;
+
+      const match = JSON.stringify(cCyc.shm) === JSON.stringify(vCyc.shm) &&
+                    JSON.stringify(cCyc.bus) === JSON.stringify(vCyc.bus) &&
+                    JSON.stringify(cCyc.cores[0].l1) === JSON.stringify(vCyc.cores[0].l1) &&
+                    JSON.stringify(cCyc.cores[1].l1) === JSON.stringify(vCyc.cores[1].l1) &&
+                    JSON.stringify(cCyc.cores[0].sb) === JSON.stringify(vCyc.cores[0].sb) &&
+                    JSON.stringify(cCyc.cores[1].sb) === JSON.stringify(vCyc.cores[1].sb);
+      if (match) {
+        badge.className = 'equiv-badge equiv-ok';
+        badge.textContent = `✓ Cycle ${cCyc.cycle}: C Emulator == Verilog RTL (100% State Match)`;
+      } else {
+        badge.className = 'equiv-badge';
+        badge.textContent = `⚠ Cycle ${cCyc.cycle} Diff`;
+      }
+    }
+
+    function renderCorePanel(coreIdx, cyc, prevCyc) {
+      const panel = document.getElementById(`core${coreIdx}Panel`);
+      const core  = cyc.cores[coreIdx];
+      const pCore = prevCyc ? prevCyc.cores[coreIdx] : null;
+      const shmLabels = currentBundle.info.shm_labels;
+
+      const commitAsm = core.last_commit_valid
+        ? `${core.last_commit_pc}: ${disasmForPC(core.last_commit_pc, core.last_commit_inst)}`
+        : '— (Stalled / Fetching)';
+
+      // Reservation Register status
+      const resChanged = pCore && (pCore.res_valid !== core.res_valid);
+      let resBadgeClass = 'dp-badge';
+      let resText = 'LR Reservation: NONE';
+      if (core.res_valid) {
+        resBadgeClass = 'dp-badge active-res';
+        resText = `🔒 LR Reserved @ ${core.res_addr}`;
+      } else if (resChanged && pCore.res_valid) {
+        resBadgeClass = 'dp-badge lost-res';
+        resText = `💥 LR Reservation CLEARED/USED!`;
+      }
+
+      // ROB Rows (4 slots)
+      let robRowsHtml = '';
+      for (let i = 0; i < 4; i++) {
+        const re = core.rob[i];
+        if (re) {
+          const asm = disasmForPC(re.pc, re.inst);
+          let waitInfo = '';
+          if (re.state === 'WAIT_DEP') {
+            waitInfo = (re.wait_reg === 255) ? ' (Order/Fence)' : ` (RAW x${re.wait_reg} ${REG_NAMES[re.wait_reg] || ''})`;
+          }
+          const rowClass = re.ooo ? 'row-ooo' : '';
+          robRowsHtml += `
+            <tr class="${rowClass}">
+              <td>ROB[${i}]${i === 0 ? ' <span style="color:var(--accent-amber)">★</span>' : ''}</td>
+              <td>${re.pc}</td>
+              <td style="color:#fff;font-weight:600;">${asm}</td>
+              <td><span class="pill rob-${re.state}">${re.state}${waitInfo}</span></td>
+              <td>${re.rd ? REG_NAMES[re.rd] + '=' + re.result : '—'}</td>
+            </tr>`;
+        } else {
+          robRowsHtml += `
+            <tr>
+              <td style="color:#475569">ROB[${i}]</td>
+              <td colspan="4" style="color:#475569">— Empty —</td>
+            </tr>`;
+        }
+      }
+
+      // Store Buffer Rows (4 slots)
+      let sbRowsHtml = '';
+      for (let i = 0; i < 4; i++) {
+        const se = core.sb[i];
+        if (se) {
+          const lineIdx = (parseInt(se.addr, 16) >> 2) & 7;
+          const symName = shmLabels[lineIdx] || se.addr;
+          const isFwd = core.vis.sb_fwd && core.vis.sb_fwd_addr === se.addr;
+          sbRowsHtml += `
+            <tr class="${isFwd ? 'row-changed' : ''}">
+              <td>SB[${i}] ${i === 0 ? '<span style="color:var(--accent-amber)">(Head→L1)</span>' : ''}</td>
+              <td>${symName}</td>
+              <td style="color:var(--accent-amber);font-weight:700;">${se.data}</td>
+              <td>from PC ${se.pc} ${isFwd ? '<span class="pillmesi-S">FORWARDED!</span>' : ''}</td>
+            </tr>`;
+        } else {
+          sbRowsHtml += `
+            <tr>
+              <td style="color:#475569">SB[${i}]</td>
+              <td colspan="3" style="color:#475569">— Empty —</td>
+            </tr>`;
+        }
+      }
+
+      // L1 Cache Rows (8 lines)
+      let l1RowsHtml = '';
+      for (let i = 0; i < 8; i++) {
+        const ln  = core.l1[i];
+        const pLn = pCore ? pCore.l1[i] : null;
+        const changed = pLn && (pLn.state !== ln.state || pLn.data !== ln.data);
+        const stateChangeStr = (pLn && pLn.state !== ln.state) ? ` <span style="font-size:10px;color:var(--accent-amber)">(${pLn.state}→${ln.state})</span>` : '';
+        l1RowsHtml += `
+          <tr class="${changed ? 'row-changed' : ''}">
+            <td>L${i}</td>
+            <td>${shmLabels[i]}</td>
+            <td><span class="pill mesi-${ln.state}">${ln.state}</span>${stateChangeStr}</td>
+            <td style="font-weight:${ln.state !== 'I' ? '700' : '400'};color:${ln.state !== 'I' ? '#fff' : '#64748b'};">
+              ${ln.data}
+            </td>
+          </tr>`;
+      }
+
+      // Registers
+      let regsHtml = '';
+      for (const [rk, rv] of Object.entries(core.regs)) {
+        regsHtml += `<div class="reg-item mono"><span class="reg-name">${rk}</span><span>${rv}</span></div>`;
+      }
+
+      panel.innerHTML = `
+        <div class="panel-header">
+          <div class="panel-title">
+            <span class="core${coreIdx}-dot"></span>
+            Core ${coreIdx} (RV32IA Hart ${coreIdx})
+          </div>
+          <span class="mono" style="font-size:11.5px;color:${core.halted ? 'var(--accent-green)' : 'var(--accent-blue)'}">
+            ${core.halted ? '✓ HALTED (ebreak)' : '● RUNNING (Phase ' + core.phase + ')'}
+          </span>
+        </div>
+
+        <!-- CPU Pipeline & Registers -->
+        <div class="hw-box ${core.vis.ooo_fire ? 'highlight-ooo' : ''}">
+          <div class="box-header">
+            <span>1. CPU Fetch / Execute &amp; Architectural Registers</span>
+            <span>OoO Window: ${core.ooo_enable ? 'ON' : 'OFF'}</span>
+          </div>
+          <div class="cpu-meta-grid mono">
+            <div class="kv-cell"><span class="kv-label">Fetch PC</span><span class="kv-val">${core.pc}</span></div>
+            <div class="kv-cell"><span class="kv-label">Retired Insts</span><span class="kv-val">${core.stats.ret}</span></div>
+            <div class="kv-cell"><span class="kv-label">OoO Executed</span><span class="kv-val" style="color:var(--accent-purple)">${core.stats.ooo}</span></div>
+            <div class="kv-cell"><span class="kv-label">LR / SC_OK / Fail / AMO</span><span class="kv-val">${core.stats.lr}/${core.stats.sc_ok}/${core.stats.sc_fail}/${core.stats.amo}</span></div>
+          </div>
+          <div class="kv-cell mono" style="margin-bottom:6px;">
+            <span class="kv-label">Committed This Cycle</span>
+            <span class="kv-val" style="color:var(--accent-green)">${commitAsm}</span>
+          </div>
+          <div class="reg-grid">${regsHtml}</div>
+        </div>
+
+        <!-- 4-Entry Out-of-Order Reorder Buffer (ROB) -->
+        <div class="hw-box ${core.vis.ooo_fire ? 'highlight-ooo' : ''}">
+          <div class="box-header">
+            <span>2. Instruction Window / Reorder Buffer (ROB 4-Entry)</span>
+            <span style="color:var(--accent-purple)">${core.vis.ooo_fire ? '⚡ Out-of-Order Execution Fired!' : 'In-Order Commit @ ROB[0]'}</span>
+          </div>
+          <table class="hw-table mono">
+            <thead>
+              <tr><th>Slot</th><th>PC</th><th>Instruction</th><th>ROB State</th><th>Result</th></tr>
+            </thead>
+            <tbody>${robRowsHtml}</tbody>
+          </table>
+        </div>
+
+        <!-- Data Path Activity Strip between CPU, Store Buffer, and L1 -->
+        <div class="datapath-strip mono">
+          <span class="dp-badge ${core.vis.sb_fwd ? 'active-fwd' : ''}">
+            ${core.vis.sb_fwd ? '⚡ SB→CPU Forward (' + core.vis.sb_fwd_data + ')' : 'SB→CPU Forward: Idle'}
+          </span>
+          <span class="dp-badge ${core.vis.l1_hit ? 'active-hit' : ''}">
+            ${core.vis.l1_hit ? '⚡ L1→CPU Read Hit (' + core.vis.l1_hit_addr + ')' : 'L1→CPU Hit: Idle'}
+          </span>
+          <span class="${resBadgeClass}">${resText}</span>
+        </div>
+
+        <!-- 4-Entry Store Buffer -->
+        <div class="hw-box ${core.vis.sb_fwd ? 'highlight-fwd' : (core.vis.sb_drain ? 'highlight-active' : '')}">
+          <div class="box-header">
+            <span>3. Store Buffer (FIFO 4-Entry)</span>
+            <span>Enq: ${core.stats.sb_enq} | Fwd: ${core.stats.sb_fwd} | Drain: ${core.stats.sb_drain}</span>
+          </div>
+          <table class="hw-table mono">
+            <thead>
+              <tr><th>Entry</th><th>Target Address</th><th>Buffered Data</th><th>Source / Status</th></tr>
+            </thead>
+            <tbody>${sbRowsHtml}</tbody>
+          </table>
+        </div>
+
+        <!-- 8-Line L1 Data Cache (MESI) -->
+        <div class="hw-box ${core.vis.l1_hit || core.vis.sb_drain ? 'highlight-active' : ''}">
+          <div class="box-header">
+            <span>4. L1 Data Cache (8 Lines, MESI Coherence)</span>
+            <span>Hits: ${core.stats.l1_hit} | Misses: ${core.stats.l1_miss}</span>
+          </div>
+          <table class="hw-table mono">
+            <thead>
+              <tr><th>Line</th><th>Address / Variable</th><th>MESI</th><th>Cached Word</th></tr>
+            </thead>
+            <tbody>${l1RowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderCenterPanel(cyc, prevCyc) {
+      const bus = cyc.bus;
+      const busBox = document.getElementById('busVisualBox');
+      const shmLabels = currentBundle.info.shm_labels;
+
+      busBox.classList.toggle('bus-active', bus.busy);
+
+      if (bus.busy) {
+        const lineIdx = (parseInt(bus.addr, 16) >> 2) & 7;
+        const symName = shmLabels[lineIdx] || bus.addr;
+        const peerId  = 1 - bus.owner;
+        const phaseDesc = (bus.phase === 1)
+          ? 'Phase 1/2: Broadcast Request & Snoop Peer L1 Cache'
+          : 'Phase 2/2: Snoop State Transition & Data Transfer';
+        busBox.innerHTML = `
+          <div style="font-size:11px;color:var(--text-muted);font-weight:700;">ACTIVE COHERENCE BUS TRANSACTION</div>
+          <div class="bus-cmd-banner mono">${bus.cmd} @ ${symName}</div>
+          <div style="font-size:12px;color:#e2e8f0;margin-bottom:6px;">${phaseDesc}</div>
+          <div class="bus-arrows mono">
+            <span style="color:${bus.owner === 0 ? 'var(--accent-blue)' : 'var(--accent-purple)'}">
+              Master: Core ${bus.owner} L1
+            </span>
+            <span>⟹ [${bus.cmd}] ⟹</span>
+            <span style="color:${peerId === 0 ? 'var(--accent-blue)' : 'var(--accent-purple)'}">
+              Snoop: Core ${peerId} L1
+            </span>
+          </div>
+          <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:6px;" class="mono">
+            <span class="pill" style="background:#334155;color:#fff;">Data: ${bus.rdata}</span>
+            <span class="pill" style="background:${bus.snoop_hit ? '#065f46' : '#334155'};color:#fff;">
+              Peer Snoop: ${bus.snoop_hit ? 'HIT' : 'MISS'}
+            </span>
+            ${bus.snoop_dirty ? '<span class="pill mesi-M">DIRTY FLUSH (M→S/I)</span>' : ''}
+            ${bus.snoop_inv_res ? '<span class="pill mesi-M">🔥 CLEARED PEER LR RESERVATION!</span>' : ''}
+          </div>
+        `;
+      } else {
+        busBox.innerHTML = `
+          <div style="font-size:11px;color:var(--text-muted);font-weight:700;">COHERENCE BUS IDLE</div>
+          <div class="bus-cmd-banner mono" style="color:#64748b;">IDLE (No Active Bus Request)</div>
+          <div style="font-size:11.5px;color:var(--text-muted);">
+            Core 0 L1 &amp; Core 1 L1 snoop BusRd, BusRdX, and BusUpgr transactions here.
+          </div>
+        `;
+      }
+
+      // Explain Box
+      const explainBox = document.getElementById('cycleExplainBox');
+      if (cyc.events && cyc.events.length > 0) {
+        explainBox.innerHTML = cyc.events.map(ev => `<div class="explain-event-item mono">• ${ev}</div>`).join('');
+      } else {
+        explainBox.innerHTML = `<div style="color:var(--text-muted);">Pipeline fetch / decode / ALU execution in progress (no external cache bus event this cycle).</div>`;
+      }
+
+      // Shared Memory Table
+      const shmBody = document.getElementById('shmTableBody');
+      let shmHtml = '';
+      for (let i = 0; i < 8; i++) {
+        const val  = cyc.shm[i];
+        const pVal = prevCyc ? prevCyc.shm[i] : val;
+        const c0State = cyc.cores[0].l1[i].state;
+        const c1State = cyc.cores[1].l1[i].state;
+
+        let statusHtml = '<span style="color:var(--accent-green)">✓ Coherent with RAM</span>';
+        if (c0State === 'M') {
+          statusHtml = `<span style="color:var(--accent-red)">⚠ Stale (Modified in Core 0 L1 = ${cyc.cores[0].l1[i].data})</span>`;
+        } else if (c1State === 'M') {
+          statusHtml = `<span style="color:var(--accent-red)">⚠ Stale (Modified in Core 1 L1 = ${cyc.cores[1].l1[i].data})</span>`;
+        }
+
+        shmHtml += `
+          <tr class="${val !== pVal ? 'row-changed' : ''}">
+            <td>${shmLabels[i]}</td>
+            <td style="font-weight:700;color:#fff;">${val} <span style="color:var(--text-muted);font-size:10px;">(${parseInt(val, 16)})</span></td>
+            <td>${statusHtml}</td>
+          </tr>
+        `;
+      }
+      shmBody.innerHTML = shmHtml;
+    }
+
+    function renderEventLogList() {
+      const list = document.getElementById('eventLogList');
+      const tr = getActiveTrace();
+      if (!tr || !tr.cycles) return;
+
+      let html = '';
+      tr.cycles.forEach((c, idx) => {
+        if (c.events && c.events.length > 0) {
+          c.events.forEach(ev => {
+            html += `
+              <div class="log-row cycle-log-item" data-idx="${idx}" onclick="goToCycle(${idx})">
+                <span style="color:var(--accent-amber);font-weight:700;min-width:78px;">[Cycle ${String(c.cycle).padStart(3, ' ')}]</span>
+                <span>${ev}</span>
+              </div>`;
+          });
+        }
+      });
+      list.innerHTML = html;
+    }
+
+    function renderCodeTab() {
+      if (!currentBundle) return;
+      document.getElementById('cSourcePane').textContent =
+        `// === ${currentBundle.info.c_src} ===\n` + currentBundle.c_code +
+        `\n\n// === atomic_spinlock.h ===\n` + currentBundle.h_code;
+
+      const disasmPane = document.getElementById('disasmPane');
+      const disasm = currentBundle.meta.disasm || {};
+      const labels = currentBundle.meta.labels || {};
+      const sortedAddrs = Object.keys(disasm).sort((a, b) => parseInt(a, 16) - parseInt(b, 16));
+
+      let html = '';
+      sortedAddrs.forEach(addr => {
+        if (labels[addr]) {
+          html += `<div style="color:var(--accent-amber);font-weight:700;margin-top:6px;">&lt;${labels[addr]}&gt; (${addr}):</div>`;
+        }
+        html += `
+          <div class="asm-line" id="asm-${addr}">
+            <span style="color:var(--text-muted);min-width:55px;">${addr}:</span>
+            <span style="color:#f8fafc;">${disasm[addr]}</span>
+          </div>`;
+      });
+      disasmPane.innerHTML = html;
+    }
+
+    function updateCodeHighlight(cyc) {
+      document.querySelectorAll('.asm-line').forEach(el => {
+        el.classList.remove('active-c0', 'active-c1', 'active-both');
+      });
+      const pc0 = (cyc.cores[0].rob[0] ? cyc.cores[0].rob[0].pc : cyc.cores[0].pc);
+      const pc1 = (cyc.cores[1].rob[0] ? cyc.cores[1].rob[0].pc : cyc.cores[1].pc);
+      const el0 = document.getElementById(`asm-${pc0}`);
+      const el1 = document.getElementById(`asm-${pc1}`);
+      if (el0 && el1 && pc0 === pc1) {
+        el0.classList.add('active-both');
+      } else {
+        if (el0) el0.classList.add('active-c0');
+        if (el1) el1.classList.add('active-c1');
+      }
+    }
+
+    function renderCycle() {
+      const tr = getActiveTrace();
+      if (!tr || !tr.cycles || tr.cycles.length === 0) return;
+
+      const cyc     = tr.cycles[curCycleIdx];
+      const prevCyc = (curCycleIdx > 0) ? tr.cycles[curCycleIdx - 1] : null;
+
+      document.getElementById('cycleLabel').textContent = `Cycle ${cyc.cycle} / ${tr.cycles.length}`;
+      document.getElementById('cycleSlider').value = curCycleIdx;
+
+      renderCorePanel(0, cyc, prevCyc);
+      renderCorePanel(1, cyc, prevCyc);
+      renderCenterPanel(cyc, prevCyc);
+      checkCycleEquivalence(curCycleIdx);
+      updateCodeHighlight(cyc);
+
+      document.querySelectorAll('.milestone-chip').forEach(ch => {
+        ch.classList.toggle('active', parseInt(ch.dataset.idx) === curCycleIdx);
+      });
+      document.querySelectorAll('.cycle-log-item').forEach(row => {
+        const match = parseInt(row.dataset.idx) === curCycleIdx;
+        row.classList.toggle('current-cycle', match);
+      });
+    }
+
+    function goToCycle(idx) {
+      const max = maxCycleIdx();
+      curCycleIdx = Math.max(0, Math.min(max, parseInt(idx)));
+      renderCycle();
+    }
+
+    function stepCycle(delta) {
+      goToCycle(curCycleIdx + delta);
+    }
+
+    function nextInterestingCycle() {
+      const tr = getActiveTrace();
+      if (!tr || !tr.cycles) return;
+      for (let i = curCycleIdx + 1; i < tr.cycles.length; i++) {
+        if (tr.cycles[i].events && tr.cycles[i].events.length > 0) {
+          goToCycle(i);
+          return;
+        }
+      }
+      goToCycle(tr.cycles.length - 1);
+    }
+
+    function onSliderChange(val) {
+      goToCycle(parseInt(val));
+    }
+
+    function togglePlay() {
+      if (playTimer) {
+        stopPlay();
+      } else {
+        if (curCycleIdx >= maxCycleIdx()) curCycleIdx = 0;
+        const speed = parseInt(document.getElementById('speedSelect').value);
+        document.getElementById('playBtn').textContent = '⏸ Pause';
+        playTimer = setInterval(() => {
+          if (curCycleIdx < maxCycleIdx()) {
+            stepCycle(1);
+          } else {
+            stopPlay();
+          }
+        }, speed);
+      }
+    }
+
+    function stopPlay() {
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      document.getElementById('playBtn').textContent = '▶ Play';
+    }
+
+    async function rebuildAll() {
+      stopPlay();
+      const btn = event.target;
+      const oldText = btn.textContent;
+      btn.textContent = '⏳ Building FW + C + Verilog...';
+      try {
+        const res = await fetch('/api/rebuild', { method: 'POST' });
+        const data = await res.json();
+        await loadSelectedDemo();
+        alert(data.ok ? '✅ Rebuilt Firmware, C Emulator, and Verilog RTL & Verified 100% Equivalence!' : ('Build Error:\n' + data.stderr));
+      } catch (e) {
+        alert('Error: ' + e);
+      } finally {
+        btn.textContent = oldText;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadSelectedDemo();
+    });
+  </script>
+</body>
+</html>

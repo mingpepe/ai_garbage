@@ -1,0 +1,297 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:McuBusWpf.ViewModels"
+        xmlns:ctrl="clr-namespace:McuBusWpf.Controls"
+        x:Class="McuBusWpf.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="MCU Bus &amp; DMA Hardware-Level Simulator (with GTKWave Waveform UI)"
+        Height="920" Width="1380"
+        MinHeight="740" MinWidth="1080"
+        Background="#0F172A"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="14" RowDefinitions="Auto,*,375">
+
+        <!-- TOP TOOLBAR -->
+        <Border Grid.Row="0" Background="#1E293B" CornerRadius="10" Padding="14,10" Margin="0,0,0,12" BorderBrush="#334155" BorderThickness="1">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+
+                <!-- Left: Title & Cycle Counter -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="⚡ MCU BUS &amp; DMA SIMULATOR" FontWeight="Bold" FontSize="15" Foreground="#F8FAFC" VerticalAlignment="Center" />
+                    <Border Background="#334155" CornerRadius="6" Padding="10,4">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="CYCLE:" FontSize="12" Foreground="#94A3B8" FontWeight="SemiBold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Cycle}" FontSize="15" Foreground="#10B981" FontWeight="Bold" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                    <Border Background="#0F172A" BorderBrush="#334155" BorderThickness="1" CornerRadius="6" Padding="8,4">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="DMA:" FontSize="12" Foreground="#94A3B8" FontWeight="Bold" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding DmaStateStr}" FontSize="12" FontWeight="Bold" Foreground="#F59E0B" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Center: Controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+                    <Button Command="{Binding StepCycleCommand}" Content="Step Cycle (1 Cyc)" Background="#2563EB" Foreground="White" FontWeight="SemiBold" Padding="12,6" />
+                    <Button Command="{Binding StepTransferCommand}" Content="Step DMA Byte" Background="#7C3AED" Foreground="White" FontWeight="SemiBold" Padding="12,6" />
+                    <Button Command="{Binding ToggleRunCommand}" Content="{Binding RunButtonText}" Background="#059669" Foreground="White" FontWeight="SemiBold" Padding="14,6" />
+                    <Button Command="{Binding ResetCommand}" Content="↺ Reset" Background="#475569" Foreground="White" FontWeight="SemiBold" Padding="12,6" />
+
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="10,0,0,0">
+                        <TextBlock Text="Speed:" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center" />
+                        <Slider Minimum="0.5" Maximum="20.0" Value="{Binding ClockSpeedHz}" Width="85" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ClockSpeedHz, StringFormat='{}{0:F1} Hz'}" Foreground="#F8FAFC" FontSize="11" Width="46" VerticalAlignment="Center" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Right: Mode Switches -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6">
+                    <Button Command="{Binding SetupP2PCommand}" Content="P2P (UART→I2C)" Background="#0F172A" Foreground="#F8FAFC" BorderBrush="#334155" BorderThickness="1" Padding="10,5" />
+                    <Button Command="{Binding SetupP2MCommand}" Content="P2M (UART→SRAM)" Background="#0F172A" Foreground="#F8FAFC" BorderBrush="#334155" BorderThickness="1" Padding="10,5" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- CENTER WORKSPACE -->
+        <Grid Grid.Row="1" ColumnDefinitions="320,*,350" Margin="0,0,0,12">
+
+            <!-- LEFT: BUS ARBITER & MASTERS -->
+            <Border Grid.Column="0" Background="#1E293B" CornerRadius="10" Padding="12" Margin="0,0,10,0" BorderBrush="#334155" BorderThickness="1">
+                <ScrollViewer>
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="AHB BUS ARBITER &amp; MATRIX" FontWeight="Bold" FontSize="12" Foreground="#F8FAFC" />
+
+                        <Border Background="#0F172A" CornerRadius="8" Padding="10" BorderBrush="{Binding BusWinnerBrush}" BorderThickness="2">
+                            <StackPanel Spacing="4">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="CURRENT BUS MASTER" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusWinner}" FontWeight="ExtraBold" FontSize="13" Foreground="{Binding BusWinnerBrush}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Address:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusAddrHex}" Foreground="#F8FAFC" FontFamily="Monospace" FontSize="11" FontWeight="Bold" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Operation:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusIsWriteStr}" Foreground="#F59E0B" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Data (Hex):" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusDataHex}" Foreground="#10B981" FontFamily="Monospace" FontSize="11" FontWeight="Bold" />
+                                </Grid>
+                                <TextBlock Text="{Binding BusDescription}" Foreground="#94A3B8" FontSize="10" FontStyle="Italic" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="ARBITRATION METRICS" FontWeight="Bold" FontSize="10" Foreground="#94A3B8" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="DMA Grants:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusDmaGrants}" Foreground="#10B981" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="CPU Grants:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusCpuGrants}" Foreground="#3B82F6" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="Bus Contentions:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding BusContentions}" Foreground="#F43F5E" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="CPU CORE &amp; NVIC" FontWeight="Bold" FontSize="10" Foreground="#94A3B8" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="CPU State:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding CpuStateStr}" Foreground="#3B82F6" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="CPU Stalls:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding CpuBusStalls}" Foreground="#F43F5E" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="NVIC ISPR:" Foreground="#94A3B8" FontSize="11" />
+                                    <TextBlock Grid.Column="1" Text="{Binding NvicPendingHex}" Foreground="#F59E0B" FontFamily="Monospace" FontWeight="Bold" FontSize="11" />
+                                </Grid>
+                                <TextBlock Text="{Binding CpuCurrentOp}" Foreground="#94A3B8" FontSize="10" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- CENTER: DMA DEEP DIVE -->
+            <Border Grid.Column="1" Background="#1E293B" CornerRadius="10" Padding="12" Margin="0,0,10,0" BorderBrush="#334155" BorderThickness="1">
+                <ScrollViewer>
+                    <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <TextBlock Text="DMA1 CONTROLLER (Channel 1)" FontWeight="Bold" FontSize="13" Foreground="#10B981" />
+                                <Border Background="#064E3B" CornerRadius="4" Padding="6,2">
+                                    <TextBlock Text="{Binding DmaStateStr}" Foreground="#34D399" FontSize="11" FontWeight="Bold" />
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <Border Background="#0F172A" CornerRadius="6" Padding="7,3">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Ellipse Width="9" Height="9" Fill="{Binding DmaRxReqBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="UART_REQ" FontSize="10" FontWeight="Bold" Foreground="#F8FAFC" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="7,3">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Ellipse Width="9" Height="9" Fill="{Binding DmaTxReqBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="I2C_REQ" FontSize="10" FontWeight="Bold" Foreground="#F8FAFC" />
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="7,3">
+                                    <StackPanel Orientation="Horizontal" Spacing="5">
+                                        <Ellipse Width="9" Height="9" Fill="{Binding DmaIrqBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Text="TC_IRQ" FontSize="10" FontWeight="Bold" Foreground="#F8FAFC" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- DMA Registers Grid -->
+                        <Grid ColumnDefinitions="*,*">
+                            <StackPanel Grid.Column="0" Spacing="5" Margin="0,0,5,0">
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="CCR (Control):" Foreground="#94A3B8" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DmaCcrHex}" Foreground="#F59E0B" FontFamily="Monospace" FontWeight="Bold" FontSize="12" />
+                                    </Grid>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="CPAR (Source):" Foreground="#94A3B8" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DmaCparHex}" Foreground="#F8FAFC" FontFamily="Monospace" FontWeight="Bold" FontSize="12" />
+                                    </Grid>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="CMAR (Dest):" Foreground="#94A3B8" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DmaCmarHex}" Foreground="#F8FAFC" FontFamily="Monospace" FontWeight="Bold" FontSize="12" />
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Spacing="5" Margin="5,0,0,0">
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="CNDTR (Remaining):" Foreground="#94A3B8" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DmaCndtr}" Foreground="#10B981" FontWeight="ExtraBold" FontSize="13" />
+                                    </Grid>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8" BorderBrush="#8B5CF6" BorderThickness="1">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Internal Latch:" Foreground="#8B5CF6" FontWeight="SemiBold" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding DmaDataLatchHex}" Foreground="#8B5CF6" FontFamily="Monospace" FontWeight="ExtraBold" FontSize="13" />
+                                    </Grid>
+                                </Border>
+                                <Border Background="#0F172A" CornerRadius="6" Padding="8">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Done / Stalls:" Foreground="#94A3B8" FontSize="11" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding DmaTotalTransferred, StringFormat='Done: {0}'}" Foreground="#10B981" FontWeight="Bold" FontSize="11" />
+                                            <TextBlock Text="{Binding DmaBusStalls, StringFormat='Stalls: {0}'}" Foreground="#F43F5E" FontWeight="Bold" FontSize="11" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Background="#0F172A" BorderBrush="#334155" BorderThickness="1" CornerRadius="6" Padding="8,5">
+                            <TextBlock Text="{Binding DmaEventMsg}" Foreground="#F8FAFC" FontSize="11" FontStyle="Italic" />
+                        </Border>
+
+                        <!-- Peripherals -->
+                        <Grid ColumnDefinitions="*,*">
+                            <!-- UART Box -->
+                            <Border Grid.Column="0" Background="#0F172A" CornerRadius="8" Padding="9" Margin="0,0,5,0">
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="UART0 (RX FIFO)" FontWeight="Bold" Foreground="#10B981" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding UartFifoCount, StringFormat='{}{0}/4'}" Foreground="#94A3B8" FontSize="11" />
+                                    </Grid>
+                                    <Border Background="#1E293B" CornerRadius="4" Padding="5">
+                                        <TextBlock Text="{Binding UartFifoDisplay}" FontFamily="Monospace" FontSize="11" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Center" />
+                                    </Border>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Text="{Binding InjectByteHex}" Background="#1E293B" Foreground="#F8FAFC" FontFamily="Monospace" FontSize="11" Padding="4,2" />
+                                        <Button Grid.Column="1" Command="{Binding InjectUartByteCommand}" Content="+ Inject RX" Background="#059669" Foreground="White" FontSize="10" FontWeight="Bold" Padding="8,4" Margin="4,0,0,0" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- I2C Box -->
+                            <Border Grid.Column="1" Background="#0F172A" CornerRadius="8" Padding="9" Margin="5,0,0,0">
+                                <StackPanel Spacing="5">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="I2C0 (TX FIFO)" FontWeight="Bold" Foreground="#3B82F6" FontSize="11" />
+                                        <TextBlock Grid.Column="1" Text="{Binding I2cFifoCount, StringFormat='{}{0}/2'}" Foreground="#94A3B8" FontSize="11" />
+                                    </Grid>
+                                    <Border Background="#1E293B" CornerRadius="4" Padding="5">
+                                        <TextBlock Text="{Binding I2cFifoDisplay}" FontFamily="Monospace" FontSize="11" FontWeight="Bold" Foreground="#3B82F6" HorizontalAlignment="Center" />
+                                    </Border>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="Shifter / Last Wire:" Foreground="#94A3B8" FontSize="10" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                            <TextBlock Text="{Binding I2cShiftByteHex}" Foreground="#F59E0B" FontFamily="Monospace" FontSize="10" FontWeight="Bold" />
+                                            <TextBlock Text="{Binding I2cLastWireHex, StringFormat='(Wire: {0})'}" Foreground="#10B981" FontFamily="Monospace" FontSize="10" FontWeight="Bold" />
+                                        </StackPanel>
+                                    </Grid>
+                                    <ProgressBar Value="{Binding I2cShiftProgress}" Height="6" Background="#1E293B" Foreground="#F59E0B" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <!-- RIGHT: SRAM MEMORY DUMP & EXECUTION TRACE LOG -->
+            <Border Grid.Column="2" Background="#1E293B" CornerRadius="10" Padding="12" BorderBrush="#334155" BorderThickness="1">
+                <Grid RowDefinitions="Auto,95,Auto,*">
+                    <TextBlock Grid.Row="0" Text="SRAM MEMORY (0x20000000)" FontWeight="Bold" FontSize="11" Foreground="#F8FAFC" Margin="0,0,0,4" />
+                    <Border Grid.Row="1" Background="#0F172A" CornerRadius="6" Padding="6" Margin="0,0,0,8">
+                        <ScrollViewer>
+                            <TextBlock Text="{Binding SramDump}" FontFamily="Monospace" FontSize="10" Foreground="#38BDF8" />
+                        </ScrollViewer>
+                    </Border>
+
+                    <TextBlock Grid.Row="2" Text="SYSTEM EXECUTION &amp; BUS TRACE" FontWeight="Bold" FontSize="11" Foreground="#F8FAFC" Margin="0,0,0,4" />
+                    <Border Grid.Row="3" Background="#0F172A" CornerRadius="6" Padding="4">
+                        <ListBox ItemsSource="{Binding Logs}" Background="Transparent" BorderThickness="0" Foreground="#E2E8F0" FontFamily="Monospace" FontSize="10" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- BOTTOM GTKWAVE INTERNAL SIGNALS WAVEFORM VIEWER -->
+        <Border Grid.Row="2" Background="#0B101B" CornerRadius="10" Padding="10" BorderBrush="#2B3B59" BorderThickness="1">
+            <Grid RowDefinitions="Auto,*">
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10">
+                        <TextBlock Text="📈 GTKWAVE INTERNAL SIGNAL WAVEFORM VIEWER" FontWeight="Bold" FontSize="12" Foreground="#38BDF8" VerticalAlignment="Center" />
+                        <TextBlock Text="(Click waveform to move Red Marker; Ctrl+Wheel to Zoom; Wheel to Scroll)" Foreground="#94A3B8" FontSize="10" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                        <Button Click="OnZoomInClick" Content="🔍+ Zoom In" Background="#1E293B" Foreground="White" FontSize="10" Padding="8,3" />
+                        <Button Click="OnZoomOutClick" Content="🔍- Zoom Out" Background="#1E293B" Foreground="White" FontSize="10" Padding="8,3" />
+                        <Button Click="OnZoomFitClick" Content="[ ] Zoom Fit" Background="#1E293B" Foreground="White" FontSize="10" Padding="8,3" />
+                    </StackPanel>
+                </Grid>
+                <Border Grid.Row="1" Background="#05080F" CornerRadius="6" BorderBrush="#26334D" BorderThickness="1" ClipToBounds="True">
+                    <ctrl:GtkWaveControl x:Name="GtkViewer" Samples="{Binding SignalHistory}" />
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
