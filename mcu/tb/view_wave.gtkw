@@ -1,0 +1,65 @@
+[*]
+[*] GTKWave Save File for Dual-Core RISC-V SoC + I2C Register Bank & Report Buffer
+[*]
+[dumpfile] "soc_wave.vcd"
+[timestart] 0
+@200
+-Clock & Reset
+@28
+tb_soc.clk
+tb_soc.rst_n
+@200
+-Boot Control (SoC boots Core0 -> Core0 boots Core1)
+@28
+tb_soc.core0_boot_active
+tb_soc.core1_boot_active
+@22
+tb_soc.u_soc.u_clint.core1_boot_addr[31:0]
+@200
+-Spinlock & Shared Memory (0x1000_0000)
+@22
+tb_soc.shm_spinlock[31:0]
+tb_soc.shm_shared_counter[31:0]
+tb_soc.shm_core1_booted[31:0]
+tb_soc.shm_ipi_ping_pong[31:0]
+@28
+tb_soc.u_soc.u_interconnect.dbg_amo_active
+tb_soc.u_soc.u_interconnect.dbg_shm_grant_c0
+tb_soc.u_soc.u_interconnect.dbg_shm_grant_c1
+tb_soc.u_soc.u_interconnect.dbg_rsv0_valid
+tb_soc.u_soc.u_interconnect.dbg_rsv1_valid
+@200
+-I2C Bus, Dual Register Bank (0x7F Switch) & Report Buffer (0x0F Port)
+@28
+tb_soc.host_scl
+tb_soc.i2c_sda
+tb_soc.dbg_host_bank_sel
+tb_soc.dbg_fw_bank_sel
+tb_soc.dbg_arb_grant_host
+tb_soc.dbg_arb_grant_fw
+tb_soc.dbg_arb_conflict
+@22
+tb_soc.dbg_rpt_status[7:0]
+tb_soc.dbg_rpt_len[7:0]
+tb_soc.dbg_rpt_wr_ptr[7:0]
+tb_soc.dbg_rpt_rd_ptr[7:0]
+@200
+-IPI (Inter-Processor Interrupts)
+@28
+tb_soc.core0_irq_ipi
+tb_soc.core0_in_trap
+tb_soc.core0_wfi
+tb_soc.core1_irq_ipi
+tb_soc.core1_in_trap
+tb_soc.core1_wfi
+@200
+-Core 0 Execution (SRAM @ 0x0000_0000)
+@22
+tb_soc.core0_pc[31:0]
+tb_soc.core0_instr[31:0]
+@200
+-Core 1 Execution (SRAM @ 0x0001_0000)
+@22
+tb_soc.core1_pc[31:0]
+tb_soc.core1_instr[31:0]
+tb_soc.sim_done_flags[31:0]
