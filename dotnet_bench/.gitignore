@@ -1,0 +1,5 @@
+# Ignore BenchmarkDotNet cloned source repository
+benchmarkdotnet_src/
+
+# BenchmarkDotNet artifacts / results
+BenchmarkDotNet.Artifacts/
