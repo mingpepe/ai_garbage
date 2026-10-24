@@ -1,78 +1,962 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <title>Bridge Master - TypeScript Version</title>
-    <style>
-        :root { --table-green: #2d6a4f; --card-w: 60px; --card-h: 90px; }
-        body { background-color: #121212; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; justify-content: center; }
-        
-        .scoreboard { background: rgba(0,0,0,0.85); padding: 15px 30px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 40px; font-size: 1.2rem; border: 2px solid #f1c40f; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .score-val { color: #f1c40f; font-weight: bold; font-size: 1.6rem; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專業橋牌大師 - Bridge Master Pro (支援 4人/5人 與 AI 難度)</title>
+  <style>
+    :root {
+      --table-green: #1e5631;
+      --table-border: #0d2818;
+      --felt-inner: #2d6a4f;
+      --gold: #f1c40f;
+      --gold-dark: #b7950b;
+      --card-w: 64px;
+      --card-h: 96px;
+      --red: #e74c3c;
+      --black: #2c3e50;
+    }
 
-        #table { 
-            position: relative; width: 1200px; height: 850px; 
-            background-color: var(--table-green); border: 15px solid #1b4332; border-radius: 60px;
-            box-shadow: inset 0 0 60px rgba(0,0,0,0.6), 0 15px 40px rgba(0,0,0,0.8);
-        }
+    * { box-sizing: border-box; }
 
-        .hand { position: absolute; display: flex; transition: 0.3s; padding: 20px; box-sizing: border-box; }
-        
-        /* Position hands further apart to prevent overlap */
-        .north { top: 15px; left: 50%; transform: translateX(-50%); }
-        .south { bottom: 15px; left: 50%; transform: translateX(-50%); }
-        .west { left: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; height: 70%; justify-content: center; }
-        .east { right: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; height: 70%; justify-content: center; }
+    body {
+      background: radial-gradient(circle at center, #1a252f 0%, #0d1117 100%);
+      color: #ecf0f1;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+    }
 
-        .card, .played-card {
-            width: var(--card-w); height: var(--card-h); background: white; color: black;
-            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
-            justify-content: center; font-weight: bold; font-size: 20px;
-            box-shadow: 2px 2px 10px rgba(0,0,0,0.4); border: 1px solid #ccc;
-            user-select: none;
-        }
-        
-        .red { color: #d00000 !important; }
+    /* TOP HEADER & CONTROLS */
+    header {
+      width: 100%;
+      max-width: 1250px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 10px 20px;
+      background: rgba(13, 27, 42, 0.85);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
 
-        .card { margin: -15px 3px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
-        .west .card, .east .card { margin: 3px -15px; } /* 垂直排列時縮小間距 */
-        
-        .card.hidden { background: linear-gradient(135deg, #2c3e50 0%, #000000 100%); border: 2px solid #bdc3c7; color: transparent !important; cursor: default; }
-        .card.hidden::after { content: "♠"; color: rgba(255,255,255,0.1); font-size: 40px; }
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 0.5px;
+    }
 
-        .card:not(.hidden):hover { transform: translateY(-25px); z-index: 100; border-color: #3498db; box-shadow: 0 0 15px #3498db; }
-        .west .card:not(.hidden):hover { transform: translateX(25px); }
-        .east .card:not(.hidden):hover { transform: translateX(-25px); }
+    .header-controls {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
 
-        .active-turn { outline: 5px solid #f1c40f; border-radius: 15px; background: rgba(241, 196, 15, 0.2); }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
 
-        #play-area {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 200px; height: 200px;
-        }
-        .played-card { position: absolute; }
-        .p-n { top: 0; left: 75px; } 
-        .p-s { bottom: 0; left: 75px; } 
-        .p-w { left: 0; top: 62px; } 
-        .p-e { right: 0; top: 62px; }
-    </style>
+    select, button {
+      background: #2c3e50;
+      color: white;
+      border: 1px solid #4a6572;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    select:hover, button:hover {
+      background: #34495e;
+      border-color: var(--gold);
+    }
+
+    button.btn-primary {
+      background: linear-gradient(135deg, #27ae60, #1e8449);
+      border: 1px solid #2ecc71;
+    }
+    button.btn-primary:hover {
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      transform: translateY(-1px);
+    }
+
+    button.btn-gold {
+      background: linear-gradient(135deg, #f39c12, #d68910);
+      border: 1px solid var(--gold);
+      color: #000;
+    }
+
+    /* STATUS BANNER & SCOREBOARD */
+    .status-banner {
+      width: 100%;
+      max-width: 1250px;
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      align-items: center;
+      gap: 15px;
+      padding: 10px 20px;
+      background: rgba(26, 36, 43, 0.9);
+      border-radius: 12px;
+      border: 1px solid #34495e;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .score-box {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      font-size: 1rem;
+    }
+    .score-item {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .score-label {
+      font-size: 0.75rem;
+      color: #bdc3c7;
+      text-transform: uppercase;
+    }
+    .score-num {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .center-info {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #status-text {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #2ecc71;
+    }
+    #contract-text {
+      font-size: 0.95rem;
+      color: #f1c40f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .tricks-box {
+      text-align: right;
+      font-size: 0.95rem;
+      color: #ecf0f1;
+    }
+
+    /* BRIDGE TABLE */
+    #table {
+      position: relative;
+      width: 1220px;
+      height: 800px;
+      max-width: 98vw;
+      background: radial-gradient(circle at center, var(--felt-inner) 20%, var(--table-green) 85%);
+      border: 16px solid var(--table-border);
+      border-radius: 80px;
+      box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.7), 0 20px 50px rgba(0, 0, 0, 0.9);
+      overflow: hidden;
+    }
+
+    /* PLAYER AREAS */
+    .player-seat {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 10;
+      transition: all 0.3s;
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin-bottom: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+
+    .player-name {
+      color: #fff;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+    .badge-declarer { background: var(--gold); color: #000; }
+    .badge-dummy { background: #3498db; color: #fff; }
+    .badge-partner { background: #9b59b6; color: #fff; }
+    .badge-tricks { background: rgba(255, 255, 255, 0.2); color: #ecf0f1; }
+
+    .speech-bubble {
+      position: absolute;
+      background: #ffffff;
+      color: #2c3e50;
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0;
+      transform: translateY(10px) scale(0.9);
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .speech-bubble.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* TURN GLOW */
+    .player-seat.active-turn .player-info {
+      border-color: var(--gold);
+      box-shadow: 0 0 15px var(--gold);
+      background: rgba(241, 196, 15, 0.25);
+    }
+
+    /* 4-PLAYER POSITIONS */
+    .pos-4p-south { bottom: 15px; left: 50%; transform: translateX(-50%); width: 850px; }
+    .pos-4p-north { top: 15px; left: 50%; transform: translateX(-50%); width: 850px; }
+    .pos-4p-west { left: 20px; top: 50%; transform: translateY(-50%); height: 480px; }
+    .pos-4p-east { right: 20px; top: 50%; transform: translateY(-50%); height: 480px; }
+
+    /* 5-PLAYER POSITIONS */
+    .pos-5p-south { bottom: 15px; left: 50%; transform: translateX(-50%); width: 750px; }
+    .pos-5p-p2 { left: 25px; bottom: 160px; height: 350px; }
+    .pos-5p-p3 { left: 160px; top: 20px; width: 400px; }
+    .pos-5p-p4 { right: 160px; top: 20px; width: 400px; }
+    .pos-5p-p5 { right: 25px; bottom: 160px; height: 350px; }
+
+    /* HANDS */
+    .hand-container {
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+    .hand-container.vertical {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* CARD STYLING */
+    .card, .played-card {
+      width: var(--card-w);
+      height: var(--card-h);
+      background: #ffffff;
+      color: var(--black);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px;
+      font-weight: 700;
+      box-shadow: 1px 3px 10px rgba(0, 0, 0, 0.4);
+      border: 1px solid #d5dbdb;
+      position: relative;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+    }
+
+    .card.red, .played-card.red {
+      color: var(--red);
+    }
+
+    .card-corner-top {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+      font-size: 0.95rem;
+    }
+    .card-center-suit {
+      font-size: 1.5rem;
+      align-self: center;
+      line-height: 1;
+    }
+    .card-corner-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+      font-size: 0.95rem;
+      transform: rotate(180deg);
+    }
+
+    /* OVERLAPPING CARDS */
+    .hand-container:not(.vertical) .card {
+      margin-left: -22px;
+    }
+    .hand-container:not(.vertical) .card:first-child {
+      margin-left: 0;
+    }
+
+    .hand-container.vertical .card {
+      margin-top: -65px;
+    }
+    .hand-container.vertical .card:first-child {
+      margin-top: 0;
+    }
+
+    /* CARD BACK (HIDDEN) */
+    .card.hidden {
+      background: repeating-linear-gradient(
+        45deg,
+        #1a365d,
+        #1a365d 10px,
+        #2a4365 10px,
+        #2a4365 20px
+      );
+      border: 2px solid #cbd5e0;
+      cursor: default;
+      color: transparent !important;
+    }
+    .card.hidden * { display: none; }
+    .card.hidden::after {
+      content: "♠";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2rem;
+      color: rgba(255, 255, 255, 0.15);
+    }
+
+    /* PLAYABLE CARDS */
+    .card.playable {
+      cursor: pointer;
+    }
+    .card.playable:hover {
+      transform: translateY(-26px);
+      border-color: #3498db;
+      box-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
+      z-index: 50;
+    }
+
+    .card.unplayable {
+      filter: brightness(0.65) grayscale(0.5);
+      cursor: not-allowed;
+    }
+
+    /* CENTER PLAY AREA */
+    #play-area {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 340px;
+      height: 340px;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .played-card {
+      position: absolute;
+      transform-origin: center center;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+      animation: playCardAnim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes playCardAnim {
+      from { transform: scale(0.6); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* 4P PLAYED CARD POSITIONS */
+    .played-4p-south { bottom: 30px; left: 138px; }
+    .played-4p-north { top: 30px; left: 138px; }
+    .played-4p-west { left: 45px; top: 122px; }
+    .played-4p-east { right: 45px; top: 122px; }
+
+    /* 5P PLAYED CARD POSITIONS */
+    .played-5p-south { bottom: 25px; left: 138px; }
+    .played-5p-p2 { left: 40px; bottom: 85px; }
+    .played-5p-p3 { left: 75px; top: 40px; }
+    .played-5p-p4 { right: 75px; top: 40px; }
+    .played-5p-p5 { right: 40px; bottom: 85px; }
+
+    .center-trick-indicator {
+      text-align: center;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .center-trick-indicator .trump-icon {
+      font-size: 1.8rem;
+      color: var(--gold);
+    }
+
+    /* TRICK BANNER NOTIFICATION */
+    #trick-banner {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: var(--gold);
+      border: 2px solid var(--gold);
+      padding: 10px 24px;
+      border-radius: 30px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.7);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    #trick-banner.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+
+    /* BIDDING BOX (叫牌盒) */
+    #bidding-box {
+      position: absolute;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 15px 20px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .bidding-header {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .bidding-levels {
+      display: flex;
+      gap: 6px;
+    }
+    .bidding-levels button {
+      width: 42px;
+      height: 42px;
+      font-size: 1.2rem;
+      border-radius: 8px;
+    }
+    .bidding-levels button.selected {
+      background: var(--gold);
+      color: #000;
+      border-color: #fff;
+    }
+
+    .bidding-suits {
+      display: flex;
+      gap: 8px;
+    }
+    .bidding-suits button {
+      min-width: 52px;
+      height: 44px;
+      font-size: 1.3rem;
+      border-radius: 8px;
+    }
+    .bidding-suits button.suit-red {
+      color: var(--red);
+    }
+
+    .bidding-actions {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .bidding-actions button {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 1rem;
+    }
+    .btn-bid-pass { background: #27ae60 !important; }
+    .btn-bid-double { background: #c0392b !important; }
+    .btn-bid-redouble { background: #2980b9 !important; }
+
+    /* MODAL POPUPS */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(5px);
+    }
+    .modal-content {
+      background: #1e293b;
+      border: 2px solid var(--gold);
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 550px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      color: var(--gold);
+      font-size: 1.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+    }
+    .modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      color: #94a3b8;
+      cursor: pointer;
+    }
+    .modal-close:hover { color: #fff; }
+
+    /* AUCTION LOG TABLE */
+    .auction-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 0.95rem;
+      text-align: center;
+    }
+    .auction-table th {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px;
+      color: var(--gold);
+    }
+    .auction-table td {
+      padding: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* KITTY DISCARD AREA */
+    .kitty-cards-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 20px 0;
+    }
+    .kitty-card-item {
+      position: relative;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .kitty-card-item.selected {
+      transform: translateY(-12px);
+      box-shadow: 0 0 15px var(--red);
+      border: 2px solid var(--red);
+      border-radius: 8px;
+    }
+
+    /* SCORING RESULT BREAKDOWN */
+    .score-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 15px 0;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .breakdown-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1rem;
+    }
+    .breakdown-row.total {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      padding-top: 10px;
+      font-weight: 800;
+      color: var(--gold);
+      font-size: 1.2rem;
+    }
+
+    /* INSTRUCTION LIST */
+    .rules-section {
+      margin-bottom: 18px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      color: #cbd5e1;
+    }
+    .rules-section h3 {
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+    .rules-section ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="scoreboard">
-        <div>NS Score: <span id="score-ns" class="score-val">0</span></div>
-        <div>EW Score: <span id="score-ew" class="score-val">0</span></div>
-        <div id="status" style="color: #58d68d">Click a card to start, South (You) leads</div>
+  <!-- TOP HEADER & CONTROLS -->
+  <header>
+    <div class="header-title">
+      <span>♠♥</span>
+      <span>專業橋牌大師 Bridge Master Pro</span>
+      <span>♦♣</span>
     </div>
 
-    <div id="table">
-        <div id="play-area"></div>
-        <div id="north" class="hand north"></div>
-        <div id="east" class="hand east"></div>
-        <div id="south" class="hand south"></div>
-        <div id="west" class="hand west"></div>
+    <div class="header-controls">
+      <div class="control-group">
+        <label for="mode-select">遊戲模式:</label>
+        <select id="mode-select">
+          <option value="4p">4人制 合約橋牌 (Contract Bridge)</option>
+          <option value="5p">5人制 找朋友橋牌 (5-Player Partner)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="diff-select">AI 難度:</label>
+        <select id="diff-select">
+          <option value="easy">簡單 (Easy)</option>
+          <option value="medium" selected>普通 (Medium)</option>
+          <option value="hard">困難 (Hard - 專家算牌)</option>
+        </select>
+      </div>
+
+      <button id="btn-new-game" class="btn-primary">新局 (New Hand)</button>
+      <button id="btn-auction-log">叫牌紀錄</button>
+      <button id="btn-rules">規則說明</button>
+      <button id="btn-cheat" title="透視全部手牌 (測試與學習用)">👁️ 透視牌</button>
+      <button id="btn-sound" title="切換音效">🔊</button>
+    </div>
+  </header>
+
+  <!-- STATUS BANNER & SCOREBOARD -->
+  <div class="status-banner">
+    <div class="score-box">
+      <div class="score-item">
+        <span id="label-team1" class="score-label">NS 總分</span>
+        <span id="score-team1" class="score-num">0</span>
+      </div>
+      <div class="score-item">
+        <span id="label-team2" class="score-label">EW 總分</span>
+        <span id="score-team2" class="score-num">0</span>
+      </div>
     </div>
 
-    <script type="module" src="/src/main.ts"></script>
+    <div class="center-info">
+      <div id="status-text">載入遊戲中...</div>
+      <div id="contract-text">合約: 尚未定約</div>
+    </div>
+
+    <div class="tricks-box">
+      <div id="tricks-info">當前墩數: 0</div>
+    </div>
+  </div>
+
+  <!-- BRIDGE TABLE -->
+  <div id="table">
+    <!-- Center Play Area -->
+    <div id="play-area">
+      <div class="center-trick-indicator">
+        <div id="trump-display-icon" class="trump-icon">♠</div>
+        <div id="trick-round-text">橋牌桌</div>
+      </div>
+    </div>
+
+    <!-- Trick Winner Notification Banner -->
+    <div id="trick-banner">南家 贏得此墩！</div>
+
+    <!-- 4-Player Seats -->
+    <div id="seat-south" class="player-seat pos-4p-south">
+      <div class="speech-bubble" id="bubble-south">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-south">南家 (你)</span>
+        <span class="badge badge-declarer" id="badge-south" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-south">0 墩</span>
+      </div>
+      <div class="hand-container" id="hand-south"></div>
+    </div>
+
+    <div id="seat-west" class="player-seat pos-4p-west">
+      <div class="speech-bubble" id="bubble-west">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-west">西家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-west" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-west">0 墩</span>
+      </div>
+      <div class="hand-container vertical" id="hand-west"></div>
+    </div>
+
+    <div id="seat-north" class="player-seat pos-4p-north">
+      <div class="speech-bubble" id="bubble-north">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-north">北家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-north" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-north">0 墩</span>
+      </div>
+      <div class="hand-container" id="hand-north"></div>
+    </div>
+
+    <div id="seat-east" class="player-seat pos-4p-east">
+      <div class="speech-bubble" id="bubble-east">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-east">東家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-east" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-east">0 墩</span>
+      </div>
+      <div class="hand-container vertical" id="hand-east"></div>
+    </div>
+
+    <!-- 5-Player Extra Seats (Hidden by default, shown in 5P mode) -->
+    <div id="seat-p2" class="player-seat pos-5p-p2" style="display:none;">
+      <div class="speech-bubble" id="bubble-p2">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-p2">西家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-p2" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-p2">0 墩</span>
+      </div>
+      <div class="hand-container vertical" id="hand-p2"></div>
+    </div>
+
+    <div id="seat-p3" class="player-seat pos-5p-p3" style="display:none;">
+      <div class="speech-bubble" id="bubble-p3">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-p3">西北家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-p3" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-p3">0 墩</span>
+      </div>
+      <div class="hand-container" id="hand-p3"></div>
+    </div>
+
+    <div id="seat-p4" class="player-seat pos-5p-p4" style="display:none;">
+      <div class="speech-bubble" id="bubble-p4">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-p4">東北家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-p4" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-p4">0 墩</span>
+      </div>
+      <div class="hand-container" id="hand-p4"></div>
+    </div>
+
+    <div id="seat-p5" class="player-seat pos-5p-p5" style="display:none;">
+      <div class="speech-bubble" id="bubble-p5">Pass</div>
+      <div class="player-info">
+        <span class="player-name" id="name-p5">東家 (AI)</span>
+        <span class="badge badge-declarer" id="badge-p5" style="display:none">莊家</span>
+        <span class="badge badge-tricks" id="tricks-p5">0 墩</span>
+      </div>
+      <div class="hand-container vertical" id="hand-p5"></div>
+    </div>
+
+    <!-- BIDDING BOX (叫牌盒) -->
+    <div id="bidding-box">
+      <div class="bidding-header">
+        <span>輪到你叫牌 (Your Bid)</span>
+        <span id="current-high-bid" style="font-size:0.9rem; color:#bdc3c7;">當前最高: 無</span>
+      </div>
+
+      <!-- Level Selection -->
+      <div class="bidding-levels" id="bidding-levels">
+        <button data-level="1">1</button>
+        <button data-level="2">2</button>
+        <button data-level="3">3</button>
+        <button data-level="4">4</button>
+        <button data-level="5">5</button>
+        <button data-level="6" class="btn-4p-only">6</button>
+        <button data-level="7" class="btn-4p-only">7</button>
+      </div>
+
+      <!-- Suit Selection -->
+      <div class="bidding-suits" id="bidding-suits">
+        <button data-suit="♣">♣</button>
+        <button data-suit="♦" class="suit-red">♦</button>
+        <button data-suit="♥" class="suit-red">♥</button>
+        <button data-suit="♠">♠</button>
+        <button data-suit="NT">NT</button>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="bidding-actions">
+        <button id="btn-bid-pass" class="btn-bid-pass">Pass (不叫)</button>
+        <button id="btn-bid-double" class="btn-bid-double" disabled>Double (賭倍)</button>
+        <button id="btn-bid-redouble" class="btn-bid-redouble" disabled>Redouble (再賭倍)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5P KITTY DISCARD MODAL -->
+  <div id="kitty-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>莊家換底牌 (Kitty Exchange)</h2>
+      <p>恭喜你成為莊家！你已收到底牌中的 2 張牌 (手牌共 12 張)。<br>請點選 <strong>2 張手牌</strong> 埋入底牌棄牌：</p>
+      <div class="kitty-cards-grid" id="kitty-selection-grid"></div>
+      <div style="text-align: center; margin-top: 15px;">
+        <button id="btn-confirm-kitty" class="btn-gold" disabled>確認埋牌 (Discard 2 Cards)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5P CALL PARTNER MODAL -->
+  <div id="call-partner-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2>指定搭檔牌 (Call Partner)</h2>
+      <p>請指定一張你<strong>手牌中沒有</strong>的特定牌，持有該牌的玩家將成為你的秘密搭檔：</p>
+      <div style="display: flex; gap: 15px; justify-content: center; margin: 20px 0;">
+        <div>
+          <label>花色 (Suit):</label>
+          <select id="partner-suit-select" style="font-size: 1.1rem; padding: 6px 12px;">
+            <option value="♠">♠ 黑桃 (Spades)</option>
+            <option value="♥">♥ 紅心 (Hearts)</option>
+            <option value="♦">♦ 方塊 (Diamonds)</option>
+            <option value="♣">♣ 梅花 (Clubs)</option>
+          </select>
+        </div>
+        <div>
+          <label>點數 (Rank):</label>
+          <select id="partner-rank-select" style="font-size: 1.1rem; padding: 6px 12px;">
+            <option value="A">A (Ace)</option>
+            <option value="K">K (King)</option>
+            <option value="Q">Q (Queen)</option>
+            <option value="J">J (Jack)</option>
+            <option value="10">10</option>
+            <option value="9">9</option>
+            <option value="8">8</option>
+            <option value="7">7</option>
+          </select>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <button id="btn-confirm-partner" class="btn-gold">確認指定搭檔 (Call Partner)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUCTION HISTORY LOG MODAL -->
+  <div id="auction-modal" class="modal-overlay">
+    <div class="modal-content">
+      <button class="modal-close" id="btn-close-auction">&times;</button>
+      <h2>叫牌過程紀錄 (Auction History)</h2>
+      <table class="auction-table">
+        <thead id="auction-table-head">
+          <tr><th>南家 (你)</th><th>西家</th><th>北家</th><th>東家</th></tr>
+        </thead>
+        <tbody id="auction-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- END OF HAND SCORE MODAL -->
+  <div id="hand-end-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h2 id="result-title">本局結算 (Hand Complete)</h2>
+      <div class="score-breakdown">
+        <div class="breakdown-row"><span>定約 (Contract):</span><strong id="res-contract">4♠</strong></div>
+        <div class="breakdown-row"><span>目標墩數 (Target):</span><strong id="res-target">10 墩</strong></div>
+        <div class="breakdown-row"><span>莊家方取得 (Tricks Won):</span><strong id="res-won">10 墩</strong></div>
+        <div class="breakdown-row"><span>合約結果 (Result):</span><strong id="res-status">達成 (+0)</strong></div>
+        <div class="breakdown-row total"><span>本局得分:</span><strong id="res-score">+420 分</strong></div>
+      </div>
+      <p id="res-summary" style="font-size:0.95rem; color:#94a3b8; line-height: 1.5;"></p>
+      <div style="text-align: center; margin-top: 20px;">
+        <button id="btn-next-hand" class="btn-primary" style="padding: 10px 30px; font-size: 1.1rem;">下一局 (Next Hand)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RULES EXPLANATION MODAL -->
+  <div id="rules-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 650px;">
+      <button class="modal-close" id="btn-close-rules">&times;</button>
+      <h2>橋牌遊戲玩法與規則說明</h2>
+
+      <div class="rules-section">
+        <h3>♠ 4人制 標準合約橋牌 (Contract Bridge)</h3>
+        <ul>
+          <li><strong>分組</strong>：南家與北家一組 (NS)，西家與東家一組 (EW)。每人 13 張牌。</li>
+          <li><strong>叫牌階段</strong>：從發牌者開始順時針叫牌。花色順序為 ♣ &lt; ♦ &lt; ♥ &lt; ♠ &lt; NT (無王)。線位 1 到 7 (1線代表需要 6 + 1 = 7 墩，7線大滿貫需要全部 13 墩)。連續 3 個 Pass 確定合約。</li>
+          <li><strong>莊家與夢家</strong>：合約所屬方最先叫出該合約花色的玩家為莊家，莊家對面為「夢家」。</li>
+          <li><strong>出牌規則</strong>：莊家左手邊首引第一張牌。首引後夢家攤開所有牌（明牌），由莊家操作。必須跟出首引花色；無該花色時可墊牌或吃王 (Ruff)。王牌大於非王牌。</li>
+        </ul>
+      </div>
+
+      <div class="rules-section">
+        <h3>♥ 5人制 找朋友橋牌 (5-Player Calling Partner)</h3>
+        <ul>
+          <li><strong>發牌與底牌</strong>：5 位玩家每人 10 張牌，留下 2 張作為底牌 (Kitty)。</li>
+          <li><strong>叫牌與莊家</strong>：最高叫牌者得標成為莊家 (線位 1~5，1線需 6 墩，5線需 10 墩)。</li>
+          <li><strong>換底牌</strong>：莊家收下 2 張底牌 (手牌變 12 張)，挑選 2 張不要的手牌埋入底牌。</li>
+          <li><strong>叫朋友</strong>：莊家指定一張特定牌 (例如 ♠A)。持有該牌的玩家即為莊家的秘密搭檔！其他人皆為防守方 (形成 2 vs 3 局面)。當該特定牌被出到桌面上時，搭檔身分正式揭曉！</li>
+        </ul>
+      </div>
+
+      <div class="rules-section">
+        <h3>♦ AI 難度說明</h3>
+        <ul>
+          <li><strong>簡單 (Easy)</strong>：AI 根據基本大牌點估牌，出牌以基本規則為主。適合初學者。</li>
+          <li><strong>普通 (Medium)</strong>：採用標準美國叫牌制 (SAYC)，懂得點力評估、同伴加叫，出牌遵循「長門領出、第三手出大牌、吃王保護」策略。</li>
+          <li><strong>困難 (Hard)</strong>：高級策略，具備牌局記憶、全方位算牌、清王牌 (Draw Trumps)、偷牌/飛牌 (Finesse)、防守信號與精準判斷。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
