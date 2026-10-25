@@ -6,13 +6,13 @@ namespace BenchDemo;
 /// <summary>
 /// 自製的精簡版基準測試引擎 (SimpleBenchmarkEngine)
 /// 展示 BenchmarkDotNet 的底層原理：
-/// 1. Warmup (暖機): 觸發 JIT 編譯與 Tier-1 優化，消除冷啟動偏差
-/// 2. Pilot Stage (試探階段): 自動尋找合適的 iteration 執行次數，保證每次採樣時間足以克服時鐘精度問題
-/// 3. Overhead Deduction (扣除迴圈本底開銷): 消除計時與迴圈本身的額外損耗
-/// 4. Loop Unrolling (迴圈展開): 減少 jump/condition 指令對超微小操作測量的干擾
-/// 5. Anti-DCE (防死代碼消除): 避免 JIT 判定結果未被使用而把整個方法優化蒸發
-/// 6. GC Isolation (垃圾回收隔離與統計): 測量前後強制 GC 清理，並採樣配置量
-/// 7. Statistical Aggregation (統計指標): 計算 Mean, StdDev, Median 等
+/// 1. CLR JIT Event 監聽 (JitListener): 精確捕捉 Tier-0 到 Tier-1 的轉變
+/// 2. Warmup (暖機): 連續呼叫直到 CLR 發送 Tier-1 事件或達到最大次數
+/// 3. Pilot Stage (試探階段): 動態推算迭代次數以克服時鐘精度限制
+/// 4. Overhead Deduction (扣除迴圈本底開銷): 消除計時與迴圈本身的額外損耗
+/// 5. Loop Unrolling (迴圈展開): 減少 jump/condition 指令對超微小操作測量的干擾
+/// 6. Anti-DCE (防死代碼消除): 避免 JIT 判定結果未被使用而把整個方法優化蒸發
+/// 7. GC Isolation (垃圾回收隔離與統計): 測量前後強制 GC 清理，並採樣配置量
 /// </summary>
 public static class MyBenchmarkRunner
 {
@@ -24,10 +24,10 @@ public static class MyBenchmarkRunner
         var bench = new StringComparisonBenchmark { Count = 500 };
         bench.Setup();
 
-        // 比較三個方法
-        var r1 = RunBenchmark("String (+ Concat)", () => bench.PlusConcat());
-        var r2 = RunBenchmark("StringBuilder", () => bench.StringBuilderConcat());
-        var r3 = RunBenchmark("String.Join", () => bench.StringJoinConcat());
+        // 比較三個方法，並傳入方法名稱供 CLR EventSource 監聽比對
+        var r1 = RunBenchmark("String (+ Concat)", "PlusConcat", () => bench.PlusConcat());
+        var r2 = RunBenchmark("StringBuilder", "StringBuilderConcat", () => bench.StringBuilderConcat());
+        var r3 = RunBenchmark("String.Join", "StringJoinConcat", () => bench.StringJoinConcat());
 
         // 印出對比報表
         Console.WriteLine("\n" + new string('=', 85));
@@ -48,36 +48,45 @@ public static class MyBenchmarkRunner
 
     public record BenchmarkResult(string Name, double MeanNs, double StdDevNs, long AllocatedBytes);
 
-    public static BenchmarkResult RunBenchmark<T>(string name, Func<T> action)
+    public static BenchmarkResult RunBenchmark<T>(string displayName, string methodName, Func<T> action)
     {
-        Console.Write($"--> 正在測試 [{name}] ... ");
+        Console.Write($"--> 正在測試 [{displayName}] ... ");
 
         // ==========================================
-        // 原理 1: Warmup (暖機階段)
+        // 原理 1: 建立極簡 CLR JIT Event 監聽器
         // ==========================================
-        // 目的：讓 JIT 即時編譯函式、載入相關組件、填滿 CPU Cache，避免 Cold Start 嚴重拉高數值
-        for (int i = 0; i < 50; i++)
+        using var jitListener = new SimpleJitListener(methodName);
+
+        // ==========================================
+        // 原理 2: Warmup (暖機階段 + JIT 事件確認)
+        // ==========================================
+        // 持續呼叫方法觸發 CLR 分層編譯閥值 (預設約 30 次呼叫即觸發 Tier-1 編譯)
+        int warmCount = 0;
+        while (!jitListener.IsTier1Promoted && warmCount < 500)
         {
             T warmResult = action();
             DeadCodeEliminationHelper.KeepAliveWithoutBoxing(warmResult);
+            warmCount++;
+            // 稍作微小暫停讓 CLR 背景編譯執行緒有機會處理佇列
+            if (warmCount % 50 == 0) Thread.Sleep(10);
         }
 
+        // 如果在短時間內背景編譯已觸發，等待其訊號到位（最多等 100ms）
+        jitListener.WaitForTier1(TimeSpan.FromMilliseconds(100));
+
         // ==========================================
-        // 原理 2: Pilot 階段 (動態決定每個 Iteration 的 Invoke 次數)
+        // 原理 3: Pilot 階段 (動態決定每個 Iteration 的 Invoke 次數)
         // ==========================================
-        // 為了達到足夠的測量解析度（例如每次測量至少 10ms ~ 30ms），
-        // 必須讓極快的方法在一輪 iteration 內執行多次。
-        int unrollFactor = 16; // BenchmarkDotNet 預設常用 16 展開
+        int unrollFactor = 16;
         long invokeCount = DetermineInvokeCount(action, targetIterationMs: 20, unrollFactor);
 
         // ==========================================
-        // 原理 3: 測量 Overhead (空迴圈開銷)
+        // 原理 4: 測量 Overhead (空迴圈開銷)
         // ==========================================
-        // 迴圈本身與時間戳獲取也有成本，需計算並在稍後扣除
         double overheadPerOpNs = MeasureOverhead(invokeCount, unrollFactor);
 
         // ==========================================
-        // 原理 4: 記憶體配置測量 (GC Diagnoser 原理)
+        // 原理 5: 記憶體配置測量 (GC Diagnoser 原理)
         // ==========================================
         ForceGarbageCollection();
         long memBefore = GC.GetAllocatedBytesForCurrentThread();
@@ -87,23 +96,21 @@ public static class MyBenchmarkRunner
         long allocatedBytes = memAfter - memBefore;
 
         // ==========================================
-        // 原理 5: Actual Iterations 實際統計測量
+        // 原理 6: Actual Iterations 實際統計測量
         // ==========================================
         int iterationCount = 15;
         double[] iterationTimePerOpNs = new double[iterationCount];
 
         for (int iter = 0; iter < iterationCount; iter++)
         {
-            // 每次 iteration 前強制穩定記憶體環境
             ForceGarbageCollection();
 
             long totalOps = invokeCount * unrollFactor;
             var sw = Stopwatch.StartNew();
 
-            // 迴圈展開執行
             for (long i = 0; i < invokeCount; i++)
             {
-                // Unroll 16 次
+                // 迴圈展開 16 次
                 T v0 = action(); DeadCodeEliminationHelper.KeepAliveWithoutBoxing(v0);
                 T v1 = action(); DeadCodeEliminationHelper.KeepAliveWithoutBoxing(v1);
                 T v2 = action(); DeadCodeEliminationHelper.KeepAliveWithoutBoxing(v2);
@@ -124,7 +131,7 @@ public static class MyBenchmarkRunner
 
             sw.Stop();
 
-            double totalNs = (sw.Elapsed.TotalMilliseconds * 1_000_000.0);
+            double totalNs = sw.Elapsed.TotalMilliseconds * 1_000_000.0;
             double netNsPerOp = (totalNs / totalOps) - overheadPerOpNs;
             if (netNsPerOp < 0) netNsPerOp = 0;
 
@@ -132,19 +139,18 @@ public static class MyBenchmarkRunner
         }
 
         // ==========================================
-        // 原理 6: 統計匯總 (Mean, StdDev)
+        // 原理 7: 統計匯總 (Mean, StdDev)
         // ==========================================
         double mean = iterationTimePerOpNs.Average();
         double sumSquares = iterationTimePerOpNs.Select(val => Math.Pow(val - mean, 2)).Sum();
         double stdDev = Math.Sqrt(sumSquares / (iterationCount - 1));
 
-        Console.WriteLine("完成！");
-        return new BenchmarkResult(name, mean, stdDev, allocatedBytes);
+        Console.WriteLine($"完成！ (暖機次數: {warmCount}, Tier-1 狀態: {(jitListener.IsTier1Promoted ? "已晉升最高階" : "未晉升/即時編譯")})");
+        return new BenchmarkResult(displayName, mean, stdDev, allocatedBytes);
     }
 
     private static long DetermineInvokeCount<T>(Func<T> action, double targetIterationMs, int unrollFactor)
     {
-        // 快速試跑 1 次評估單次耗時
         var sw = Stopwatch.StartNew();
         T res = action();
         DeadCodeEliminationHelper.KeepAliveWithoutBoxing(res);
@@ -164,7 +170,6 @@ public static class MyBenchmarkRunner
         var sw = Stopwatch.StartNew();
         for (long i = 0; i < invokeCount; i++)
         {
-            // 空操作，測量純迴圈與計時本身耗時
             DeadCodeEliminationHelper.KeepAliveWithoutBoxing(1);
             DeadCodeEliminationHelper.KeepAliveWithoutBoxing(1);
             DeadCodeEliminationHelper.KeepAliveWithoutBoxing(1);
@@ -194,17 +199,8 @@ public static class MyBenchmarkRunner
     }
 }
 
-/// <summary>
-/// 原理 7: 防死代碼消除 (Dead Code Elimination Helper)
-/// 參考 BenchmarkDotNet.Engines.DeadCodeEliminationHelper 的實作。
-/// 透過 [MethodImpl(MethodImplOptions.NoInlining)] 強制不內聯，
-/// 讓 JIT 編譯器不敢隨意將運算結果或函式呼叫整段裁掉。
-/// </summary>
 public static class DeadCodeEliminationHelper
 {
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void KeepAliveWithoutBoxing<T>(T value)
-    {
-        // 空函式體，但編譯器不能將傳遞給此方法的參數視為未使用而裁減掉！
-    }
+    public static void KeepAliveWithoutBoxing<T>(T value) { }
 }
