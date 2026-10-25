@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>3D 渲染原理三種實作與對照比較</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #121316;
+      color: #e0e6ed;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    header {
+      padding: 16px 24px;
+      background: #1b1d23;
+      border-bottom: 1px solid #2d3139;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 { font-size: 20px; font-weight: 600; color: #61afef; }
+    header p { font-size: 13px; color: #98c379; }
+    
+    .toolbar {
+      display: flex;
+      gap: 16px;
+      padding: 10px 24px;
+      background: #181a1f;
+      border-bottom: 1px solid #23272e;
+      align-items: center;
+      font-size: 14px;
+    }
+    .toolbar label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .btn {
+      background: #3e4451;
+      color: white;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .btn:hover { background: #4b5263; }
+
+    .viewport-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 16px 24px;
+      flex: 1;
+    }
+    .card {
+      background: #1e222b;
+      border-radius: 8px;
+      border: 1px solid #2d333f;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 10px 14px;
+      background: #282c34;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #353b45;
+    }
+    .card-header h2 { font-size: 14px; font-weight: 600; }
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: bold;
+    }
+    .badge-three { background: #98c379; color: #1e222b; }
+    .badge-webgl { background: #e5c07b; color: #1e222b; }
+    .badge-mini { background: #61afef; color: #1e222b; }
+
+    .canvas-container {
+      width: 100%;
+      height: 320px;
+      position: relative;
+      background: #0d0f12;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .card-body {
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #abb2bf;
+      flex: 1;
+      border-top: 1px solid #282c34;
+      background: #181a1f;
+      line-height: 1.6;
+    }
+    .card-body code {
+      background: #282c34;
+      color: #e5c07b;
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
+
+    footer {
+      padding: 12px 24px;
+      font-size: 12px;
+      text-align: center;
+      color: #5c6370;
+      border-top: 1px solid #23272e;
+    }
+  </style>
+
+  <!-- 引入 Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- 引入 gl-matrix 方便原生 WebGL 數學計算 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>3D 立體甜甜圈 (Torus) 渲染對比實驗</h1>
+    <p>3 種獨立模組實作 × 100% 相同視覺與數學運算</p>
+  </header>
+
+  <div class="toolbar">
+    <label>
+      <input type="checkbox" id="syncRotate" checked>
+      同步自轉 (Auto Rotate)
+    </label>
+    <button class="btn" id="resetAngle">重置視角角度</button>
+    <span style="color: #61afef; font-size: 12px; margin-left: auto;">
+      模型: 甜甜圈圓環體 (R=1.0, r=0.35, 30×30 分段) + 經典定向光 Phong 著色
+    </span>
+  </div>
+
+  <div class="viewport-grid">
+    <!-- View 1: Three.js -->
+    <div class="card">
+      <div class="card-header">
+        <h2>1. Three.js 官方套件</h2>
+        <span class="badge badge-three">method1-threejs.js</span>
+      </div>
+      <div class="canvas-container" id="container1"></div>
+      <div class="card-body">
+        <strong>特點：</strong>高階 Scene Graph 封裝。<br/>
+        檔案模組：<code>method1-threejs.js</code><br/>
+        使用 <code>THREE.BufferGeometry</code> + <code>THREE.MeshPhongMaterial</code> + <code>THREE.DirectionalLight</code>。
+      </div>
+    </div>
+
+    <!-- View 2: WebGL 原生 API -->
+    <div class="card">
+      <div class="card-header">
+        <h2>2. 原生 Web API (WebGL)</h2>
+        <span class="badge badge-webgl">method2-webgl.js</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvasWebGL"></canvas>
+      </div>
+      <div class="card-body">
+        <strong>特點：</strong>底層無封裝狀態機。<br/>
+        檔案模組：<code>method2-webgl.js</code><br/>
+        編寫 GLSL Shader、建立 <code>ARRAY_BUFFER</code>、手動進行法向量變換矩陣 (Normal Matrix) 及投影計算。
+      </div>
+    </div>
+
+    <!-- View 3: 自製 Mini-Three.js 架構 -->
+    <div class="card">
+      <div class="card-header">
+        <h2>3. 自封裝架構 (Mini-Three)</h2>
+        <span class="badge badge-mini">method3-mini-three.js</span>
+      </div>
+      <div class="canvas-container">
+        <canvas id="canvasMini"></canvas>
+      </div>
+      <div class="card-body">
+        <strong>特點：</strong>模擬 Three.js 核心設計哲學。<br/>
+        檔案模組：<code>method3-mini-three.js</code><br/>
+        抽象出 <code>Scene</code>、<code>PerspectiveCamera</code>、<code>TorusGeometry</code>、<code>Mesh</code>、<code>DirectionalLight</code>、<code>WebGLRenderer</code>。
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Three.js Principle Comparison &copy; 2026. Code split into independent modules.
+  </footer>
+
+  <!-- 引入三大模組並統一驅動渲染 loop -->
+  <script type="module">
+    import { generateTorusData } from './shared-data.js';
+    import { Method1ThreeJS } from './method1-threejs.js';
+    import { Method2WebGL } from './method2-webgl.js';
+    import { Method3MiniThree } from './method3-mini-three.js';
+
+    // 共同頂點幾何數據
+    const torusData = generateTorusData(1.0, 0.35, 30, 30);
+
+    // 全域旋轉控制
+    const rotation = { x: 0.3, y: 0.5 };
+    const syncCheckbox = document.getElementById('syncRotate');
+    document.getElementById('resetAngle').onclick = () => {
+      rotation.x = 0.3;
+      rotation.y = 0.5;
+    };
+
+    // 實例化三種方法
+    const c1 = document.getElementById('container1');
+    const c2 = document.getElementById('canvasWebGL');
+    const c3 = document.getElementById('canvasMini');
+
+    const app1 = new Method1ThreeJS(c1, torusData);
+    const app2 = new Method2WebGL(c2, torusData);
+    const app3 = new Method3MiniThree(c3, torusData);
+
+    function resizeAll() {
+      const w = c1.clientWidth;
+      const h = c1.clientHeight;
+      app1.resize(w, h);
+      app2.resize(w, h);
+      app3.resize(w, h);
+    }
+
+    function renderLoop() {
+      if (syncCheckbox.checked) {
+        rotation.x += 0.01;
+        rotation.y += 0.015;
+      }
+
+      // 統一同步渲染幀
+      app1.render(rotation);
+      app2.render(rotation);
+      app3.render(rotation);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    window.addEventListener('resize', resizeAll);
+    resizeAll();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>
