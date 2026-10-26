@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>尼羅河神獸家族：為什麼古埃及神仙都戴著動物面具？ - 埃及神話故事館</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Noto+Serif+TC:wght@500;600;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-light: #fef08a;
+      --gold-primary: #10b981;
+      --gold-dark: #8c6d1f;
+      --bg-dark: #080c14;
+      --card-bg: #0f1624;
+      --text-main: #f1f5f9;
+      --text-sub: #94a3b8;
+      --accent-glow: rgba(212, 175, 55, 0.2);
+      --border-color: #27354a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 15%, #151f33 0%, #060910 100%);
+      color: var(--text-main);
+      font-family: 'Noto Serif TC', 'Cinzel', serif;
+    }
+
+    .app-viewport {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      padding: 12px 18px;
+      gap: 10px;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 22, 36, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-home-btn {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--border-color);
+      color: var(--gold-light);
+      padding: 5px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .back-home-btn:hover {
+      background: rgba(212, 175, 55, 0.3);
+      color: #ffffff;
+      border-color: var(--gold-primary);
+    }
+
+    .title-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .title-text p {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .part-nav {
+      display: flex;
+      gap: 6px;
+    }
+
+    .part-btn {
+      background: rgba(26, 37, 56, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 5px 12px;
+      color: var(--text-sub);
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .part-btn:hover {
+      background: rgba(42, 59, 88, 0.8);
+      color: var(--gold-light);
+    }
+
+    .part-btn.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(140, 109, 31, 0.2) 100%);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+    }
+
+    .act-dropdown {
+      background: #101726;
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .stage-split {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .left-image-panel {
+      background: #020408;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .slide-media {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .egypt-art-card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .art-bg-dawn { background: radial-gradient(circle at 50% 35%, #543818 0%, #151d2e 80%); }
+    .art-bg-day { background: radial-gradient(circle at 50% 35%, #4a3e12 0%, #0d1a2d 80%); }
+    .art-bg-dusk { background: radial-gradient(circle at 50% 35%, #401828 0%, #0c121e 80%); }
+    .art-bg-night { background: radial-gradient(circle at 50% 35%, #1a1638 0%, #050810 80%); }
+    .art-bg-battle { background: radial-gradient(circle at 50% 35%, #451515 0%, #0a0e1a 80%); }
+
+    .art-glyph {
+      font-size: 5rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.7));
+      animation: floatGlyph 4s ease-in-out infinite;
+    }
+
+    @keyframes floatGlyph {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .art-tag {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      color: var(--gold-light);
+      margin-bottom: 6px;
+    }
+
+    .art-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.8);
+    }
+
+    .art-desc {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      color: var(--gold-primary);
+      margin-top: 8px;
+      max-width: 85%;
+    }
+
+    .right-text-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .story-content-scroll {
+      flex: 1;
+      padding: 24px 28px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold-dark) #101726;
+    }
+
+    .story-content-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .story-content-scroll::-webkit-scrollbar-thumb {
+      background: var(--gold-dark);
+      border-radius: 4px;
+    }
+
+    .story-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .chapter-badge {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--gold-primary);
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 3px 12px;
+      border-radius: 999px;
+    }
+
+    .time-badge {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .story-heading {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 16px;
+      line-height: 1.35;
+      letter-spacing: 0.5px;
+    }
+
+    .story-paragraphs {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 1.12rem;
+      line-height: 2.0;
+      color: #e2e8f0;
+      font-weight: 400;
+      letter-spacing: 0.6px;
+      text-align: justify;
+      margin-bottom: 20px;
+    }
+
+    .story-paragraphs p {
+      margin-bottom: 14px;
+      text-indent: 2em;
+    }
+
+    .guide-card {
+      background: rgba(24, 34, 52, 0.85);
+      border-left: 4px solid var(--gold-primary);
+      border-radius: 0 10px 10px 0;
+      padding: 12px 16px;
+      margin-top: 10px;
+    }
+
+    .guide-title {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .guide-body {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      background: #080c14;
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      border: none;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav {
+      background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%);
+      color: #0b0f17;
+      box-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      background: linear-gradient(135deg, #fde047 0%, #d4af37 100%);
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.45);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #1e293b;
+      color: #64748b;
+    }
+
+    .btn-audio {
+      background: #162033;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+
+    .btn-audio:hover {
+      background: #24344d;
+      color: #ffffff;
+      border-color: var(--gold-primary);
+    }
+
+    .btn-audio.playing {
+      background: #450a0a;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .key-hints {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    @media (max-width: 900px) {
+      .app-viewport {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+      .stage-split {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .left-image-panel {
+        aspect-ratio: 16 / 9;
+        min-height: 260px;
+      }
+      .part-nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    <header class="top-header">
+      <div class="title-group">
+        <a href="../index.html" class="back-home-btn">🏠 故事目錄</a>
+        <div class="title-text">
+          <h1>尼羅河神獸家族：為什麼古埃及神仙都戴著動物面具？</h1>
+          <p>自然生態與神靈象徵（16 幕長篇・左圖右文不翻滾設計）</p>
+        </div>
+      </div>
+
+      <nav class="part-nav">
+        <button class="part-btn active" data-part="0">第一部</button>
+        <button class="part-btn" data-part="1">第二部</button>
+        <button class="part-btn" data-part="2">第三部</button>
+        <button class="part-btn" data-part="3">第四部</button>
+      </nav>
+
+      <div>
+        <select class="act-dropdown" id="sceneSelect" aria-label="選擇章節"></select>
+      </div>
+    </header>
+
+    <main class="stage-split">
+      <section class="left-image-panel" id="imagePanel">
+        <!-- 圖像區域 -->
+      </section>
+
+      <section class="right-text-panel">
+        <div class="story-content-scroll" id="storyScrollArea">
+          <div class="story-badge-row">
+            <span class="chapter-badge" id="chapterBadge">ACT 1 / 16</span>
+            <span class="time-badge" id="timeBadge">⏳ 伴讀時間：約 2.5 分鐘</span>
+          </div>
+
+          <h2 class="story-heading" id="storyHeading">載入中...</h2>
+
+          <div class="story-paragraphs" id="storyParagraphs"></div>
+
+          <aside class="guide-card">
+            <div class="guide-title">
+              <span>💡</span> 說給孩子聽的小引導（陪讀互動問題）
+            </div>
+            <p class="guide-body" id="guideContent">載入中...</p>
+          </aside>
+        </div>
+
+        <footer class="bottom-bar">
+          <button class="btn btn-audio" id="btnSpeak" title="語音朗讀故事">
+            <span>🎙️</span> <span id="speakLabel">朗讀這一段</span>
+          </button>
+
+          <span class="key-hints">⌨️ 快捷鍵：[ ◀ ] [ ▶ ] 鍵翻幕</span>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-nav" id="btnPrev" disabled>
+              <span>◀</span> 上一幕
+            </button>
+            <button class="btn btn-nav" id="btnNext">
+              下一幕 <span>▶</span>
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const storyId = "rel_sacred_animals";
+    const storyData = [
+  {
+    "actNum": 1,
+    "title": "奇怪的雕像：神仙為什麼長著動物腦袋？",
+    "subtitle": "逛博物館時最大的問號，古埃及人的神秘面具",
+    "glyph": "❓🏛️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "小朋友，如果你去過博物館看古埃及展覽，一定會發現一件非常奇妙的事情：",
+      "天哪！那些古埃及的神仙，怎麼脖子以下穿著美麗的衣服，脖子上面卻長著各種各樣的小動物腦袋？有的是小鳥、有的是黑貓、有的是小狗、甚至還有綠色的鱷魚！",
+      "難道古埃及的神仙都是動物妖怪嗎？哈哈，當然不是囉！這其實藏著古埃及人對大自然最神奇、最深奧的敬愛與觀察呢！今天就讓我們一起解開這個有趣的謎團吧！"
+    ],
+    "guide": "引發好奇：先拋出小朋友看埃及展覽最常問的問題，勾起他們的探索慾望。",
+    "image": "../images/rel_sacred_animals_act_1.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 2,
+    "title": "獵鷹之眼：太陽神拉與荷魯斯 (The Falcon)",
+    "subtitle": "飛得最高、看得最遠的天空霸主",
+    "glyph": "🦅☀️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "我們先來看看第一位大明星——長著雄偉獵鷹頭部的『太陽神拉』和『天空之神荷魯斯』。",
+      "為什麼要選獵鷹呢？古埃及人抬頭仰望天空，發現游隼獵鷹是世界上飛得最高、俯衝速度最快的鳥類！牠可以在幾千米的高空翱翔，雙眼卻能清清楚楚看見草叢裡一隻小蟲子的動作。",
+      "埃及人想：『天上的太陽神不正是這樣嗎？祂高高懸在天際，目光銳利，默默看顧著整片大地上的每一個人。』所以，他們用獵鷹的腦袋來代表無邊無際的王權、遠見與神聖的光明！"
+    ],
+    "guide": "動物知識點：游隼是地球上俯衝速度最快的動物（超過時速300公里），象徵極致的速度與敏銳。",
+    "image": "../images/rel_sacred_animals_act_2.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 3,
+    "title": "黑夜靈貓：巴斯特女神 (The Cat)",
+    "subtitle": "柔軟優雅卻身手矯健的家庭守護神",
+    "glyph": "🐈🛡️",
+    "bgStyle": "art-bg-night",
+    "paragraphs": [
+      "接下來是大家最喜歡的黑貓女神——『巴斯特』！",
+      "貓咪平時瞇著眼睛曬太陽，呼嚕呼嚕地像個溫柔的小毛球；可是到了晚上，只要有小老鼠敢偷吃穀倉裡的小麥，或者有毒蛇想溜進嬰兒的搖籃，小貓咪就會瞬間化身為敏捷的黑夜獵手，『唰』的一聲伸出鋒利的爪子！",
+      "古埃及人超級佩服貓咪這種『白天溫柔、夜晚勇敢』的神奇能力，所以把貓咪當成守護家庭、保護嬰兒和驅除噩夢的巴斯特女神代表。家家戶戶都把小貓當成家裡的小天使呢！"
+    ],
+    "guide": "家庭觀察：問問孩子：『你有看過貓咪抓蚊子或撲小蟲子嗎？動作是不是超級快！』",
+    "image": "../images/rel_sacred_animals_act_3.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 4,
+    "title": "敏銳黑胡狼：阿努比斯 (The Jackal)",
+    "subtitle": "在沙漠與墓地巡邏的忠誠守夜犬",
+    "glyph": "🐕🌙",
+    "bgStyle": "art-bg-night",
+    "paragraphs": [
+      "長著長長尖耳朵、黑色狗狗臉孔的神明是誰呢？那就是引路神『阿努比斯』！牠的原型其實是生活在埃及沙漠邊緣的非洲金豺（胡狼）。",
+      "胡狼有著世界上最靈敏的鼻子，在伸手不見五指的漆黑沙漠裡，牠們靠著嗅覺就能找到正確的方向，而且牠們特別喜歡在寂靜的夜晚默默巡邏。",
+      "古埃及人認為，通往另一個世界的旅途充滿了迷霧，只有鼻子最靈敏、最忠誠警惕的胡狼，才能在最黑的夜裡當大家的導航員，安全地把每一個靈魂帶回美麗的永恆花園！"
+    ],
+    "guide": "打破偏見：黑色胡狼不是壞蛋，而是最認真、鼻子最靈敏的夜間導航員。",
+    "image": "../images/rel_sacred_animals_act_4.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 5,
+    "title": "智慧朱鷺鳥：托特神 (The Ibis)",
+    "subtitle": "長長彎彎的喙，就像一柄精緻的羽毛筆",
+    "glyph": "🪶📜",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "掌管讀書、寫字和算數的智慧之神『托特』，長著一個非常奇特的面孔——一隻有著細長彎彎嘴巴的白色大鳥，牠的名字叫『聖朱鷺（Ibis）』。",
+      "朱鷺鳥在尼羅河邊漫步時，總是把細長彎曲的喙插進泥土裡，專注而優雅地尋找躲藏的小魚小蝦。牠走路沉穩安靜，從不吵鬧。",
+      "古埃及的抄寫員們低頭看著自己手裡的蘆葦毛筆，驚奇地發現：『天哪！朱鷺鳥低頭覓食的樣子，不就像我們拿著毛筆一筆一劃在紙莎草紙上記錄智慧的樣子嗎？』於是，安靜優雅的朱鷺就成了智慧與學問的化身！"
+    ],
+    "guide": "形象聯想：把朱鷺彎彎的鳥嘴比喻成古代的毛筆，孩子一下子就能記住！",
+    "image": "../images/rel_sacred_animals_act_5.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 6,
+    "title": "溫柔大肚皮：河馬女神塔沃里特 (The Hippo)",
+    "subtitle": "看起來很兇猛，卻用寬厚的身軀保護小寶寶",
+    "glyph": "🦛👶",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "在尼羅河裡，體型最龐大的動物就是河馬了。古埃及人看見河馬媽媽在水裡帶著剛出生的小河馬，如果岸邊有鱷魚敢靠近，河馬媽媽就會張開巨大的嘴巴把鱷魚嚇跑，用胖乎乎的身體死死護住寶寶。",
+      "古埃及的媽媽們非常崇拜河馬媽媽這份母愛，於是創造了河馬女神『塔沃里特』！",
+      "塔沃里特有著圓滾滾的大河馬肚子，手裡拿著避邪護身符，站在每個小寶寶的搖籃邊。只要有她在，壞夢和肚子痛就通通不敢靠近小寶寶囉！"
+    ],
+    "guide": "母愛力量：河馬雖然很重，但保護小寶寶的時候溫柔極了。",
+    "image": "../images/rel_sacred_animals_act_6.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 7,
+    "title": "水中綠鎧甲：鱷魚神索貝克 (The Crocodile)",
+    "subtitle": "身披堅硬盾牌的尼羅河大將軍",
+    "glyph": "🐊🛡️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "尼羅河裡另一位威風凜凜的大霸王，就是長著堅硬綠色鱗甲的尼羅鱷——『索貝克神』！",
+      "鱷魚潛伏在水裡時一動不動，像一段漂浮的木頭；可是一旦發起進攻，爆發力比閃電還要快！牠們身披厚厚的骨板鎧甲，任何刀劍都刺不穿。",
+      "古埃及的軍隊出征打仗時，都會佩戴索貝克的鱷魚徽章，祈求自己能像鱷魚一樣強壯勇敢、身披無敵護甲。同時，鱷魚出現在水邊，也代表著今年尼羅河的水量非常充足，農田不會乾旱！"
+    ],
+    "guide": "兩面性認識：猛獸雖然令人害怕，但也是大自然健康運轉的重要標誌。",
+    "image": "../images/rel_sacred_animals_act_7.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 8,
+    "title": "推動太陽的勤奮小工匠：聖甲蟲 (The Scarab Beetle)",
+    "subtitle": "小小滾球蟲，肚子裡藏著推動宇宙的大能量",
+    "glyph": "🪲☀️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "在古埃及所有神聖動物裡，最小最小、但名氣卻超級大的一位，竟然是一隻不起眼的小甲蟲——『聖甲蟲（蜣螂，也就是金龜子）』！",
+      "每天早晨，古埃及人走在沙漠裡，都會看見一隻隻綠色發亮的小甲蟲，用後腿倒推著一顆圓滾滾的泥球，不知疲倦地朝著東方滾動。過了一段時間，神奇的事情發生了：小甲蟲竟然從泥球裡破土而出，展翅飛向天空！",
+      "埃及人驚呆了：『這不就像早晨的太陽神，把圓圓的太陽火球推上天空一樣嗎？而且牠還能從泥土裡獲得全新的生命！』於是，小甲蟲成為了晨日之神『凱布利』，象徵著每一天都是全新的開始，永遠充滿希望！"
+    ],
+    "guide": "小身軀大哲理：不要小看任何一隻小昆蟲，只要勤奮努力，小甲蟲也能跟大太陽一樣神聖！",
+    "image": "../images/rel_sacred_animals_act_8.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 9,
+    "title": "神聖智慧的大狒狒：托特的第二化身 (The Baboon)",
+    "subtitle": "黎明時分對著太陽拍手歡呼的晨曦信使",
+    "glyph": "🐒🌅",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "除了朱鷺鳥，智慧神托特還有一個可愛的化身——那就是大狒狒！",
+      "你知道為什麼古埃及人喜歡狒狒嗎？因為每當清晨太陽剛剛升起、天邊泛起第一縷金光時，野生狒狒群就會整整齊齊地爬上高高的岩石，面向朝陽發出一陣陣歡快的叫聲，甚至雙手合十、上下跳躍！",
+      "埃及人看見這一幕，感動地說：『看哪！連猴子都知道每天早上要向光明與智慧致敬！』所以，狒狒成為了神殿前最常雕刻的神聖守護者，代表著迎接真理與光明的歡欣。"
+    ],
+    "guide": "生物行為學：野生靈長類動物確實有清晨沐浴陽光和啼叫的習慣，古埃及人把這轉化為美麗的神話。",
+    "image": "../images/rel_sacred_animals_act_9.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 10,
+    "title": "金色羽毛的永生之鳥：貝努神鳥 (The Bennu Bird)",
+    "subtitle": "站在世界第一塊岩石上的神聖長頸鷺",
+    "glyph": "🦩🔥",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "在古埃及的傳說中，有一隻美麗得令人屏息的神鳥——『貝努鳥（Bennu）』，牠是一隻優雅的大灰鷺，頭頂上長著兩根金紅色的長羽毛。",
+      "古埃及人相信，在宇宙剛剛誕生、第一塊高地從大水中冒出來時，貝努鳥第一個落在那塊岩石尖端，發出了劃破長夜的第一聲啼鳴。這聲啼鳴驚醒了沉睡的宇宙，啟動了時間的轉輪！",
+      "貝努鳥每隔幾百年就會在烈火中展翅新生，牠後來成為了希臘神話中『不死鳥鳳凰』的原型，象徵著靈魂永遠不會熄滅的希望之火。"
+    ],
+    "guide": "跨文化連結：我們常聽說的『火鳳凰』傳說，最源頭就是古埃及尼羅河畔的貝努鳥喔！",
+    "image": "../images/rel_sacred_animals_act_10.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 11,
+    "title": "神聖公牛阿匹斯：大地的力量擔當 (The Apis Bull)",
+    "subtitle": "額頭長著白色三角形胎記的幸運神牛",
+    "glyph": "🐂🌾",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "在農業國家古埃及，牛是農夫最好的朋友。公牛有著強壯的肌肉和耐力，能拉動沉重的木犁翻開硬土。",
+      "在古都孟菲斯，祭司們會精心尋找一隻全身純黑、額頭上有白色三角形胎記的特殊公牛，稱牠為『阿匹斯神牛（Apis）』。這隻神牛住在華麗的神殿花園裡，吃著新鮮的苜蓿草，每天都有很多人帶著小花來看牠。",
+      "神牛走起路來沉穩有力，埃及人相信牠踩過的土地，那一年小麥都會長得特別茂盛。牛是力量、耐勞與土地豐饒最偉大的代表。"
+    ],
+    "guide": "勞動者的敬意：尊重那些幫我們耕田、提供牛奶的牛，感謝大自然的恩賜。",
+    "image": "../images/rel_sacred_animals_act_11.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 12,
+    "title": "神醫小蠍子：塞勒凱特女神的守護針 (The Scorpion)",
+    "subtitle": "學會尊重危險的小動物，毒藥也能變成良藥",
+    "glyph": "🦂💉",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "沙漠裡最危險的小動物之一就是蠍子了。被蠍子尾巴蜇一下，會疼得眼淚直流。但古埃及人並沒有因為害怕就消滅所有的蠍子，反而創造了頭頂金蠍的女神『塞勒凱特』！",
+      "埃及的醫生們發現，只要小心研究蠍子的毒液，用微小的份量配上沙漠草藥，竟然能治療很多奇怪的熱病！這就是『以毒攻毒』的古老醫學智慧。",
+      "塞勒凱特女神教導大家：大自然裡的每一樣東西，就算看起來有危險，只要我們用科學和敬畏的心去研究它，壞東西也能變成救命的良藥！"
+    ],
+    "guide": "科學啟蒙：大自然沒有絕對的害蟲，每一種生物在生態系裡都有它的位置。",
+    "image": "../images/rel_sacred_animals_act_12.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 13,
+    "title": "尼羅河的水鳥大合唱：羽毛裡的音樂",
+    "subtitle": "成千上萬的候鳥，為河流帶來春天的信件",
+    "glyph": "🦆🎶",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "每年秋天和春天，成千上萬的候鳥從遙遠的北方飛來埃及過冬：大雁、野鴨、鵜鶘和白鷺落滿了整個尼羅河三角洲的濕地。",
+      "水草在微風中搖曳，水鳥們拍打著翅膀，發出嘎嘎、咕咕的歡快叫聲，熱鬧得像在開一場超級大音樂會！",
+      "古埃及的小朋友最喜歡跟著爸爸劃著小船去沼澤觀鳥。畫家們把這些美麗的鳥兒畫在神廟的牆壁上，作為象形文字的一部分。文字裡有一半的符號，都是這群可愛的小水鳥呢！"
+    ],
+    "guide": "象形文字小彩蛋：象形文字裡有貓頭鷹代表『M』、小鵪鶉代表『W』、禿鷹代表『A』，埃及字就是一本動物圖鑑！",
+    "image": "../images/rel_sacred_animals_act_13.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 14,
+    "title": "古埃及的『寵物大王國』：貓咪與狗狗的幸福生活",
+    "subtitle": "給小狗戴項圈、給貓咪過生日的古代貓奴狗奴",
+    "glyph": "🐕🐈",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "你知道嗎？古埃及人是世界上最早給狗狗起名字、戴皮質項圈的人類呢！在考古挖出來的壁畫上，我們看見狗狗的名字叫『勇敢者』、『黑耳朵』、『追風少年』。",
+      "如果家裡的貓咪生了小貓，全家人會像慶祝小嬰兒出生一樣開派對慶祝；如果貓咪老了過世了，主人全家人會把自己的眉毛剃掉，表示對好朋友的深深想念。",
+      "甚至連法老王的金棺木旁邊，都會擺上幾隻雕刻得栩栩如生的貓咪和小狗雕像，希望到了美麗的蘆葦原花園裡，還能天天跟自己心愛的寵物一起扔球玩耍！"
+    ],
+    "guide": "生活溫度：3000 年前的古人和現在的我們一模一樣，都深深愛著身邊的小毛孩。",
+    "image": "../images/rel_sacred_animals_act_14.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 15,
+    "title": "為什麼是動物腦袋？答案揭曉！",
+    "subtitle": "看見大自然的神奇本領，就是看見神明的偉大",
+    "glyph": "💡🌍",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "故事講到這裡，那個大謎團終於解開囉！",
+      "為什麼古埃及神仙要戴著動物的面具呢？因為古埃及人認為：人類雖然聰明，但論飛翔，我們比不過獵鷹；論夜視，我們比不過貓咪；論嗅覺，我們比不過胡狼；論勤奮，我們比不過小甲蟲！",
+      "大自然裡的每一隻動物，都有著人類做不到的神奇超能力。古埃及人把動物的腦袋畫在神明身上，是為了提醒自己：『大自然是我們最偉大的老師，我們要永遠謙虛地愛護河流、綠樹和每一個動物朋友！』"
+    ],
+    "guide": "核心思想昇華：人類不是大自然的老闆，動物是我們的夥伴與老師，這就是古埃及智慧的精髓。",
+    "image": "../images/rel_sacred_animals_act_15.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 16,
+    "title": "晚安，大自然的小守護者",
+    "subtitle": "閉上眼睛，感受身邊每一個小生命陪伴的溫暖",
+    "glyph": "🌟🐾",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "今天認識了這麼多帥氣又可愛的尼羅河神獸家族，你最喜歡哪一隻呢？是威風的獵鷹、靈巧的黑貓，還是推著太陽球的小甲蟲？",
+      "今晚，當你躺在暖呼呼的被窩裡時，不妨想想看，家裡的小貓小狗、窗外的麻雀、甚至是陽台上的小蝸牛，都是大自然派來陪伴我們的小小精靈喔。",
+      "像古埃及人一樣，做一個愛護小動物、熱愛大自然的好孩子吧！現在，閉上雙眼，神聖的獵鷹和黑貓會在夢裡守護著你，祝你有個甜甜的美夢。晚安！"
+    ],
+    "guide": "睡前互動：讓孩子挑選一隻今晚的『夢境守護神獸』，帶著安心感入睡。",
+    "image": "../images/rel_sacred_animals_act_16.png?v=1792971534",
+    "hasRealImage": false
+  }
+];
+    const totalActs = storyData.length;
+    let currentActIndex = 0;
+
+    const imagePanel = document.getElementById('imagePanel');
+    const chapterBadge = document.getElementById('chapterBadge');
+    const timeBadge = document.getElementById('timeBadge');
+    const storyHeading = document.getElementById('storyHeading');
+    const storyParagraphs = document.getElementById('storyParagraphs');
+    const guideContent = document.getElementById('guideContent');
+    const storyScrollArea = document.getElementById('storyScrollArea');
+    const sceneSelect = document.getElementById('sceneSelect');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnSpeak = document.getElementById('btnSpeak');
+    const speakLabel = document.getElementById('speakLabel');
+    const partBtns = document.querySelectorAll('.part-btn');
+
+    function initDropdown() {
+      sceneSelect.innerHTML = '';
+      storyData.forEach((scene, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `第 ${idx + 1} 幕：${scene.title}`;
+        sceneSelect.appendChild(opt);
+      });
+    }
+
+    function renderImage(data) {
+      imagePanel.innerHTML = `
+        <div class="slide-media">
+          <img src="${data.image}" alt="${data.title}" onerror="handleFallback(this, '${data.glyph}', '${data.bgStyle}', '${data.title}', '${data.subtitle}')">
+        </div>
+      `;
+    }
+
+    window.handleFallback = function(imgEl, glyph, bgStyle, title, subtitle) {
+      imgEl.parentElement.innerHTML = `
+        <div class="egypt-art-card ${bgStyle}">
+          <div class="art-glyph">${glyph}</div>
+          <div class="art-tag">SACRED EGYPTIAN CHRONICLES</div>
+          <div class="art-title">${title}</div>
+          <div class="art-desc">${subtitle}</div>
+        </div>
+      `;
+    };
+
+    function loadScene(index) {
+      if (index < 0 || index >= totalActs) return;
+      currentActIndex = index;
+      const data = storyData[currentActIndex];
+
+      chapterBadge.textContent = `ACT ${currentActIndex + 1} / ${totalActs}`;
+      const partIdx = Math.floor(currentActIndex / 4);
+      const partNames = ["第一部：啟航與相遇", "第二部：大地與日常", "第三部：暗夜與考驗", "第四部：守護與晨光"];
+      timeBadge.textContent = `📜 ${partNames[partIdx]} ｜ ⏱️ 約 2.5 分鐘`;
+
+      storyHeading.textContent = `第 ${currentActIndex + 1} 幕：${data.title}`;
+      storyParagraphs.innerHTML = data.paragraphs.map(p => `<p>${p}</p>`).join('');
+      guideContent.textContent = data.guide;
+      storyScrollArea.scrollTop = 0;
+
+      renderImage(data);
+      sceneSelect.value = currentActIndex;
+
+      partBtns.forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-part'));
+        if (p === partIdx) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      btnPrev.disabled = (currentActIndex === 0);
+      btnNext.disabled = (currentActIndex === totalActs - 1);
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      }
+
+      try {
+        localStorage.setItem(`egypt_story_act_${storyId}`, currentActIndex);
+      } catch(e) {}
+    }
+
+    btnPrev.addEventListener('click', () => loadScene(currentActIndex - 1));
+    btnNext.addEventListener('click', () => loadScene(currentActIndex + 1));
+    sceneSelect.addEventListener('change', (e) => loadScene(parseInt(e.target.value)));
+
+    partBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = parseInt(btn.getAttribute('data-part'));
+        loadScene(p * 4);
+      });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        if (currentActIndex < totalActs - 1) loadScene(currentActIndex + 1);
+      } else if (e.key === 'ArrowLeft') {
+        if (currentActIndex > 0) loadScene(currentActIndex - 1);
+      }
+    });
+
+    btnSpeak.addEventListener('click', () => {
+      if (!('speechSynthesis' in window)) {
+        alert('此瀏覽器未啟用語音功能。');
+        return;
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+        return;
+      }
+      const data = storyData[currentActIndex];
+      const text = `${data.title}。${data.paragraphs.join(' ')}`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-TW';
+      utterance.rate = 0.88;
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        btnSpeak.classList.add('playing');
+        speakLabel.textContent = "暫停朗讀";
+      };
+      utterance.onend = () => {
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      };
+      utterance.onerror = () => {
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      };
+      window.speechSynthesis.speak(utterance);
+    });
+
+    initDropdown();
+    let saved = 0;
+    try {
+      const st = localStorage.getItem(`egypt_story_act_${storyId}`);
+      if (st !== null) saved = parseInt(st) || 0;
+    } catch(e) {}
+    loadScene(saved);
+  </script>
+</body>
+</html>

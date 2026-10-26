@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>尼羅河神話寶盒：古埃及冒險繪本館</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Noto+Serif+TC:wght@600;700;900&family=Noto+Sans+TC:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-primary: #d4af37;
+      --gold-light: #fef08a;
+      --gold-dark: #8c6d1f;
+      --bg-dark: #070a10;
+      --card-bg: #0f1626;
+      --text-main: #f1f5f9;
+      --text-sub: #94a3b8;
+      --border-color: #223048;
+      --accent-glow: rgba(212, 175, 55, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 10%, #152033 0%, #070a10 100%);
+      color: var(--text-main);
+      font-family: 'Noto Serif TC', 'Cinzel', serif;
+      min-height: 100vh;
+      padding: 24px 20px 80px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .hero-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .hero-glyph {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.6));
+      margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--gold-primary);
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+      text-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    }
+
+    .hero-desc {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 1.05rem;
+      color: var(--text-sub);
+      max-width: 840px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    /* 頂部 Tab 切換列（左：神祇英雄傳，右：特別企劃） */
+    .tab-navigation-bar {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 32px 0 24px;
+      position: sticky;
+      top: 10px;
+      z-index: 100;
+    }
+
+    .nav-tab-btn {
+      background: rgba(15, 22, 38, 0.95);
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      padding: 12px 28px;
+      color: var(--text-sub);
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--gold-light);
+      border-color: var(--gold-dark);
+      transform: translateY(-2px);
+    }
+
+    .nav-tab-btn.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.3) 0%, rgba(140, 109, 31, 0.3) 100%);
+      border-color: var(--gold-primary);
+      color: #ffffff;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.35);
+    }
+
+    .tab-badge {
+      background: rgba(255, 255, 255, 0.12);
+      padding: 2px 9px;
+      border-radius: 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .nav-tab-btn.active .tab-badge {
+      background: var(--gold-primary);
+      color: #0b0f17;
+    }
+
+    .tab-intro-banner {
+      background: rgba(18, 27, 44, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 14px 22px;
+      margin-bottom: 24px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.35s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .story-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 22px;
+    }
+
+    .story-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s ease;
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .story-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 5px;
+      height: 100%;
+      background: var(--card-accent, var(--gold-primary));
+    }
+
+    .story-card:hover {
+      transform: translateY(-5px);
+      border-color: var(--card-accent, var(--gold-primary));
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15);
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .god-tag {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--card-accent, var(--gold-light));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card-acts-badge {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+    }
+
+    .card-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    .god-name {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--card-accent, var(--gold-primary));
+      margin-bottom: 12px;
+    }
+
+    .card-summary {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 14px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text-sub);
+    }
+
+    .read-btn {
+      color: var(--gold-light);
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: gap 0.2s ease;
+    }
+
+    .story-card:hover .read-btn {
+      gap: 10px;
+      color: #ffffff;
+    }
+
+    .inventory-link {
+      margin-top: 50px;
+      text-align: center;
+      font-family: 'Noto Sans TC', sans-serif;
+    }
+
+    .inventory-link a {
+      color: var(--gold-primary);
+      text-decoration: underline;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 1.7rem;
+      }
+      .tab-navigation-bar {
+        flex-direction: column;
+      }
+      .story-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header class="hero-header">
+      <div class="hero-glyph">𓂀☀️🪶⚖️</div>
+      <h1 class="hero-title">尼羅河神話寶盒：古埃及冒險繪本館</h1>
+      <p class="hero-desc">
+        專為 7 歲小朋友打造的古埃及神話長篇！包含 30 位個別神祇的專屬冒險，以及特別企劃 6 大「神祇關係與重大神話事件」。全部採用「左圖右文・不需上下翻動」的舒適排版，支援語音朗讀與親子引導。
+      </p>
+    </header>
+
+    <!-- Tab 切換列（嚴格確定：左邊是神祇英雄傳，右邊是特別企劃） -->
+    <nav class="tab-navigation-bar">
+      <button class="nav-tab-btn active" id="tabBtnGods" onclick="switchMainTab('gods')">
+        <span>🏛️ 神祇英雄傳：30位神明本傳</span>
+        <span class="tab-badge">30 部傳記</span>
+      </button>
+      <button class="nav-tab-btn" id="tabBtnRelations" onclick="switchMainTab('relations')">
+        <span>📜 特別企劃：神祇關係與重大事件</span>
+        <span class="tab-badge">6 部精選</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1（左側預設顯示）：個別神祇本傳（30 位） -->
+    <section class="tab-pane active" id="paneGods">
+      <div class="tab-intro-banner">
+        <span>🌟</span>
+        <span><strong>神祇英雄傳導讀：</strong> 收錄包含太陽神拉、貓咪女神巴斯特、胡狼神阿努比斯等 30 位偉大神祇的專屬成長冒險，深入認識祂們的代表動物、法寶與美德。</span>
+      </div>
+
+      <div class="story-grid">
+
+        <a href="stories/ra.html" class="story-card" style="--card-accent: #f59e0b;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">光明、秩序與眾神之首</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">尼羅河的黃金冒險與十二時辰戰記</h3>
+            <div class="god-name">太陽神拉 (Ra)</div>
+            <p class="card-summary">拉神乘著黃金白晝之舟巡視大地，深夜深入杜埃特幽冥河，與大蛇阿波菲斯展開天地大決戰。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/bastet.html" class="story-card" style="--card-accent: #ec4899;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">家庭、香氣與音樂守護者</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">巴斯特與黑夜裡的守護之鈴</h3>
+            <div class="god-name">貓咪女神巴斯特 (Bastet)</div>
+            <p class="card-summary">優雅靈巧的貓咪女神，如何用神聖金鈴與靈巧肉爪，保護埃及家家戶戶的睡夢與安寧。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/anubis.html" class="story-card" style="--card-accent: #6366f1;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">防腐、靈魂引導與審判之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">阿努比斯與心臟羽毛的試煉</h3>
+            <div class="god-name">胡狼神阿努比斯 (Anubis)</div>
+            <p class="card-summary">長著黑色胡狼頭的溫柔守護者，用真實之羽在天秤上稱量人們的心臟，指引純潔靈魂通往蘆葦原。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/osiris.html" class="story-card" style="--card-accent: #10b981;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">農業、重生與冥府之王</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">歐西里斯的重生奇蹟</h3>
+            <div class="god-name">冥王歐西里斯 (Osiris)</div>
+            <p class="card-summary">教導埃及人播種小麥與釀造葡萄美酒的慈愛之王，歷經考驗後成為掌管萬物復甦的永恆王者。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/isis.html" class="story-card" style="--card-accent: #8b5cf6;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">魔法、母愛與智慧女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">伊西斯的七重魔法解密</h3>
+            <div class="god-name">魔法女神伊西斯 (Isis)</div>
+            <p class="card-summary">展翅守護萬物的偉大母神，運用過人的機智與魔法真名，在尼羅河畔拯救世界與守護荷魯斯。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/horus.html" class="story-card" style="--card-accent: #3b82f6;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">王權、勇氣與正義之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">荷魯斯的天空之眼試煉</h3>
+            <div class="god-name">天空之神荷魯斯 (Horus)</div>
+            <p class="card-summary">英勇的少年獵鷹神，歷經八十年的正義試煉，克服暴風與沙漠的阻礙，奪回王冠成為埃及法老的守護神。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/thoth.html" class="story-card" style="--card-accent: #06b6d4;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">文字、科學、月亮與智慧之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">托特的神聖文字與滿月棋局</h3>
+            <div class="god-name">智慧之神托特 (Thoth)</div>
+            <p class="card-summary">手持蘆葦筆的朱鷺神托特，下棋贏過月亮之神贏得五天潤日，並把象形文字發明送給人類。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/seth.html" class="story-card" style="--card-accent: #ef4444;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">沙漠、風暴與力量之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">賽特的沙漠之盾與神矛</h3>
+            <div class="god-name">風暴戰神賽特 (Seth)</div>
+            <p class="card-summary">脾氣火爆的赤紅沙漠戰神，雖然任性衝動，卻是太陽船上唯一敢直面混沌巨蟒阿波菲斯的強悍戰士。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/sekhmet.html" class="story-card" style="--card-accent: #f97316;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">烈陽、戰鬥與治癒女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">索芙邁特與石榴紅汁的奇遇</h3>
+            <div class="god-name">母獅戰神索芙邁特 (Sekhmet)</div>
+            <p class="card-summary">頭戴烈陽冠的勇猛母獅神，以無畏的力量消滅世間不公，最後在一池美味的石榴紅汁前平息怒火，化為守護健康的善神。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/hathor.html" class="story-card" style="--card-accent: #f43f5e;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">愛、美麗、音樂與母性</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">哈索爾的歡樂音叉</h3>
+            <div class="god-name">愛與音樂之神哈索爾 (Hathor)</div>
+            <p class="card-summary">長著溫柔牛角的美麗女神，用金叉搖動出撫慰人心的音律，讓沙漠中的旅人與神明都充滿微笑。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/sobek.html" class="story-card" style="--card-accent: #14b8a6;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">尼羅河水、豐產與軍事力量</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">索貝克與法尤姆的黃金卵</h3>
+            <div class="god-name">鱷魚水神索貝克 (Sobek)</div>
+            <p class="card-summary">身披堅固綠鱗的巨大鱷魚神，潛伏在尼羅河底保護水源與出生的嬰孩，是古代水手們敬仰的守護者。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/anput.html" class="story-card" style="--card-accent: #64748b;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">沙漠指路與安寧女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">安普特與綠洲小泉水</h3>
+            <div class="god-name">沙漠母狼安普特 (Anput)</div>
+            <p class="card-summary">阿努比斯的妻子，銀白毛色的母胡狼神，在夜晚引導迷失在無垠沙漠中的商隊找到清涼的泉水。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/ptah.html" class="story-card" style="--card-accent: #eab308;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">建築、工藝與匠人守護神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">普塔的黃金城市奇思妙想</h3>
+            <div class="god-name">工匠造物神普塔 (Ptah)</div>
+            <p class="card-summary">古都孟菲斯的守護者，僅憑心中所思、口中所說，就塑造了美麗的宮殿、金字塔與精巧的金器。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/khnum.html" class="story-card" style="--card-accent: #d97706;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">尼羅河源頭、造物與陶藝之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">庫奴姆的泥塑小泥人奇蹟</h3>
+            <div class="god-name">公羊陶藝神庫奴姆 (Khnum)</div>
+            <p class="card-summary">長著螺旋角公羊頭的慈祥神祇，在旋轉的陶輪上用尼羅河最純淨的黑泥，捏出世界上每一個小動物和小嬰孩。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/nut.html" class="story-card" style="--card-accent: #4338ca;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">天空與星辰女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">努特的寶石斗篷與晚安曲</h3>
+            <div class="god-name">星空女神努特 (Nut)</div>
+            <p class="card-summary">身體弓成整座蔚藍星空的母神，每天吞下落日，將億萬顆璀璨的鑽石星星鋪滿夜空，守護甜睡的孩子。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/geb.html" class="story-card" style="--card-accent: #65a30d;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">大地、山嶽與礦藏之神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">蓋布的地下尋寶大冒險</h3>
+            <div class="god-name">大地之神蓋布 (Geb)</div>
+            <p class="card-summary">躺在星空之下的厚重大地之神，他的笑聲會變成溫泉，他的呼吸催生出森林，身體裡藏滿了青金石與黃金。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/shu.html" class="story-card" style="--card-accent: #38bdf8;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">空氣、風與日光載體</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">休的白雲階梯與天際深呼吸</h3>
+            <div class="god-name">風與空氣之神休 (Shu)</div>
+            <p class="card-summary">用強壯雙臂將大地與天空分開的風神，為尼羅河送來涼爽的北風，讓帆船能逆流而上。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/tefnut.html" class="story-card" style="--card-accent: #0ea5e9;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">濕氣、露水與甘霖女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">泰芙努特的甘霖祈願</h3>
+            <div class="god-name">雨水與晨露女神泰芙努特 (Tefnut)</div>
+            <p class="card-summary">獅面水分女神，曾經負氣出走紅海沙漠，眾神歡天喜地將她迎回尼羅河，為乾涸的土地帶來甜美的甘露。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/khepri.html" class="story-card" style="--card-accent: #ca8a04;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">早晨之日、自我更新與新生</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">凱布利的黎明大轉盤</h3>
+            <div class="god-name">聖甲蟲神凱布利 (Khepri)</div>
+            <p class="card-summary">長著甲蟲首的勤奮神祇，每天破曉前用前足推動閃耀的太陽火球破土而出，象徵每一天都是全新的開始。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/atum.html" class="story-card" style="--card-accent: #b45309;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">傍晚之日、全能創造者</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">阿圖姆的世界合攏之術</h3>
+            <div class="god-name">黃昏創造神阿圖姆 (Atum)</div>
+            <p class="card-summary">身穿長袍的老者智者形象，象徵日落西山的寧靜與沉澱，在夜晚把白天的喧囂平靜地收進口袋。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/taweret.html" class="story-card" style="--card-accent: #059669;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">孕婦、小兒與家庭守護女神</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">塔沃里特的小寶寶搖籃</h3>
+            <div class="god-name">河馬守護女神塔沃里特 (Taweret)</div>
+            <p class="card-summary">有著河馬身軀、獅子爪子和鱷魚背甲的奇特善良女神，拿著辟邪小匕首，站在小嬰兒的搖籃邊驅趕噩夢。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/bes.html" class="story-card" style="--card-accent: #d946ef;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">歡笑、舞蹈、幽默與家庭平安</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">貝斯的驅趕噩夢大作戰</h3>
+            <div class="god-name">歡樂矮人矮神貝斯 (Bes)</div>
+            <p class="card-summary">吐著舌頭、敲著小鈴鼓的滑稽矮人神，埃及小朋友最愛把他的小雕像掛在脖子上，因為只要聽見他的笑聲，壞東西就嚇跑了！</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/serket.html" class="story-card" style="--card-accent: #e11d48;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">蠍子毒蟲克星、治癒與保護</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">塞勒凱特的金色解藥瓶</h3>
+            <div class="god-name">蠍子女神塞勒凱特 (Serket)</div>
+            <p class="card-summary">頭戴金蠍的英勇女神，雖然蠍子令人敬畏，但她用高超的草藥智慧化毒為藥，保護被毒蟲咬傷的孩子快速痊癒。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/khonsu.html" class="story-card" style="--card-accent: #7c3aed;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">月亮、青春、夜間旅者守護者</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">孔蘇的夜晚漫步與流星許願</h3>
+            <div class="god-name">月亮旅者孔蘇 (Khonsu)</div>
+            <p class="card-summary">乘著銀白色彎月舟的少年神，穿梭在繁星之間，照亮夜行人的腳步，並撫平睡夢中躁動的心靈。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/nephthys.html" class="story-card" style="--card-accent: #475569;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">哀思、夜晚與靜謐守護</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">奈芙蒂斯的溫柔守望之燈</h3>
+            <div class="god-name">黑夜守望女神奈芙蒂斯 (Nephthys)</div>
+            <p class="card-summary">伊西斯女神的親切姊妹，總是在最安靜的角落默默守護，為傷心疲累的靈魂蓋上一層溫暖舒適的羽毛被。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/amun.html" class="story-card" style="--card-accent: #2563eb;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">眾神之王、微風與隱秘力量</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">阿蒙的隱秘之城底比斯</h3>
+            <div class="god-name">隱秘之王阿蒙 (Amun)</div>
+            <p class="card-summary">看不見摸不著，卻像空氣般無處不在的偉大之神，當他與太陽神拉合為一體時，成為名揚古代世界的阿蒙-拉。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/maat.html" class="story-card" style="--card-accent: #0284c7;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">真理、公平、正義與宇宙規律</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">瑪特與黃金天秤的小故事</h3>
+            <div class="god-name">真理羽毛女神瑪特 (Ma'at)</div>
+            <p class="card-summary">頭上戴著一根純潔無瑕的鴕鳥毛，只要心中有一點點謊言，天秤就會搖晃。她教導孩子誠實是最強大的力量。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/hapi.html" class="story-card" style="--card-accent: #0284c7;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">尼羅河氾濫、綠意與糧食富饒</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">哈比與尼羅河大洪水魔術</h3>
+            <div class="god-name">尼羅河豐收神哈比 (Hapi)</div>
+            <p class="card-summary">頂著滿頭水生植物的藍皮膚水神，每年捧出兩個陶罐倒出清涼的河水，為乾燥的埃及大地施下神奇綠色魔法。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/bennu.html" class="story-card" style="--card-accent: #ea580c;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">重生、太陽之鳥與靈魂之光</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">貝努鳥與方尖碑之巔</h3>
+            <div class="god-name">不死鳥貝努 (Bennu)</div>
+            <p class="card-summary">有著金紅色華麗羽毛的神聖鷺鳥，站在古埃及第一座方尖碑尖端，啼鳴出黎明第一聲破曉之音。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/seshat.html" class="story-card" style="--card-accent: #9333ea;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">丈量、建築設計、圖書館與歷史</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">賽夏特的繁星測量術與時間巨樹</h3>
+            <div class="god-name">智慧記錄女神賽夏特 (Seshat)</div>
+            <p class="card-summary">頭戴奇特七芒星冠的學霸女神，拿著金繩拉直金字塔的角度，並在永恆之樹的葉片上一筆一劃刻下世界的歲月。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <!-- TAB 2（右側切換顯示）：特別企劃（6 部） -->
+    <section class="tab-pane" id="paneRelations">
+      <div class="tab-intro-banner">
+        <span>💡</span>
+        <span><strong>特別企劃導讀：</strong> 這裡收錄了跨越不同神明之間的「家族關係、名場面對決、神獸象徵與神廟秘密生活」，非常適合在讀個別神祇前先讓孩子建立完整的古埃及世界觀！</span>
+      </div>
+
+      <div class="story-grid">
+
+        <a href="stories/rel_ennead.html" class="story-card" style="--card-accent: #f59e0b;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">神祇關係與世界起源</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">從一朵金蓮花到天地家族的奇幻大冒險</h3>
+            <div class="god-name">九柱神家族大族譜 (The Great Ennead)</div>
+            <p class="card-summary">古埃及最核心的九位天神是一家人！從太陽神拉誕生，到風神休、雨神泰芙努特、天空努特與大地蓋布，再到四兄妹的家族傳奇。</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/rel_eye_of_ra.html" class="story-card" style="--card-accent: #ea580c;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">神祇化身與情緒智慧</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">拉神與巴斯特、索芙邁特的三位一體冒險</h3>
+            <div class="god-name">太陽神之眼傳奇 (The Eye of Ra)</div>
+            <p class="card-summary">你知道貓咪女神巴斯特和母獅戰神索芙邁特，其實都是『太陽神之眼』的不同化身嗎？當太陽之眼鬧脾氣跑去沙漠，眾神如何用智慧將她請回家？</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/rel_weighing_heart.html" class="story-card" style="--card-accent: #6366f1;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">生命哲學與正義試煉</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">阿努比斯、托特與瑪特的純潔心靈大考驗</h3>
+            <div class="god-name">死者之書：心臟與真理羽毛的審判 (Weighing of the Heart)</div>
+            <p class="card-summary">古埃及最神秘壯麗的一幕！阿努比斯、托特、瑪特與歐西里斯如何聯手，用一根輕飄飄的鴕鳥羽毛稱量心臟，指引好人通往開滿鮮花的永恆樂園？</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/rel_horus_seth.html" class="story-card" style="--card-accent: #3b82f6;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">衝突化解與勇氣智慧</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">荷魯斯與賽特的八十年正義試煉</h3>
+            <div class="god-name">荷魯斯大戰賽特：王權爭奪傳奇 (Contendings of Horus and Seth)</div>
+            <p class="card-summary">少年獵鷹神荷魯斯與赤紅沙漠戰神賽特長達八十年的史詩對決！從變身河馬憋氣、石船與木船的競速賽，到最後如何化敵為友、各司其職？</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/rel_sacred_animals.html" class="story-card" style="--card-accent: #10b981;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">自然生態與神靈象徵</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">為什麼古埃及神仙都戴著動物面具？</h3>
+            <div class="god-name">神靈的動物使者：古埃及動物王國大集結 (Sacred Animals of Egypt)</div>
+            <p class="card-summary">鷹、貓、狼、鱷魚、朱鷺、河馬、聖甲蟲……為什麼古埃及神明長著動物的腦袋？帶孩子認識神明與大自然的奇妙連結！</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+        <a href="stories/rel_sacred_temple.html" class="story-card" style="--card-accent: #eab308;">
+          <div>
+            <div class="card-top">
+              <span class="god-tag">古代文明與祭祀生活</span>
+              <span class="card-acts-badge">16 ACTS</span>
+            </div>
+            <h3 class="card-title">古埃及神殿的晨鐘與魔法儀式</h3>
+            <div class="god-name">走進法老與神明的家：卡納克神殿的一天 (A Day in the Temple)</div>
+            <p class="card-summary">神仙在人間住在哪裡？帶小朋友穿過巨大的公羊石道，推開十幾層樓高的神殿大門，看看古埃及祭司每天清晨如何給神像洗臉、塗香膏、端上新鮮麵包！</p>
+          </div>
+          <div class="card-footer">
+            <span>⏳ 建議伴讀：分 4 次講</span>
+            <span class="read-btn">進入閱讀 ➔</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <footer class="inventory-link">
+      <p>🎨 視覺插畫生成進度記錄：<a href="IMAGE_INVENTORY.md" target="_blank">查看目前圖檔生成狀態清單 (IMAGE_INVENTORY.md)</a></p>
+    </footer>
+  </div>
+
+  <script>
+    function switchMainTab(tabName) {
+      const btnGods = document.getElementById('tabBtnGods');
+      const btnRelations = document.getElementById('tabBtnRelations');
+      const paneGods = document.getElementById('paneGods');
+      const paneRelations = document.getElementById('paneRelations');
+
+      if (tabName === 'relations') {
+        btnRelations.classList.add('active');
+        btnGods.classList.remove('active');
+        paneRelations.classList.add('active');
+        paneGods.classList.remove('active');
+      } else {
+        btnGods.classList.add('active');
+        btnRelations.classList.remove('active');
+        paneGods.classList.add('active');
+        paneRelations.classList.remove('active');
+      }
+    }
+  </script>
+</body>
+</html>

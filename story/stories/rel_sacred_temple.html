@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通往天際的石柱森林：古埃及神殿的晨鐘與魔法儀式 - 埃及神話故事館</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Noto+Serif+TC:wght@500;600;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold-light: #fef08a;
+      --gold-primary: #eab308;
+      --gold-dark: #8c6d1f;
+      --bg-dark: #080c14;
+      --card-bg: #0f1624;
+      --text-main: #f1f5f9;
+      --text-sub: #94a3b8;
+      --accent-glow: rgba(212, 175, 55, 0.2);
+      --border-color: #27354a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 15%, #151f33 0%, #060910 100%);
+      color: var(--text-main);
+      font-family: 'Noto Serif TC', 'Cinzel', serif;
+    }
+
+    .app-viewport {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      padding: 12px 18px;
+      gap: 10px;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(15, 22, 36, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 8px 16px;
+      flex-shrink: 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .back-home-btn {
+      background: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--border-color);
+      color: var(--gold-light);
+      padding: 5px 12px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .back-home-btn:hover {
+      background: rgba(212, 175, 55, 0.3);
+      color: #ffffff;
+      border-color: var(--gold-primary);
+    }
+
+    .title-text h1 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+      letter-spacing: 0.5px;
+    }
+
+    .title-text p {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.75rem;
+      color: var(--text-sub);
+    }
+
+    .part-nav {
+      display: flex;
+      gap: 6px;
+    }
+
+    .part-btn {
+      background: rgba(26, 37, 56, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 5px 12px;
+      color: var(--text-sub);
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .part-btn:hover {
+      background: rgba(42, 59, 88, 0.8);
+      color: var(--gold-light);
+    }
+
+    .part-btn.active {
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.25) 0%, rgba(140, 109, 31, 0.2) 100%);
+      border-color: var(--gold-primary);
+      color: var(--gold-light);
+      font-weight: 700;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+    }
+
+    .act-dropdown {
+      background: #101726;
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .stage-split {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .left-image-panel {
+      background: #020408;
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+    }
+
+    .slide-media {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slide-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .egypt-art-card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .art-bg-dawn { background: radial-gradient(circle at 50% 35%, #543818 0%, #151d2e 80%); }
+    .art-bg-day { background: radial-gradient(circle at 50% 35%, #4a3e12 0%, #0d1a2d 80%); }
+    .art-bg-dusk { background: radial-gradient(circle at 50% 35%, #401828 0%, #0c121e 80%); }
+    .art-bg-night { background: radial-gradient(circle at 50% 35%, #1a1638 0%, #050810 80%); }
+    .art-bg-battle { background: radial-gradient(circle at 50% 35%, #451515 0%, #0a0e1a 80%); }
+
+    .art-glyph {
+      font-size: 5rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.7));
+      animation: floatGlyph 4s ease-in-out infinite;
+    }
+
+    @keyframes floatGlyph {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .art-tag {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      letter-spacing: 3px;
+      color: var(--gold-light);
+      margin-bottom: 6px;
+    }
+
+    .art-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.8);
+    }
+
+    .art-desc {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      color: var(--gold-primary);
+      margin-top: 8px;
+      max-width: 85%;
+    }
+
+    .right-text-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .story-content-scroll {
+      flex: 1;
+      padding: 24px 28px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--gold-dark) #101726;
+    }
+
+    .story-content-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .story-content-scroll::-webkit-scrollbar-thumb {
+      background: var(--gold-dark);
+      border-radius: 4px;
+    }
+
+    .story-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .chapter-badge {
+      font-family: 'Cinzel', serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--gold-primary);
+      background: rgba(212, 175, 55, 0.12);
+      border: 1px solid rgba(212, 175, 55, 0.3);
+      padding: 3px 12px;
+      border-radius: 999px;
+    }
+
+    .time-badge {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-sub);
+    }
+
+    .story-heading {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 16px;
+      line-height: 1.35;
+      letter-spacing: 0.5px;
+    }
+
+    .story-paragraphs {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 1.12rem;
+      line-height: 2.0;
+      color: #e2e8f0;
+      font-weight: 400;
+      letter-spacing: 0.6px;
+      text-align: justify;
+      margin-bottom: 20px;
+    }
+
+    .story-paragraphs p {
+      margin-bottom: 14px;
+      text-indent: 2em;
+    }
+
+    .guide-card {
+      background: rgba(24, 34, 52, 0.85);
+      border-left: 4px solid var(--gold-primary);
+      border-radius: 0 10px 10px 0;
+      padding: 12px 16px;
+      margin-top: 10px;
+    }
+
+    .guide-title {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+    }
+
+    .guide-body {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    .bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 18px;
+      background: #080c14;
+      border-top: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .btn {
+      border: none;
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 8px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav {
+      background: linear-gradient(135deg, #d4af37 0%, #aa820a 100%);
+      color: #0b0f17;
+      box-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+    }
+
+    .btn-nav:hover:not(:disabled) {
+      background: linear-gradient(135deg, #fde047 0%, #d4af37 100%);
+      box-shadow: 0 4px 15px rgba(212, 175, 55, 0.45);
+    }
+
+    .btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      background: #1e293b;
+      color: #64748b;
+    }
+
+    .btn-audio {
+      background: #162033;
+      color: #cbd5e1;
+      border: 1px solid #334155;
+    }
+
+    .btn-audio:hover {
+      background: #24344d;
+      color: #ffffff;
+      border-color: var(--gold-primary);
+    }
+
+    .btn-audio.playing {
+      background: #450a0a;
+      border-color: #ef4444;
+      color: #fca5a5;
+    }
+
+    .key-hints {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    @media (max-width: 900px) {
+      .app-viewport {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+      }
+      .stage-split {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .left-image-panel {
+        aspect-ratio: 16 / 9;
+        min-height: 260px;
+      }
+      .part-nav {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    <header class="top-header">
+      <div class="title-group">
+        <a href="../index.html" class="back-home-btn">🏠 故事目錄</a>
+        <div class="title-text">
+          <h1>通往天際的石柱森林：古埃及神殿的晨鐘與魔法儀式</h1>
+          <p>古代文明與祭祀生活（16 幕長篇・左圖右文不翻滾設計）</p>
+        </div>
+      </div>
+
+      <nav class="part-nav">
+        <button class="part-btn active" data-part="0">第一部</button>
+        <button class="part-btn" data-part="1">第二部</button>
+        <button class="part-btn" data-part="2">第三部</button>
+        <button class="part-btn" data-part="3">第四部</button>
+      </nav>
+
+      <div>
+        <select class="act-dropdown" id="sceneSelect" aria-label="選擇章節"></select>
+      </div>
+    </header>
+
+    <main class="stage-split">
+      <section class="left-image-panel" id="imagePanel">
+        <!-- 圖像區域 -->
+      </section>
+
+      <section class="right-text-panel">
+        <div class="story-content-scroll" id="storyScrollArea">
+          <div class="story-badge-row">
+            <span class="chapter-badge" id="chapterBadge">ACT 1 / 16</span>
+            <span class="time-badge" id="timeBadge">⏳ 伴讀時間：約 2.5 分鐘</span>
+          </div>
+
+          <h2 class="story-heading" id="storyHeading">載入中...</h2>
+
+          <div class="story-paragraphs" id="storyParagraphs"></div>
+
+          <aside class="guide-card">
+            <div class="guide-title">
+              <span>💡</span> 說給孩子聽的小引導（陪讀互動問題）
+            </div>
+            <p class="guide-body" id="guideContent">載入中...</p>
+          </aside>
+        </div>
+
+        <footer class="bottom-bar">
+          <button class="btn btn-audio" id="btnSpeak" title="語音朗讀故事">
+            <span>🎙️</span> <span id="speakLabel">朗讀這一段</span>
+          </button>
+
+          <span class="key-hints">⌨️ 快捷鍵：[ ◀ ] [ ▶ ] 鍵翻幕</span>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-nav" id="btnPrev" disabled>
+              <span>◀</span> 上一幕
+            </button>
+            <button class="btn btn-nav" id="btnNext">
+              下一幕 <span>▶</span>
+            </button>
+          </div>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const storyId = "rel_sacred_temple";
+    const storyData = [
+  {
+    "actNum": 1,
+    "title": "神明在人間的家：什麼是神殿？",
+    "subtitle": "比十座足球場還要大的石頭城堡",
+    "glyph": "🏛️✨",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "小朋友，你有想過天上的太陽神拉、貓咪女神巴斯特，在人間累了的時候，會住在哪裡嗎？",
+      "古埃及人非常熱情，他們為了讓神明在人間住得舒舒服服，用世界上最堅硬的花崗岩和砂岩，建造了一座座比十座足球場還要巨大的豪華城堡——那就是古埃及的『神殿（Temple）』！",
+      "其中最著名、最壯觀的一座，叫做『卡納克神殿（Karnak Temple）』。今天，就讓我們穿上時光小涼鞋，穿越三千年，去看看神殿裡神秘又有趣的一天吧！"
+    ],
+    "guide": "時空穿越：帶入角色扮演，讓小朋友想像自己化身為古代埃及的小見習生走進神殿。",
+    "image": "../images/rel_sacred_temple_act_1.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 2,
+    "title": "第一道風景：百隻獅身公羊大道",
+    "subtitle": "兩排整整齊齊的公羊雕像，像威武的儀仗隊",
+    "glyph": "🐏🌴",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "在還沒走進神殿大門之前，你首先會走上一條長達三公里的寬闊大道。",
+      "大道兩旁整整齊齊坐著上百隻用石頭雕刻的神聖公羊雕像！每一隻公羊前爪之間，都緊緊護衛著一位縮小版的法老王雕像。公羊頭頂長著優雅旋轉的大角，眼睛炯炯有神地盯著前方。",
+      "公羊是眾神之王阿蒙神的象徵，這條大道就像一條神聖的紅地毯。走在兩排公羊中間，微風拂過棕櫚樹葉，讓人忍不住抬頭挺胸，心裡充滿了莊嚴與期待。"
+    ],
+    "guide": "實景描繪：這條著名的公羊石道如今依然矗立在埃及盧克索，非常具有現場感。",
+    "image": "../images/rel_sacred_temple_act_2.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 3,
+    "title": "十層樓高的塔門：大地與天空的界線",
+    "subtitle": "巨大的斜面石牆，上面刻著金色的大壁畫",
+    "glyph": "🚪🏛️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "走完公羊大道，眼前矗立著兩堵高達三十多米、相當於十層樓高的巨大梯形石牆——這就是神殿的入口大門，叫做『塔門（Pylon）』！",
+      "塔門頂端插著四根巨大的雪松木旗桿，鮮紅與金色的神聖旗幟在藍天中獵獵作響。牆壁上刻滿了法老王向拉神獻上鮮花的巨幅浮雕，在陽光下閃爍著耀眼的色彩。",
+      "古埃及人相信，穿過這道厚厚的水晶石門，你就離開了嘈雜的人類世界，踏進了神聖、純淨的宇宙中心。"
+    ],
+    "guide": "建築比例認知：用『十層樓高』讓孩子感受古埃及建築的巨大與震撼。",
+    "image": "../images/rel_sacred_temple_act_3.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 4,
+    "title": "走進石柱森林：一百三十四根參天巨樹",
+    "subtitle": "六個人手拉手才能抱住一根石柱！",
+    "glyph": "🌲🏛️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "推開沉重的雪松木大門，走進神殿的中庭，哇——你一定會驚訝得張大嘴巴！",
+      "眼前竟然是一整片用石頭建造的『參天森林』！這裡整整矗立著一百三十四根巨大的砂岩石柱，最粗的石柱要六個大人手拉手才能勉強抱得過來！石柱頂端雕刻成了盛開的紙莎草花和藍蓮花形狀。",
+      "陽光從屋頂高高的石窗斜斜射進來，在石柱間投下一道道金色的光柱，宛如走在熱帶叢林的大樹蔭底下。古埃及人就是用這種方式，把尼羅河大自然的生機搬進了神殿內部。"
+    ],
+    "guide": "空間感體驗：卡納克大柱廳是世界建築奇蹟之一，用紙莎草柱子模擬大自然森林。",
+    "image": "../images/rel_sacred_temple_act_4.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 5,
+    "title": "黎明第一道鐘聲：早起的大祭司們",
+    "subtitle": "天還沒亮，神殿的忙碌一天就開始囉！",
+    "glyph": "🔔🌅",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "清晨五點，太陽還沒從東方地平線跳出來，整個城市還在甜睡，神殿裡的銅鐘就敲響了清脆的晨音。",
+      "一群穿著潔白無瑕亞麻長袍、剃光了頭髮的祭司們輕手輕腳地起了床。在古埃及，當祭司是一件非常嚴格而光榮的工作。祭司們必須在神殿前的水池裡用清涼的水洗澡三次，確保全身乾乾淨淨，連一粒沙子都不能帶進神殿深處。",
+      "大家各司其職：有的端著新鮮剛出爐的烤麵包，有的捧著芬芳的沒藥香膏，準備迎接第一縷晨光。"
+    ],
+    "guide": "儀式感與衛生習慣：古埃及祭司極其注重衛生，每天沐浴多次，展現對神聖工作的專注。",
+    "image": "../images/rel_sacred_temple_act_5.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 6,
+    "title": "推開最核心的『至聖所』小金門",
+    "subtitle": "黑暗中只有一盞小油燈，神明的微縮雕像在這裡安歇",
+    "glyph": "🗝️🚪",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "大祭司手裡拿著一把純金的鑰匙，穿過一道又一道越來越矮、光線越來越暗的長廊，來到了神殿最深、最隱祕的小房間——『至聖所（Sanctuary）』。",
+      "這裡非常安靜，沒有窗戶，空氣中瀰漫著甜甜的乳香味道。在房間正中央，安放著一座純金打造的小神龕，裡面供奉著一座只有小寶寶手臂那麼大、用黃金和青金石雕刻的神明雕像。",
+      "大祭司深吸一口氣，輕輕扭動鑰匙，『喀嗒』一聲打開了神龕的小門，口中輕聲說道：『願您在安寧中醒來，至高無上的神明！』"
+    ],
+    "guide": "反差感：巨大的神殿最深處，神像其實小巧精緻，古埃及人把祂當成最需要悉心照料的家人。",
+    "image": "../images/rel_sacred_temple_act_6.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 7,
+    "title": "晨間第一件事：給神像洗臉塗香膏！",
+    "subtitle": "像照顧小寶寶一樣，細心梳洗換新衣",
+    "glyph": "🧴👕",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "接下來的儀式超級溫馨！大祭司小心翼翼地把神像請出來，開始了一天的『晨間護理』：",
+      "首先，用尼羅河最純淨的晨露水，輕輕擦拭神像的臉頰和手臂；接著，取出裝在雪花石膏瓶裡、用一百朵鮮花熬製的芬芳香膏，輕輕塗抹在神像的額頭上，讓神像散發出甜美的香氣；",
+      "最後，大祭司為神像換上今天最新編織的純白、紅色和金色亞麻小絲帶。就像爸爸媽媽早晨幫小朋友換上漂亮乾淨的衣服一樣，充滿了細緻入微的愛護！"
+    ],
+    "guide": "生活化連結：跟小朋友每天早晨刷牙、洗臉、穿衣服的過程一模一樣，孩子會覺得特別親切！",
+    "image": "../images/rel_sacred_temple_act_7.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 8,
+    "title": "超級豐盛的早午餐：擺滿黃金桌",
+    "subtitle": "烤鵝、石榴、蜂蜜麵包與香醇麥汁的大餐",
+    "glyph": "🥖🍇",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "打扮得漂漂亮亮之後，該吃早餐囉！祭司們把一盤盤美味佳餚端到了神龕前的長條桌上。",
+      "哇！看看今天有什麼好吃的：有一整隻烤得金黃酥脆的尼羅河大鵝、一串串熟得裂開的紫黑色大葡萄、紅彤彤多汁的石榴、剛出爐抹著厚厚野蜂蜜的大麥麵包，還有一大杯冰涼解渴的新鮮果汁！",
+      "古埃及人相信，神明會用祂們無形的靈性吸收食物中的『香氣與精華』。一個小時後，神仙『享用』完了香氣，這些美味的大餐就會撤下來，分給神殿裡的工人、廚師以及周圍生病貧窮的老百姓吃，一點都不會浪費！"
+    ],
+    "guide": "社會救助功能：神殿其實是古代的社區中心與食物分配站，照顧了很多人。",
+    "image": "../images/rel_sacred_temple_act_8.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 9,
+    "title": "神聖湖泊邊的倒影：祭司洗澡的神湖",
+    "subtitle": "像一面巨大的綠寶石鏡子，倒映著古老的方尖碑",
+    "glyph": "🌊🪞",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "在神殿的中庭旁邊，有一座長達一百多米的人工大水池，叫做『神聖之湖（Sacred Lake）』。",
+      "這座湖底的水直接連通著尼羅河的地下水脈，一年四季都清澈見底。白天，兩座高聳入雲的粉紅色花崗岩方尖碑倒映在翠綠的湖水裡，微風吹過，波光粼粼，美麗得像一幅畫。",
+      "祭司們在這裡打水、洗滌神聖器皿，一群群白色的聖野鴨在湖面上悠閒地划水。這裡安靜得能聽見棕櫚樹葉沙沙的聲音，是神殿裡最放鬆的地方。"
+    ],
+    "guide": "景觀欣賞：想像一個大水池像鏡子一樣倒映著金色的尖塔和藍天。",
+    "image": "../images/rel_sacred_temple_act_9.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 10,
+    "title": "午後的象形文字學校：小見習生的課堂",
+    "subtitle": "在平整的陶片上，一筆一劃練習畫小鳥文字",
+    "glyph": "📜👦",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "下午，神殿偏殿的一座長廊裡傳來了朗朗的讀書聲。這裡是神殿附屬的『生命之屋（House of Life）』，也就是古代的小學堂！",
+      "十幾個七八歲的古埃及小男孩和小女孩，正盤腿坐在草蓆上。他們手裡拿著一塊磨平的石灰石板或陶片，用細細的蘆葦桿沾著黑墨水，認真練習寫字。",
+      "『這個是獵鷹，代表太陽；這個是水波，代表河流；這個是小腳丫，代表走路……』老老師嚴格但慈祥地走在他們身邊。能在神殿學校讀書的孩子，長大後會成為受人尊敬的建築師、醫生和法老身邊的秘書長呢！"
+    ],
+    "guide": "同齡共鳴：三千年前的 7 歲小朋友，也坐在這裡認真寫字上學，讓孩子感受到跨越時空的讀書趣味。",
+    "image": "../images/rel_sacred_temple_act_10.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 11,
+    "title": "神諭的時刻：當百姓帶著心事來敲門",
+    "subtitle": "神仙會怎麼回答人間的煩惱？",
+    "glyph": "🤔⚖️",
+    "bgStyle": "art-bg-day",
+    "paragraphs": [
+      "下午三點，神殿的大門打開了一扇小窗，外面的普通百姓可以進來向神明傾訴心事。",
+      "一位老農夫走上前，愁眉苦臉地對祭司說：『我不知道今年春天應該先種大麥還是先種小麥？』另一位年輕人問：『我想出門航行去遙遠的南方做生意，不知道路上會不會平安？』",
+      "這時候，神殿會舉行『神諭（Oracle）』儀式。祭司們抬著裝飾著金色船首的小神船緩緩走出，如果小船往前輕輕晃動，代表神明說『好！大膽去做吧！』；如果小船微微後退，代表神明說『要小心，等等看！』百姓們得到了神明的祝福，滿心歡喜地回家了。"
+    ],
+    "guide": "心理安慰功能：古代的神諭儀式就像給百姓一顆定心丸，給迷茫的人勇氣。",
+    "image": "../images/rel_sacred_temple_act_11.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 12,
+    "title": "日落儀式：把神像重新請回金色神龕",
+    "subtitle": "天邊燒起了紅霞，熄滅最後一根蠟燭",
+    "glyph": "🌇🕯️",
+    "bgStyle": "art-bg-dusk",
+    "paragraphs": [
+      "當外面的太陽慢慢落向西方的山巒，天色漸漸變成了深沉的靛藍色，神殿的一天也接近了尾聲。",
+      "大祭司再次走進至聖所，輕輕念誦著《傍晚讚美詩》：『光明之主啊，感謝您今天賜予埃及的所有豐饒！現在黑夜降臨，請您在溫暖的巢穴裡安歇吧！』",
+      "大祭司為神像蓋上一層輕柔的紅色薄紗，小心翼翼地把神像放回純金神龕內，關上木門，重新插上純金的插銷。大祭司倒退著走出房間，手裡拿著一束新鮮的棕櫚樹葉，一邊退一邊掃平地上的腳印，確保沒有任何灰塵留在聖地。"
+    ],
+    "guide": "儀式美感：倒退著走出房間並掃平腳印，體現出古代人極致的恭敬與細膩。",
+    "image": "../images/rel_sacred_temple_act_12.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 13,
+    "title": "鎖上七重沉重門栓：夜幕下的石柱森林",
+    "subtitle": "月光灑在巨石柱上，神殿進入了神秘夢鄉",
+    "glyph": "🌙🔒",
+    "bgStyle": "art-bg-night",
+    "paragraphs": [
+      "『咚！咚！咚！』隨著沉重的木門栓一扇接著一扇落下，整座卡納克神殿被緊緊關閉了起來。",
+      "所有的喧囂與香煙都漸漸散去，皎潔的銀白色月光灑進了一百三十四根參天石柱之間，在地面上拉出長長短短的銀色剪影。貓頭鷹在塔門上方輕輕呼叫，守夜的巡邏士兵提著小油燈走過大門。",
+      "這座巨大的石頭城堡在黑夜中沉睡著，但所有人都知道，神殿裡的守護力量一刻也沒有停止，正源源不斷地滋養著整座尼羅河大地。"
+    ],
+    "guide": "夜間氛圍：從白天的熱鬧切換到夜晚的寧靜，準備進入睡眠。",
+    "image": "../images/rel_sacred_temple_act_13.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 14,
+    "title": "方尖碑上的星光奇蹟：與宇宙連線的天線",
+    "subtitle": "直插雲霄的整塊粉紅巨石，尖端鍍滿了純金",
+    "glyph": "🏛️⭐",
+    "bgStyle": "art-bg-night",
+    "paragraphs": [
+      "在神殿的中央，矗立著兩座直插夜空的高聳長針——這就是著名的『方尖碑（Obelisk）』！",
+      "你知道嗎？這座高達三十米、重達幾百噸的尖塔，竟然是由一整塊完整的粉紅色花崗岩開採雕刻而成的！它的頂部被打造成一個小金字塔形狀，上面覆蓋著厚厚的金銀合金（琥珀金）。",
+      "每當夜晚星空璀璨時，方尖碑的金頂就會反射出月光與星星的銀光，就像一座巨大的宇宙天線，把天上的繁星與地上的神殿緊緊連繫在一起。古埃及人仰望著它，心裡充滿了對宇宙永恆奧秘的敬佩。"
+    ],
+    "guide": "工程奇蹟：向孩子介紹方尖碑不是一塊塊石頭堆起來的，而是一整塊超巨大的大石頭雕出來的，非常厲害！",
+    "image": "../images/rel_sacred_temple_act_14.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 15,
+    "title": "神殿留給我們的啟示：用心對待生活",
+    "subtitle": "每一件小事都認真做，每一天都是神聖的一天",
+    "glyph": "💡💖",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "走完了卡納克神殿精彩的一天，你有什麼感覺呢？",
+      "古埃及人建造神殿、每天幫神像洗臉、做麵包、掃地、讀書，並不是迷信，而是他們有一種美麗的人生態度：『把身邊的每一件小事情，都當成最重要、最神聖的事情認真去做好。』",
+      "認真吃每一口飯、認真寫每一個字、認真跟爸爸媽媽道早安和晚安——只要你用心生活，你的小房間就會像神殿一樣溫馨，你的一天也會像神仙的一天一樣充實而精彩！"
+    ],
+    "guide": "生活哲理轉化：將古代繁瑣的神殿儀式，轉化為現代孩子『認真做好手頭每一件事』的好習慣。",
+    "image": "../images/rel_sacred_temple_act_15.png?v=1792971534",
+    "hasRealImage": false
+  },
+  {
+    "actNum": 16,
+    "title": "晚安，今晚做個神殿探險家",
+    "subtitle": "在大石柱森林的微風中，安然甜睡",
+    "glyph": "🌟🌙",
+    "bgStyle": "art-bg-dawn",
+    "paragraphs": [
+      "好啦，今天的埃及神殿大冒險到這裡就告一段落囉！",
+      "現在，請我們的小探險家把被子拉好，閉上眼睛。想像一下，你正躺在卡納克神殿那座涼爽的石柱森林底下，微風吹過棕櫚樹葉沙沙作響，天上的星星像一顆顆鑽石一樣眨著眼睛。",
+      "今天你學到了好多好多有趣的古代小秘密，神殿的守護精靈會悄悄走進你的夢裡，帶你繼續去看金字塔和尼羅河上的大金船。晚安，做個好夢喔！"
+    ],
+    "guide": "溫柔收尾：用微風與星空的意象，帶領孩子帶著滿足的好奇心進入夢鄉。",
+    "image": "../images/rel_sacred_temple_act_16.png?v=1792971534",
+    "hasRealImage": false
+  }
+];
+    const totalActs = storyData.length;
+    let currentActIndex = 0;
+
+    const imagePanel = document.getElementById('imagePanel');
+    const chapterBadge = document.getElementById('chapterBadge');
+    const timeBadge = document.getElementById('timeBadge');
+    const storyHeading = document.getElementById('storyHeading');
+    const storyParagraphs = document.getElementById('storyParagraphs');
+    const guideContent = document.getElementById('guideContent');
+    const storyScrollArea = document.getElementById('storyScrollArea');
+    const sceneSelect = document.getElementById('sceneSelect');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const btnSpeak = document.getElementById('btnSpeak');
+    const speakLabel = document.getElementById('speakLabel');
+    const partBtns = document.querySelectorAll('.part-btn');
+
+    function initDropdown() {
+      sceneSelect.innerHTML = '';
+      storyData.forEach((scene, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `第 ${idx + 1} 幕：${scene.title}`;
+        sceneSelect.appendChild(opt);
+      });
+    }
+
+    function renderImage(data) {
+      imagePanel.innerHTML = `
+        <div class="slide-media">
+          <img src="${data.image}" alt="${data.title}" onerror="handleFallback(this, '${data.glyph}', '${data.bgStyle}', '${data.title}', '${data.subtitle}')">
+        </div>
+      `;
+    }
+
+    window.handleFallback = function(imgEl, glyph, bgStyle, title, subtitle) {
+      imgEl.parentElement.innerHTML = `
+        <div class="egypt-art-card ${bgStyle}">
+          <div class="art-glyph">${glyph}</div>
+          <div class="art-tag">SACRED EGYPTIAN CHRONICLES</div>
+          <div class="art-title">${title}</div>
+          <div class="art-desc">${subtitle}</div>
+        </div>
+      `;
+    };
+
+    function loadScene(index) {
+      if (index < 0 || index >= totalActs) return;
+      currentActIndex = index;
+      const data = storyData[currentActIndex];
+
+      chapterBadge.textContent = `ACT ${currentActIndex + 1} / ${totalActs}`;
+      const partIdx = Math.floor(currentActIndex / 4);
+      const partNames = ["第一部：啟航與相遇", "第二部：大地與日常", "第三部：暗夜與考驗", "第四部：守護與晨光"];
+      timeBadge.textContent = `📜 ${partNames[partIdx]} ｜ ⏱️ 約 2.5 分鐘`;
+
+      storyHeading.textContent = `第 ${currentActIndex + 1} 幕：${data.title}`;
+      storyParagraphs.innerHTML = data.paragraphs.map(p => `<p>${p}</p>`).join('');
+      guideContent.textContent = data.guide;
+      storyScrollArea.scrollTop = 0;
+
+      renderImage(data);
+      sceneSelect.value = currentActIndex;
+
+      partBtns.forEach(btn => {
+        const p = parseInt(btn.getAttribute('data-part'));
+        if (p === partIdx) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      btnPrev.disabled = (currentActIndex === 0);
+      btnNext.disabled = (currentActIndex === totalActs - 1);
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      }
+
+      try {
+        localStorage.setItem(`egypt_story_act_${storyId}`, currentActIndex);
+      } catch(e) {}
+    }
+
+    btnPrev.addEventListener('click', () => loadScene(currentActIndex - 1));
+    btnNext.addEventListener('click', () => loadScene(currentActIndex + 1));
+    sceneSelect.addEventListener('change', (e) => loadScene(parseInt(e.target.value)));
+
+    partBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = parseInt(btn.getAttribute('data-part'));
+        loadScene(p * 4);
+      });
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        if (currentActIndex < totalActs - 1) loadScene(currentActIndex + 1);
+      } else if (e.key === 'ArrowLeft') {
+        if (currentActIndex > 0) loadScene(currentActIndex - 1);
+      }
+    });
+
+    btnSpeak.addEventListener('click', () => {
+      if (!('speechSynthesis' in window)) {
+        alert('此瀏覽器未啟用語音功能。');
+        return;
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+        return;
+      }
+      const data = storyData[currentActIndex];
+      const text = `${data.title}。${data.paragraphs.join(' ')}`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-TW';
+      utterance.rate = 0.88;
+      utterance.pitch = 1.0;
+
+      utterance.onstart = () => {
+        btnSpeak.classList.add('playing');
+        speakLabel.textContent = "暫停朗讀";
+      };
+      utterance.onend = () => {
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      };
+      utterance.onerror = () => {
+        btnSpeak.classList.remove('playing');
+        speakLabel.textContent = "朗讀這一段";
+      };
+      window.speechSynthesis.speak(utterance);
+    });
+
+    initDropdown();
+    let saved = 0;
+    try {
+      const st = localStorage.getItem(`egypt_story_act_${storyId}`);
+      if (st !== null) saved = parseInt(st) || 0;
+    } catch(e) {}
+    loadScene(saved);
+  </script>
+</body>
+</html>
