@@ -30,6 +30,9 @@
       <button class="mode-tab-btn" data-mode="tutorial" id="tab-tutorial">
         <span>🎓</span> 開局教學
       </button>
+      <button class="mode-tab-btn" data-mode="mrong" id="tab-mrong">
+        <span>🎬</span> Ong學長教學
+      </button>
     </nav>
 
     <!-- Header Tools -->
@@ -253,6 +256,102 @@
         </div>
       </div>
 
+      <!-- Panel 2.5: Mr Ong Talk Teaching System Panel (Active during Ong學長模式) -->
+      <div class="card" id="mrong-card" style="display: none;">
+        <div class="mrong-header-box">
+          <div class="mrong-author-row">
+            <span class="mrong-avatar-badge">♟️</span>
+            <div class="mrong-author-info">
+              <div class="mrong-author-title">
+                子聰學長說 Mr Ong Talk
+                <a href="https://www.youtube.com/@MrOngTalk" target="_blank" rel="noopener noreferrer" class="mrong-yt-btn" title="造訪 YouTube 官方頻道">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                  <span>頻道</span>
+                </a>
+              </div>
+              <div class="mrong-author-desc">馬來西亞全國第 4 名 ｜ 醫科生 ｜ 3 屆 KMC 袋鼠數學金牌</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="mrong-filter-row" id="mrong-filter-row">
+          <button class="mrong-filter-pill active" data-cat="all">全部示範</button>
+          <button class="mrong-filter-pill" data-cat="👑 開局體系篇">👑 開局體系</button>
+          <button class="mrong-filter-pill" data-cat="⚡ 實戰戰術與名局">⚡ 實戰戰術</button>
+          <button class="mrong-filter-pill" data-cat="📖 零基礎與特殊規則">📖 基礎與規則</button>
+        </div>
+
+        <!-- Course Selector Dropdown -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>選擇教學主題：</span>
+            <span id="mrong-cat-badge" class="badge-cat">開局體系</span>
+          </label>
+          <select class="tutorial-selector" id="mrong-course-select"></select>
+        </div>
+
+        <!-- Video Source Info Bar -->
+        <div class="mrong-video-bar">
+          <div class="mrong-video-meta">
+            <span class="mrong-video-duration" id="mrong-video-duration">14:24</span>
+            <span class="mrong-video-title" id="mrong-video-title">一步步學會 Scandinavian Defense！</span>
+          </div>
+          <div class="mrong-video-links">
+            <a id="btn-mrong-open-yt" href="https://www.youtube.com/watch?v=wY6ZxUUAaFs" target="_blank" rel="noopener noreferrer" class="action-btn mrong-yt-watch-btn" title="在 YouTube 上觀看此影片">
+              <span>▶ 觀看原片</span>
+            </a>
+            <button id="btn-mrong-embed-toggle" class="action-btn icon-only" title="展開/收合內嵌影片" style="padding: 0.3rem 0.5rem; font-size: 0.8rem;">🎬 內嵌</button>
+          </div>
+        </div>
+
+        <!-- Collapsible Embed Video Player -->
+        <div id="mrong-embed-container" style="display: none; margin-bottom: 0.75rem;">
+          <div class="mrong-iframe-wrapper">
+            <iframe id="mrong-yt-iframe" src="" frameborder="0" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="tutorial-progress-bar-wrap">
+          <div class="tutorial-progress-fill" id="mrong-progress-fill"></div>
+        </div>
+
+        <!-- Tutorial Actions -->
+        <div class="tutorial-actions-row">
+          <button class="action-btn" id="btn-mrong-prev" title="快捷鍵: ←">◀ 上一步</button>
+          <button class="action-btn" id="btn-mrong-show-step">示範此步 💡</button>
+          <button class="action-btn primary highlight-next" id="btn-mrong-next" title="快捷鍵: → 或 空白鍵">下一步 ▶</button>
+          <button class="action-btn" id="btn-mrong-autoplay" title="自動播放每一步">自動 ⏯️</button>
+          <button class="action-btn" id="btn-mrong-restart" title="重頭開始">重來 🔄</button>
+        </div>
+
+        <!-- Step Explanation Card (Locked height so buttons never shift) -->
+        <div class="tutorial-step-card" id="mrong-step-card">
+          <div class="tutorial-step-header">
+            <span class="tutorial-step-badge" id="mrong-step-badge">第 1 / 14 步 (白方)</span>
+            <span class="tutorial-step-san" id="mrong-step-san">1. e4</span>
+          </div>
+          <div class="tutorial-step-explanation" id="mrong-step-explanation">
+            【子聰學長】：白方推進王前兵兩格，控制中心 d5/f5 格。
+          </div>
+          <div class="tutorial-concept-tag" id="mrong-step-concept">
+            <span>🎯 核心概念：</span><span id="mrong-concept-text">爭奪中央控制</span>
+          </div>
+        </div>
+
+        <!-- Principles Checklist & Video Directory Link -->
+        <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.65rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+            <label class="form-label" style="margin:0;">📌 子聰學長實戰心法：</label>
+            <button id="btn-mrong-all-videos" style="background:none; border:none; color:var(--accent-gold); cursor:pointer; font-size:0.75rem; text-decoration:underline;">
+              📚 頻道 25 部影片總錄
+            </button>
+          </div>
+          <ul class="principles-list" id="mrong-principles-list"></ul>
+        </div>
+      </div>
+
       <!-- Panel 3: Move History / Notation -->
       <div class="card" id="history-card">
         <h2 class="card-title">
@@ -340,6 +439,25 @@
           <strong style="color: var(--text-primary);">🎓 開局教學模式：</strong><br>
           包含義大利開局、西班牙開局、西西里防禦、法蘭西防禦等 12 套經典開局，提供動態綠色箭頭指示與深入淺出的戰略思路解析。
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Mr Ong All Videos Catalog Modal -->
+  <div class="modal-overlay" id="mrong-all-videos-modal">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-size:1.4rem;">🎬</span>
+          <h3 class="modal-title">子聰學長說 Mr Ong Talk — 西洋棋影片庫</h3>
+        </div>
+        <button class="modal-close-btn" id="btn-close-mrong-modal">&times;</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+        已收錄頻道全部 25 部西洋棋教學影片與 Shorts 短片，點擊可直接在下方進行棋盤走法 Demo 或觀看 YouTube 原片！
+      </p>
+      <div class="mrong-videos-catalog-grid" id="mrong-videos-catalog-grid">
+        <!-- Rendered dynamically -->
       </div>
     </div>
   </div>

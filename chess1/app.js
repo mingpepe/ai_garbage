@@ -4,6 +4,7 @@ import { sounds } from './src/sound.js?v=2.2';
 import { BoardUI } from './src/board-ui.js?v=2.2';
 import { findBestMove, evaluateBoard, DIFFICULTY_CONFIG, normalizeDifficulty } from './src/ai.js?v=2.2';
 import { OPENINGS_DATABASE, getOpeningById } from './src/openings.js?v=2.2';
+import { MRONG_COURSES, getMrOngCourseById, MRONG_ALL_VIDEOS } from './src/mrong-courses.js?v=2.2';
 import { getPieceSvg, PIECE_VALUES } from './src/pieces.js?v=2.2';
 
 // 確保 BoardUI 原型防禦性容錯（防止瀏覽器記憶體快取未及時更新時報錯）
@@ -52,10 +53,17 @@ class ChessApp {
     // Pending Promotion
     this.pendingMove = null;
 
+    // Mr Ong Talk Mode State
+    this.currentMrOngCourse = MRONG_COURSES[0];
+    this.mrongStepIndex = 0;
+    this.mrongAutoplayTimer = null;
+    this.mrongActiveCategory = 'all';
+
     // Initialize UI
     this.initBoardUI();
     this.initDOMListeners();
     this.initTutorialSelect();
+    this.initMrOngMode();
     this.initZoomControls();
     this.setAiDifficulty(this.aiDifficulty);
     this.resetGame();
@@ -174,9 +182,19 @@ class ChessApp {
 
   initTutorialSelect() {
     const selectEl = document.getElementById('tutorial-opening-select');
-    selectEl.innerHTML = OPENINGS_DATABASE.map(op => `
-      <option value="${op.id}">${op.name} (${op.difficulty})</option>
-    `).join('');
+    if (!selectEl) return;
+
+    const classic = OPENINGS_DATABASE.filter(op => !op.id.startsWith('ong-'));
+    const ong = OPENINGS_DATABASE.filter(op => op.id.startsWith('ong-'));
+
+    selectEl.innerHTML = `
+      <optgroup label="👑 古典 12 大名局開局庫">
+        ${classic.map(op => `<option value="${op.id}">${op.name} (${op.difficulty})</option>`).join('')}
+      </optgroup>
+      <optgroup label="🎬 子聰學長 Mr Ong Talk 實戰教學系列">
+        ${ong.map(op => `<option value="${op.id}">${op.name} (${op.videoDuration})</option>`).join('')}
+      </optgroup>
+    `;
 
     selectEl.addEventListener('change', (e) => {
       this.loadTutorialOpening(e.target.value);
@@ -307,6 +325,14 @@ class ChessApp {
           e.preventDefault();
           this.tutorialPrevStep();
         }
+      } else if (this.mode === 'mrong') {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          this.mrongNextStep();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          this.mrongPrevStep();
+        }
       } else {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
           e.preventDefault();
@@ -332,6 +358,9 @@ class ChessApp {
     const twoPlayerSection = document.getElementById('twoplayer-settings-section');
     const modeTag = document.getElementById('current-mode-tag');
 
+    const mrongCardEl = document.getElementById('mrong-card');
+    if (mrongCardEl) mrongCardEl.style.display = 'none';
+
     if (mode === 'vs-ai') {
       settingsCard.style.display = 'block';
       tutorialCard.style.display = 'none';
@@ -347,7 +376,18 @@ class ChessApp {
     } else if (mode === 'tutorial') {
       settingsCard.style.display = 'none';
       tutorialCard.style.display = 'block';
+      const mrongCard = document.getElementById('mrong-card');
+      if (mrongCard) mrongCard.style.display = 'none';
+      modeTag.textContent = '開局教學';
       this.loadTutorialOpening(this.currentOpening.id);
+      return;
+    } else if (mode === 'mrong') {
+      settingsCard.style.display = 'none';
+      tutorialCard.style.display = 'none';
+      const mrongCard = document.getElementById('mrong-card');
+      if (mrongCard) mrongCard.style.display = 'block';
+      modeTag.textContent = 'Ong學長教學';
+      this.loadMrOngCourse(this.currentMrOngCourse ? this.currentMrOngCourse.id : MRONG_COURSES[0].id);
       return;
     }
 
@@ -539,9 +579,13 @@ class ChessApp {
   }
 
   executeMove(moveObj) {
-    // If in tutorial mode, verify against tutorial step
+    // If in tutorial or Mr Ong mode, verify against step
     if (this.mode === 'tutorial') {
       this.handleTutorialMove(moveObj);
+      return;
+    }
+    if (this.mode === 'mrong') {
+      this.handleMrOngMove(moveObj);
       return;
     }
 
@@ -1153,7 +1197,7 @@ class ChessApp {
     const principlesList = document.getElementById('tut-principles-list');
     principlesList.innerHTML = this.currentOpening.principles.map(p => `<li>${p}</li>`).join('');
 
-    this.boardUI.setOrientation('w');
+    this.boardUI.setOrientation(this.currentOpening.orientation || 'w');
     this.renderTutorialStep();
   }
 
@@ -1223,7 +1267,8 @@ class ChessApp {
 
         // Check if next move is opponent's move in tutorial (and auto-advance smoothly)
         const nextStep = this.currentOpening.moves[this.tutorialStepIndex];
-        if (nextStep && nextStep.side === 'b') {
+        const isUserSide = (this.currentOpening.orientation || 'w') === 'b' ? 'b' : 'w';
+        if (nextStep && nextStep.side !== isUserSide) {
           setTimeout(() => {
             this.tutorialShowCurrentStep();
           }, 800);
@@ -1275,6 +1320,359 @@ class ChessApp {
 
   tutorialNextStep() {
     this.tutorialShowCurrentStep();
+  }
+
+  // ==================== MR ONG TALK MODE LOGIC ====================
+  initMrOngMode() {
+    this.populateMrOngCourseSelect();
+
+    // Category filter pills
+    document.querySelectorAll('.mrong-filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.mrong-filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        this.mrongActiveCategory = pill.dataset.cat;
+        this.populateMrOngCourseSelect();
+      });
+    });
+
+    // Course select dropdown
+    const courseSelect = document.getElementById('mrong-course-select');
+    if (courseSelect) {
+      courseSelect.addEventListener('change', (e) => {
+        this.loadMrOngCourse(e.target.value);
+      });
+    }
+
+    // Step control buttons
+    const btnPrev = document.getElementById('btn-mrong-prev');
+    if (btnPrev) btnPrev.addEventListener('click', () => this.mrongPrevStep());
+
+    const btnNext = document.getElementById('btn-mrong-next');
+    if (btnNext) btnNext.addEventListener('click', () => this.mrongNextStep());
+
+    const btnShow = document.getElementById('btn-mrong-show-step');
+    if (btnShow) btnShow.addEventListener('click', () => this.mrongShowCurrentStep());
+
+    const btnAutoplay = document.getElementById('btn-mrong-autoplay');
+    if (btnAutoplay) btnAutoplay.addEventListener('click', () => this.mrongToggleAutoplay());
+
+    const btnRestart = document.getElementById('btn-mrong-restart');
+    if (btnRestart) btnRestart.addEventListener('click', () => this.mrongRestart());
+
+    // Embed video toggle
+    const btnEmbed = document.getElementById('btn-mrong-embed-toggle');
+    const embedContainer = document.getElementById('mrong-embed-container');
+    const ytIframe = document.getElementById('mrong-yt-iframe');
+    if (btnEmbed && embedContainer) {
+      btnEmbed.addEventListener('click', () => {
+        const isHidden = embedContainer.style.display === 'none';
+        embedContainer.style.display = isHidden ? 'block' : 'none';
+        btnEmbed.classList.toggle('primary', isHidden);
+        if (isHidden && ytIframe && this.currentMrOngCourse) {
+          ytIframe.src = `https://www.youtube.com/embed/${this.currentMrOngCourse.videoId}?autoplay=1`;
+        } else if (!isHidden && ytIframe) {
+          ytIframe.src = '';
+        }
+      });
+    }
+
+    // Modal for all videos
+    const btnAllVideos = document.getElementById('btn-mrong-all-videos');
+    const modalAllVideos = document.getElementById('mrong-all-videos-modal');
+    const btnCloseModal = document.getElementById('btn-close-mrong-modal');
+
+    if (btnAllVideos && modalAllVideos) {
+      btnAllVideos.addEventListener('click', () => {
+        this.renderMrOngAllVideosModal();
+        modalAllVideos.classList.add('open');
+      });
+    }
+    if (btnCloseModal && modalAllVideos) {
+      btnCloseModal.addEventListener('click', () => {
+        modalAllVideos.classList.remove('open');
+      });
+    }
+    if (modalAllVideos) {
+      modalAllVideos.addEventListener('click', (e) => {
+        if (e.target === modalAllVideos) modalAllVideos.classList.remove('open');
+      });
+    }
+  }
+
+  populateMrOngCourseSelect() {
+    const courseSelect = document.getElementById('mrong-course-select');
+    if (!courseSelect) return;
+
+    let filtered = MRONG_COURSES;
+    if (this.mrongActiveCategory && this.mrongActiveCategory !== 'all') {
+      filtered = MRONG_COURSES.filter(c => c.category === this.mrongActiveCategory);
+    }
+
+    courseSelect.innerHTML = filtered.map(c => `
+      <option value="${c.id}">${c.name} (${c.videoDuration})</option>
+    `).join('');
+
+    if (filtered.length > 0) {
+      const match = filtered.find(c => c.id === (this.currentMrOngCourse?.id));
+      courseSelect.value = match ? match.id : filtered[0].id;
+    }
+  }
+
+  renderMrOngAllVideosModal() {
+    const grid = document.getElementById('mrong-videos-catalog-grid');
+    if (!grid) return;
+
+    grid.innerHTML = MRONG_ALL_VIDEOS.map((v, idx) => {
+      const matchingCourse = MRONG_COURSES.find(c => c.videoId === v.id);
+      return `
+        <div class="mrong-video-item-card">
+          <div class="mrong-video-item-info">
+            <div class="mrong-video-item-top">
+              <span class="mrong-type-badge ${v.type}">${v.type === 'video' ? '📺 長影片' : '⚡ Short 短片'}</span>
+              <span class="mrong-video-item-title">${idx + 1}. ${v.title}</span>
+            </div>
+            <div class="mrong-video-item-excerpt">${v.transcriptExcerpt}</div>
+          </div>
+          <div style="display:flex; gap:0.4rem; align-items:center;">
+            ${matchingCourse ? `
+              <button class="action-btn primary btn-load-course" data-course-id="${matchingCourse.id}" style="padding:0.35rem 0.65rem; font-size:0.75rem; white-space:nowrap;">
+                ♟️ 棋盤 Demo
+              </button>
+            ` : ''}
+            <a href="${v.url}" target="_blank" rel="noopener noreferrer" class="action-btn" style="padding:0.35rem 0.65rem; font-size:0.75rem; white-space:nowrap; text-decoration:none;">
+              ▶ 觀看原片
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.btn-load-course').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const courseId = btn.dataset.courseId;
+        const modal = document.getElementById('mrong-all-videos-modal');
+        if (modal) modal.classList.remove('open');
+        this.switchMode('mrong');
+        this.loadMrOngCourse(courseId);
+      });
+    });
+  }
+
+  loadMrOngCourse(courseId) {
+    if (this.mrongAutoplayTimer) {
+      clearInterval(this.mrongAutoplayTimer);
+      this.mrongAutoplayTimer = null;
+      const autoBtn = document.getElementById('btn-mrong-autoplay');
+      if (autoBtn) autoBtn.textContent = '自動 ⏯️';
+    }
+
+    this.currentMrOngCourse = getMrOngCourseById(courseId);
+    this.mrongStepIndex = 0;
+    this.game.reset();
+    this.historyStack = [];
+    this.historyIndex = -1;
+
+    const selectEl = document.getElementById('mrong-course-select');
+    if (selectEl) selectEl.value = this.currentMrOngCourse.id;
+
+    const catBadge = document.getElementById('mrong-cat-badge');
+    if (catBadge) catBadge.textContent = this.currentMrOngCourse.category.replace(/[👑⚡📖🧠]\s*/g, '');
+
+    const durationEl = document.getElementById('mrong-video-duration');
+    if (durationEl) durationEl.textContent = this.currentMrOngCourse.videoDuration;
+
+    const titleEl = document.getElementById('mrong-video-title');
+    if (titleEl) titleEl.textContent = this.currentMrOngCourse.name;
+
+    const ytBtn = document.getElementById('btn-mrong-open-yt');
+    if (ytBtn) ytBtn.href = this.currentMrOngCourse.videoUrl;
+
+    const orientation = this.currentMrOngCourse.orientation || 'w';
+    this.boardUI.setOrientation(orientation);
+
+    const iframe = document.getElementById('mrong-yt-iframe');
+    const embedContainer = document.getElementById('mrong-embed-container');
+    if (embedContainer && embedContainer.style.display !== 'none' && iframe) {
+      iframe.src = `https://www.youtube.com/embed/${this.currentMrOngCourse.videoId}?autoplay=1`;
+    }
+
+    const principlesList = document.getElementById('mrong-principles-list');
+    if (principlesList) {
+      principlesList.innerHTML = this.currentMrOngCourse.principles.map(p => `<li>${p}</li>`).join('');
+    }
+
+    this.renderMrOngStep();
+  }
+
+  renderMrOngStep() {
+    const steps = this.currentMrOngCourse.moves;
+    const currentStep = steps[this.mrongStepIndex];
+
+    const progressPercent = ((this.mrongStepIndex) / steps.length) * 100;
+    const progressEl = document.getElementById('mrong-progress-fill');
+    if (progressEl) progressEl.style.width = `${progressPercent}%`;
+
+    const badgeEl = document.getElementById('mrong-step-badge');
+    const sanEl = document.getElementById('mrong-step-san');
+    const expEl = document.getElementById('mrong-step-explanation');
+    const conceptEl = document.getElementById('mrong-concept-text');
+
+    if (!currentStep) {
+      if (this.mrongAutoplayTimer) {
+        clearInterval(this.mrongAutoplayTimer);
+        this.mrongAutoplayTimer = null;
+        const autoBtn = document.getElementById('btn-mrong-autoplay');
+        if (autoBtn) autoBtn.textContent = '自動 ⏯️';
+      }
+
+      if (badgeEl) badgeEl.textContent = '示範完成！';
+      if (sanEl) sanEl.textContent = '全套走法已展示完畢 🎉';
+      if (expEl) {
+        expEl.textContent = `【子聰學長】：恭喜你完整學會了「${this.currentMrOngCourse.name}」的示範！記住核心棋理與思維邏輯，在實戰中多加運用！`;
+      }
+      if (conceptEl) conceptEl.textContent = '融會貫通';
+      this.boardUI.setTutorialHint(null, null);
+      this.boardUI.render();
+      return;
+    }
+
+    if (badgeEl) {
+      badgeEl.textContent = `第 ${this.mrongStepIndex + 1} / ${steps.length} 步 (${currentStep.side === 'w' ? '白方' : '黑方'})`;
+    }
+    if (sanEl) sanEl.textContent = currentStep.title;
+    if (expEl) expEl.textContent = currentStep.explanation;
+    if (conceptEl) conceptEl.textContent = currentStep.concept;
+
+    this.boardUI.render();
+    this.boardUI.setTutorialHint(currentStep.from, currentStep.to);
+
+    this.updatePlayerBarTitles();
+  }
+
+  handleMrOngMove(moveObj) {
+    const currentStep = this.currentMrOngCourse.moves[this.mrongStepIndex];
+    if (!currentStep) return;
+
+    let from = moveObj.from;
+    let to = moveObj.to;
+    if (from === 'e1' && to === 'h1') to = 'g1';
+    else if (from === 'e1' && to === 'a1') to = 'c1';
+    else if (from === 'e8' && to === 'h8') to = 'g8';
+    else if (from === 'e8' && to === 'a8') to = 'c8';
+    else if (from === 'h1' && to === 'e1') { from = 'e1'; to = 'g1'; }
+    else if (from === 'a1' && to === 'e1') { from = 'e1'; to = 'c1'; }
+    else if (from === 'h8' && to === 'e8') { from = 'e8'; to = 'g8'; }
+    else if (from === 'a8' && to === 'e8') { from = 'e8'; to = 'c8'; }
+
+    if (from === currentStep.from && to === currentStep.to) {
+      const result = this.game.move({
+        from: currentStep.from,
+        to: currentStep.to,
+        promotion: currentStep.promotion || 'q'
+      });
+
+      if (result) {
+        this.playSoundForMove(result);
+        this.mrongStepIndex++;
+        this.renderMrOngStep();
+
+        const nextStep = this.currentMrOngCourse.moves[this.mrongStepIndex];
+        const playerPerspective = this.currentMrOngCourse.orientation || 'w';
+        if (nextStep && nextStep.side !== playerPerspective) {
+          setTimeout(() => {
+            this.mrongShowCurrentStep();
+          }, 800);
+        }
+      }
+    } else {
+      alert(`💡 這是子聰學長的開局教學！\n推薦著法是：${currentStep.title}\n請將棋子從 ${currentStep.from.toUpperCase()} 移動到 ${currentStep.to.toUpperCase()}，或點擊「示範此步」。`);
+      this.boardUI.render();
+      this.boardUI.setTutorialHint(currentStep.from, currentStep.to);
+    }
+  }
+
+  mrongShowCurrentStep() {
+    const currentStep = this.currentMrOngCourse.moves[this.mrongStepIndex];
+    if (!currentStep) return;
+
+    const isCastle = (currentStep.from === 'e1' && (currentStep.to === 'g1' || currentStep.to === 'c1')) ||
+                     (currentStep.from === 'e8' && (currentStep.to === 'g8' || currentStep.to === 'c8'));
+
+    const applyMove = () => {
+      const result = this.game.move({
+        from: currentStep.from,
+        to: currentStep.to,
+        promotion: currentStep.promotion || 'q'
+      });
+      if (result) {
+        this.playSoundForMove(result);
+        this.mrongStepIndex++;
+        this.renderMrOngStep();
+      }
+    };
+
+    if (this.boardUI && typeof this.boardUI.animateMove === 'function' && !isCastle) {
+      this.boardUI.animateMove(currentStep.from, currentStep.to, { isCastle, duration: 280 }, applyMove);
+    } else {
+      applyMove();
+    }
+  }
+
+  mrongNextStep() {
+    this.mrongShowCurrentStep();
+  }
+
+  mrongPrevStep() {
+    if (this.mrongStepIndex <= 0) return;
+    this.mrongStepIndex--;
+    this.game.reset();
+    for (let i = 0; i < this.mrongStepIndex; i++) {
+      const step = this.currentMrOngCourse.moves[i];
+      this.game.move({
+        from: step.from,
+        to: step.to,
+        promotion: step.promotion || 'q'
+      });
+    }
+    sounds.playMove();
+    this.renderMrOngStep();
+  }
+
+  mrongRestart() {
+    if (this.mrongAutoplayTimer) {
+      clearInterval(this.mrongAutoplayTimer);
+      this.mrongAutoplayTimer = null;
+      const autoBtn = document.getElementById('btn-mrong-autoplay');
+      if (autoBtn) autoBtn.textContent = '自動 ⏯️';
+    }
+    this.loadMrOngCourse(this.currentMrOngCourse.id);
+  }
+
+  mrongToggleAutoplay() {
+    const autoBtn = document.getElementById('btn-mrong-autoplay');
+    if (this.mrongAutoplayTimer) {
+      clearInterval(this.mrongAutoplayTimer);
+      this.mrongAutoplayTimer = null;
+      if (autoBtn) autoBtn.textContent = '自動 ⏯️';
+      return;
+    }
+
+    if (this.mrongStepIndex >= this.currentMrOngCourse.moves.length) {
+      this.mrongRestart();
+    }
+
+    if (autoBtn) autoBtn.textContent = '暫停 ⏸️';
+    this.mrongShowCurrentStep();
+    this.mrongAutoplayTimer = setInterval(() => {
+      if (this.mrongStepIndex < this.currentMrOngCourse.moves.length) {
+        this.mrongShowCurrentStep();
+      } else {
+        clearInterval(this.mrongAutoplayTimer);
+        this.mrongAutoplayTimer = null;
+        if (autoBtn) autoBtn.textContent = '自動 ⏯️';
+      }
+    }, 1800);
   }
 }
 

@@ -1,3 +1,4 @@
+import { MRONG_COURSES } from './mrong-courses.js';
 // Comprehensive Database of 12 Major Chess Openings with Step-by-Step Strategic Guides
 
 export const OPENINGS_DATABASE = [
@@ -783,6 +784,8 @@ export const OPENINGS_DATABASE = [
       }
     ]
   }
+,
+  ...MRONG_COURSES
 ];
 
 export function getOpeningById(id) {
