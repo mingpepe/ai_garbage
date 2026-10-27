@@ -5,6 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
+    "postinstall": "node -e \"const fs=require('fs'); fs.mkdirSync('lib', {recursive:true}); fs.copyFileSync('node_modules/chess.js/dist/esm/chess.js', 'lib/chess.js'); try{fs.copyFileSync('node_modules/chess.js/dist/esm/chess.js.map', 'lib/chess.js.map');}catch(e){}\"",
     "start": "python3 -m http.server 3000",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
