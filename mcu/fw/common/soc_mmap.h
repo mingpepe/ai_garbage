@@ -19,6 +19,8 @@
 #define UART_BASE           0x30000000UL
 #define REGBANK_BASE        0x40000000UL
 #define REPORT_BUF_WIN_BASE 0x40001000UL
+#define I2C0_BASE           0x50000000UL
+#define I2C1_BASE           0x50001000UL
 
 // ============================================================================
 // CLINT IPI & Boot Control MMIO Registers (0x2000_0000)
@@ -100,6 +102,12 @@ typedef struct {
     volatile uint32_t phase_ready;        // 0x1000_001C: Synchronization phase state
     volatile uint32_t log_core_id[16];    // 0x1000_0020: Which core performed each counter update
     volatile uint32_t log_counter[16];    // 0x1000_0060: Counter value recorded at each step
+    volatile uint32_t i2c_sync_stage;     // 0x1000_00A0: Core synchronization for I2C test
+    volatile uint32_t i2c_sync_target;    // Target cycle counter for simultaneous start
+    volatile uint32_t i2c_c0_data;        // Data read by Core 0 from slave (addr 0x10)
+    volatile uint32_t i2c_c1_data;        // Data read by Core 1 from slave (addr 0x20)
+    volatile uint32_t i2c_c1_arb_lost_cnt; // Number of times Core 1 detected ARB_LOST
+    volatile uint32_t i2c_c1_blocked_cnt;  // Number of times Core 1 detected START_BLOCKED
 } shared_mem_t;
 
 #define SHM ((shared_mem_t *)SHARED_MEM_BASE)

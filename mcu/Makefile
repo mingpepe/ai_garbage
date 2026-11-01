@@ -12,7 +12,7 @@ DOTNET       := /home/kk/.dotnet/dotnet
 CFLAGS       := -g -O1 -march=rv32ima_zicsr -mabi=ilp32 -nostdlib -ffreestanding -Wall -Wextra
 
 BUILD_DIR    := fw/build
-RTL_SRCS     := rtl/sram.v rtl/clint_ipi_boot.v rtl/i2c_regbank_subsys.v rtl/soc_interconnect.v rtl/riscv_core.v rtl/dual_core_soc.v
+RTL_SRCS     := rtl/sram.v rtl/clint_ipi_boot.v rtl/i2c_master.v rtl/i2c_slave_mem.v rtl/i2c_regbank_subsys.v rtl/soc_interconnect.v rtl/riscv_core.v rtl/dual_core_soc.v
 TB_SRCS      := tb/tb_soc.v
 VCD_FILE     := soc_wave.vcd
 GTKW_FILE    := tb/view_wave.gtkw

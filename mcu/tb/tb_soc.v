@@ -50,6 +50,13 @@ module tb_soc;
     wire [7:0]  dbg_rpt_len;
     wire [31:0] dbg_arb_conflict_cnt;
 
+    // Dual-Master I2C Bus Debug
+    wire        dbg_i2c_bus_scl;
+    wire        dbg_i2c_bus_sda;
+    wire        dbg_i2c0_arb_lost;
+    wire        dbg_i2c1_arb_lost;
+    wire        dbg_i2c_bus_busy;
+
     dual_core_soc #(
         .CORE0_HEX_FILE("fw/build/fw_core0.hex"),
         .CORE1_HEX_FILE("fw/build/fw_core1.hex")
@@ -85,7 +92,12 @@ module tb_soc;
         .dbg_rpt_rd_ptr       (dbg_rpt_rd_ptr),
         .dbg_rpt_status       (dbg_rpt_status),
         .dbg_rpt_len          (dbg_rpt_len),
-        .dbg_arb_conflict_cnt (dbg_arb_conflict_cnt)
+        .dbg_arb_conflict_cnt (dbg_arb_conflict_cnt),
+        .dbg_i2c_bus_scl      (dbg_i2c_bus_scl),
+        .dbg_i2c_bus_sda      (dbg_i2c_bus_sda),
+        .dbg_i2c0_arb_lost    (dbg_i2c0_arb_lost),
+        .dbg_i2c1_arb_lost    (dbg_i2c1_arb_lost),
+        .dbg_i2c_bus_busy     (dbg_i2c_bus_busy)
     );
 
     // 100 MHz clock (10 ns period)
@@ -233,6 +245,11 @@ module tb_soc;
     integer   poll_cnt;
     integer   k;
 
+    reg [31:0] shm_i2c_c0_data;
+    reg [31:0] shm_i2c_c1_data;
+    reg [31:0] shm_i2c_c1_arb_lost;
+    reg [31:0] shm_i2c_c1_blocked;
+
     initial begin
         host_scl           = 1'b1;
         host_sda_drive_low = 1'b0;
@@ -329,6 +346,15 @@ module tb_soc;
         $display("  shm_ipi_ping_pong  = %0d          (Expected: 4)", shm_ipi_ping_pong);
         $display("  rpt_wr_ptr / rd_ptr= %0d / %0d    (Expected: 32 / 32)", dbg_rpt_wr_ptr, dbg_rpt_rd_ptr);
         $display("  rpt_checksum_match = 0x%02x == 0x%02x", rpt_calc_csum, rpt_expected_csum);
+        shm_i2c_c0_data       = u_soc.u_shared_sram.mem[42];
+        shm_i2c_c1_data       = u_soc.u_shared_sram.mem[43];
+        shm_i2c_c1_arb_lost   = u_soc.u_shared_sram.mem[44];
+        shm_i2c_c1_blocked    = u_soc.u_shared_sram.mem[45];
+
+        $display("  i2c_c0_data        = 0x%02x       (Expected: 0xAA)", shm_i2c_c0_data);
+        $display("  i2c_c1_data        = 0x%02x       (Expected: 0x55)", shm_i2c_c1_data);
+        $display("  i2c_c1_arb_lost    = %0d          (Expected: >=1)", shm_i2c_c1_arb_lost);
+        $display("  i2c_c1_blocked     = %0d          (Expected: >=1)", shm_i2c_c1_blocked);
         $display("==================================================================");
 
         if (sim_done_flags == 32'h0000_0003 &&
@@ -338,8 +364,12 @@ module tb_soc;
             shm_ipi_ping_pong == 32'd4 &&
             dbg_rpt_rd_ptr == 8'd32 &&
             rpt_calc_csum == rpt_expected_csum &&
-            b1_sig0 == 8'hB1 && b1_reg0f == 8'hA5) begin
-            $display("[Verilog TB] >>> ALL VERILOG SOC + I2C REGBANK + REPORT BUFFER CHECKS PASSED! <<<");
+            b1_sig0 == 8'hB1 && b1_reg0f == 8'hA5 &&
+            shm_i2c_c0_data == 32'hAA &&
+            shm_i2c_c1_data == 32'h55 &&
+            shm_i2c_c1_arb_lost >= 1 &&
+            shm_i2c_c1_blocked >= 1) begin
+            $display("[Verilog TB] >>> ALL VERILOG SOC + I2C ARBITRATION + REGBANK CHECKS PASSED! <<<");
         end else begin
             $display("[Verilog TB] >>> ERROR: VERILOG SOC CHECK FAILED! <<<");
             $fatal(1);

@@ -63,3 +63,16 @@ tb_soc.core0_instr[31:0]
 tb_soc.core1_pc[31:0]
 tb_soc.core1_instr[31:0]
 tb_soc.sim_done_flags[31:0]
+@200
+-Dual-Master I2C Bus & Multi-Master Arbitration
+@28
+tb_soc.dbg_i2c_bus_scl
+tb_soc.dbg_i2c_bus_sda
+tb_soc.dbg_i2c_bus_busy
+tb_soc.dbg_i2c0_arb_lost
+tb_soc.dbg_i2c1_arb_lost
+@22
+tb_soc.u_soc.u_i2c0.state[3:0]
+tb_soc.u_soc.u_i2c1.state[3:0]
+tb_soc.u_soc.u_i2c_slave.state[3:0]
+tb_soc.u_soc.u_i2c_slave.reg_addr[6:0]

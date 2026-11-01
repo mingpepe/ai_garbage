@@ -3,6 +3,7 @@
 #include "../common/spinlock.h"
 #include "../common/ipi.h"
 #include "../common/uart.h"
+#include "../common/i2c.h"
 
 // ============================================================================
 // Core 1 Machine Software Interrupt (IPI) Handler
@@ -81,7 +82,78 @@ int main(void) {
 
     uart_log_msg(hart_id, "All Spinlock & IPI tasks finished!");
 
-    // 6. Signal Core 1 simulation complete
+    // ------------------------------------------------------------------------
+    // 6. Dual-Core I2C Multi-Master Arbitration Test
+    // ------------------------------------------------------------------------
+    uart_log_msg(hart_id, "Starting Dual-Core I2C Multi-Master Arbitration Test...");
+    i2c_init(I2C1_BASE, 4);
+
+    // Wait for Core 0 to write to slave reg 0x10
+    while (SHM->i2c_sync_stage != 1UL) {
+        cpu_fence();
+    }
+
+    // Write test value 0x55 to slave reg 0x20
+    i2c_write_slave_reg(I2C1_BASE, 0x50, 0x20, 0x55);
+    uart_log_msg(hart_id, "Wrote 0x55 to Slave Reg 0x20 via I2C1");
+
+    // Signal Core 0 that write is done
+    SHM->i2c_sync_stage = 2UL;
+    cpu_fence();
+
+    // Wait for Core 0 to set target cycle
+    while (SHM->i2c_sync_stage != 3UL) {
+        cpu_fence();
+    }
+
+    // Synchronize to exact target cycle
+    while ((int32_t)(SHM->i2c_sync_target - REG_CYCLE_COUNTER) > 0) {
+        // tight wait
+    }
+
+    // Concurrent access: Core 1 attempts to read reg 0x20: S id write address(0x20) S id read data P
+    uint8_t c1_rx = 0;
+    int ret1 = i2c_read_slave_reg(I2C1_BASE, 0x50, 0x20, &c1_rx);
+
+    if (ret1 < 0) {
+        SHM->i2c_c1_arb_lost_cnt++;
+
+        // Verify: While bus is busy and unowned, FW CANNOT issue START!
+        if (i2c_is_bus_busy(I2C1_BASE)) {
+            int st_res = i2c_send_start(I2C1_BASE);
+            uint32_t st = i2c_get_status(I2C1_BASE);
+            if ((st & I2C_STATUS_START_BLOCKED) || st_res < 0) {
+                SHM->i2c_c1_blocked_cnt++;
+            }
+        }
+
+        uart_log_msg(hart_id, ">>> ARBITRATION LOST DETECTED ON I2C BUS! <<<");
+        if (SHM->i2c_c1_blocked_cnt > 0) {
+            uart_log_msg(hart_id, "Verified: START blocked because bus is busy!");
+        }
+
+        // User requirement: "並且發生後 fw 應該要 polling until bus not busy 才能繼續讀寫"
+        uart_log_msg(hart_id, "Polling I2C bus until not busy...");
+        while (i2c_is_bus_busy(I2C1_BASE)) {
+            // Polling until bus not busy!
+        }
+        uart_log_msg(hart_id, "Bus is now FREE! Retrying I2C transaction...");
+
+        // Retry the read now that bus is free
+        i2c_clear_flags(I2C1_BASE);
+        ret1 = i2c_read_slave_reg(I2C1_BASE, 0x50, 0x20, &c1_rx);
+        if (ret1 == 0) {
+            SHM->i2c_c1_data = (uint32_t)c1_rx;
+            uart_log_key_hex(hart_id, "I2C read success after retry! Read addr 0x20 = ", c1_rx);
+        } else {
+            uart_log_msg(hart_id, "Error: Retry failed!");
+        }
+    } else {
+        uart_log_msg(hart_id, "Warning: Core 1 did not lose arbitration!");
+        SHM->i2c_c1_data = (uint32_t)c1_rx;
+    }
+
+    // 7. Signal Core 1 simulation complete
     REG_SIM_DONE_FLAGS = SIM_CORE1_DONE;
     return 0;
 }

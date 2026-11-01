@@ -18,6 +18,7 @@ public sealed class SoCBus
     public const uint ClintBase     = 0x2000_0000;
     public const uint UartBase      = 0x3000_0000;
     public const uint RegBankBase   = 0x4000_0000;
+    public const uint I2cBase       = 0x5000_0000;
     public const int  MemSizeBytes  = 16 * 1024; // 16 KB (4096 words)
 
     private readonly byte[] _sramCore0 = new byte[MemSizeBytes];
@@ -26,6 +27,9 @@ public sealed class SoCBus
 
     // Dual Register Bank (2x0x7F), Report Buffer (0x0F Port), Host-vs-FW Arbiter & I2C Slave
     public readonly I2cRegBankSubsystem RegBankSubsys = new();
+
+    // Dual I2C Master Controllers & I2C Slave Memory Subsystem
+    public readonly DualI2cSubsystem I2cSubsys = new();
 
     // Dedicated locks for thread-safe bus & atomic shared memory access across the 2 core threads
     private readonly object _sram0Lock = new();
@@ -172,6 +176,10 @@ public sealed class SoCBus
             case 0x4000: // Dual Register Bank (2x0x7F) & Report Buffer (arbitrated with Host I2C)
                 return RegBankSubsys.FwRead((ushort)(addr & 0xFFFFu), sizeBytes);
 
+            case 0x5000: // Dual I2C Master Controllers (0x5000_0000: I2C0, 0x5000_1000: I2C1)
+                int rMasterId = ((addr & 0x1000u) != 0) ? 1 : 0;
+                return I2cSubsys.Read(rMasterId, addr & 0xFFu);
+
             default:
                 return 0;
         }
@@ -227,6 +235,11 @@ public sealed class SoCBus
 
             case 0x4000: // Dual Register Bank (2x0x7F) & Report Buffer (arbitrated with Host I2C)
                 RegBankSubsys.FwWrite((ushort)(addr & 0xFFFFu), value);
+                break;
+
+            case 0x5000: // Dual I2C Master Controllers (0x5000_0000: I2C0, 0x5000_1000: I2C1)
+                int wMasterId = ((addr & 0x1000u) != 0) ? 1 : 0;
+                I2cSubsys.Write(wMasterId, addr & 0xFFu, value, this);
                 break;
         }
     }

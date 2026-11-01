@@ -86,6 +86,24 @@ module soc_interconnect (
     input  wire        regbank_ready,
     input  wire [31:0] regbank_rdata,
 
+    // ------------------------ Slave 6: I2C0 Master (0x5000_0000) -------
+    output reg         i2c0_req,
+    output reg         i2c0_we,
+    output reg  [3:0]  i2c0_wstrb,
+    output reg  [7:0]  i2c0_addr,
+    output reg  [31:0] i2c0_wdata,
+    input  wire        i2c0_ready,
+    input  wire [31:0] i2c0_rdata,
+
+    // ------------------------ Slave 7: I2C1 Master (0x5000_1000) -------
+    output reg         i2c1_req,
+    output reg         i2c1_we,
+    output reg  [3:0]  i2c1_wstrb,
+    output reg  [7:0]  i2c1_addr,
+    output reg  [31:0] i2c1_wdata,
+    input  wire        i2c1_ready,
+    input  wire [31:0] i2c1_rdata,
+
     // ------------------------ Waveform Debug Signals -------------------
     output wire        dbg_shm_grant_c0,
     output wire        dbg_shm_grant_c1,
@@ -101,7 +119,9 @@ module soc_interconnect (
     wire m0_sel_clint   = m0_req && (m0_addr[31:16] == 16'h2000);
     wire m0_sel_uart    = m0_req && (m0_addr[31:16] == 16'h3000);
     wire m0_sel_regbank = m0_req && (m0_addr[31:16] == 16'h4000);
-    wire m0_sel_shared_bus = m0_sel_shm || m0_sel_clint || m0_sel_uart || m0_sel_regbank;
+    wire m0_sel_i2c0    = m0_req && (m0_addr[31:16] == 16'h5000) && (m0_addr[12] == 1'b0);
+    wire m0_sel_i2c1    = m0_req && (m0_addr[31:16] == 16'h5000) && (m0_addr[12] == 1'b1);
+    wire m0_sel_shared_bus = m0_sel_shm || m0_sel_clint || m0_sel_uart || m0_sel_regbank || m0_sel_i2c0 || m0_sel_i2c1;
 
     // Address decoding for Master 1
     wire m1_sel_sram0   = m1_req && (m1_addr[31:16] == 16'h0000);
@@ -110,7 +130,9 @@ module soc_interconnect (
     wire m1_sel_clint   = m1_req && (m1_addr[31:16] == 16'h2000);
     wire m1_sel_uart    = m1_req && (m1_addr[31:16] == 16'h3000);
     wire m1_sel_regbank = m1_req && (m1_addr[31:16] == 16'h4000);
-    wire m1_sel_shared_bus = m1_sel_shm || m1_sel_clint || m1_sel_uart || m1_sel_regbank;
+    wire m1_sel_i2c0    = m1_req && (m1_addr[31:16] == 16'h5000) && (m1_addr[12] == 1'b0);
+    wire m1_sel_i2c1    = m1_req && (m1_addr[31:16] == 16'h5000) && (m1_addr[12] == 1'b1);
+    wire m1_sel_shared_bus = m1_sel_shm || m1_sel_clint || m1_sel_uart || m1_sel_regbank || m1_sel_i2c0 || m1_sel_i2c1;
 
     // Round-robin priority bit for shared bus resources (0 = Core 0 priority, 1 = Core 1 priority)
     reg rr_prio;
@@ -122,9 +144,9 @@ module soc_interconnect (
         if (!rst_n) begin
             rr_prio <= 1'b0;
         end else begin
-            if (grant_shared_m0 && (!m0_sel_regbank || regbank_ready))
+            if (grant_shared_m0 && (!m0_sel_regbank || regbank_ready) && (!m0_sel_i2c0 || i2c0_ready) && (!m0_sel_i2c1 || i2c1_ready))
                 rr_prio <= 1'b1;
-            else if (grant_shared_m1 && (!m1_sel_regbank || regbank_ready))
+            else if (grant_shared_m1 && (!m1_sel_regbank || regbank_ready) && (!m1_sel_i2c0 || i2c0_ready) && (!m1_sel_i2c1 || i2c1_ready))
                 rr_prio <= 1'b0;
         end
     end
@@ -302,6 +324,20 @@ module soc_interconnect (
         regbank_addr  = grant_shared_m1 ? m1_addr[15:0]  : m0_addr[15:0];
         regbank_wdata = grant_shared_m1 ? m1_wdata       : m0_wdata;
 
+        // Slave 6: I2C0 Master (0x5000_0000)
+        i2c0_req   = (grant_shared_m0 && m0_sel_i2c0) || (grant_shared_m1 && m1_sel_i2c0);
+        i2c0_we    = grant_shared_m1 ? m1_we         : m0_we;
+        i2c0_wstrb = grant_shared_m1 ? m1_wstrb      : m0_wstrb;
+        i2c0_addr  = grant_shared_m1 ? m1_addr[7:0]  : m0_addr[7:0];
+        i2c0_wdata = grant_shared_m1 ? m1_wdata      : m0_wdata;
+
+        // Slave 7: I2C1 Master (0x5000_1000)
+        i2c1_req   = (grant_shared_m0 && m0_sel_i2c1) || (grant_shared_m1 && m1_sel_i2c1);
+        i2c1_we    = grant_shared_m1 ? m1_we         : m0_we;
+        i2c1_wstrb = grant_shared_m1 ? m1_wstrb      : m0_wstrb;
+        i2c1_addr  = grant_shared_m1 ? m1_addr[7:0]  : m0_addr[7:0];
+        i2c1_wdata = grant_shared_m1 ? m1_wdata      : m0_wdata;
+
         // Master 0 response
         m0_ready = 1'b0;
         m0_rdata = 32'h0000_0000;
@@ -324,6 +360,12 @@ module soc_interconnect (
             end else if (m0_sel_regbank) begin
                 m0_ready = regbank_ready;
                 m0_rdata = regbank_rdata;
+            end else if (m0_sel_i2c0) begin
+                m0_ready = i2c0_ready;
+                m0_rdata = i2c0_rdata;
+            end else if (m0_sel_i2c1) begin
+                m0_ready = i2c1_ready;
+                m0_rdata = i2c1_rdata;
             end
         end
 
@@ -349,6 +391,12 @@ module soc_interconnect (
             end else if (m1_sel_regbank) begin
                 m1_ready = regbank_ready;
                 m1_rdata = regbank_rdata;
+            end else if (m1_sel_i2c0) begin
+                m1_ready = i2c0_ready;
+                m1_rdata = i2c0_rdata;
+            end else if (m1_sel_i2c1) begin
+                m1_ready = i2c1_ready;
+                m1_rdata = i2c1_rdata;
             end
         end
     end

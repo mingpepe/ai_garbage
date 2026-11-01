@@ -170,6 +170,10 @@ public static class Program
         uint ipiPingPong   = bus.ReadSharedWord(0x0C);
         byte rptWrPtr      = bus.RegBankSubsys.RptWrPtr;
         byte rptRdPtr      = bus.RegBankSubsys.RptRdPtr;
+        uint i2cC0Data     = bus.ReadSharedWord(0xA8);
+        uint i2cC1Data     = bus.ReadSharedWord(0xAC);
+        uint i2cC1ArbLost  = bus.ReadSharedWord(0xB0);
+        uint i2cC1Blocked  = bus.ReadSharedWord(0xB4);
 
         Console.WriteLine("==================================================================");
         Console.WriteLine($"[C# SoC] Simulation Finished (Core0 instret={core0.CsrMinstret}, Core1 instret={core1.CsrMinstret})");
@@ -181,6 +185,10 @@ public static class Program
         Console.WriteLine($"  rpt_wr_ptr / rd_ptr= {rptWrPtr} / {rptRdPtr,-5} (Expected: 32 / 32)");
         Console.WriteLine($"  rpt_checksum_match = 0x{hostApp.CalculatedChecksum:x2} == 0x{hostApp.ExpectedChecksum:x2}");
         Console.WriteLine($"  regbank_arb_access = FW:{bus.RegBankSubsys.FwAccessCount}, HostI2C:{bus.RegBankSubsys.HostAccessCount}");
+        Console.WriteLine($"  i2c_c0_data        = 0x{i2cC0Data:x2}       (Expected: 0xAA)");
+        Console.WriteLine($"  i2c_c1_data        = 0x{i2cC1Data:x2}       (Expected: 0x55)");
+        Console.WriteLine($"  i2c_c1_arb_lost    = {i2cC1ArbLost,-10} (Expected: >=1)");
+        Console.WriteLine($"  i2c_c1_blocked     = {i2cC1Blocked,-10} (Expected: >=1)");
         Console.WriteLine("==================================================================");
 
         if (doneFlags == 0x0000_0003u &&
@@ -190,9 +198,13 @@ public static class Program
             ipiPingPong == 4u &&
             rptWrPtr == 32 &&
             rptRdPtr == 32 &&
-            hostApp.ReportVerified)
+            hostApp.ReportVerified &&
+            i2cC0Data == 0xAAu &&
+            i2cC1Data == 0x55u &&
+            i2cC1ArbLost >= 1u &&
+            i2cC1Blocked >= 1u)
         {
-            Console.WriteLine("[C# SoC] >>> ALL C# SOC + I2C REGBANK + REPORT BUFFER CHECKS PASSED (IDENTICAL TO VERILOG)! <<<");
+            Console.WriteLine("[C# SoC] >>> ALL C# SOC + I2C ARBITRATION + REGBANK CHECKS PASSED (IDENTICAL TO VERILOG)! <<<");
             return 0;
         }
         else

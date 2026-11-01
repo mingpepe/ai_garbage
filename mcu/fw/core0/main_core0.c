@@ -3,6 +3,7 @@
 #include "../common/spinlock.h"
 #include "../common/ipi.h"
 #include "../common/uart.h"
+#include "../common/i2c.h"
 
 // ============================================================================
 // Core 0 Machine Software Interrupt (IPI) Handler
@@ -198,10 +199,59 @@ int main(void) {
     uart_log_key_val(hart_id, "IPI Ping-Pong complete! Total hops = ", SHM->ipi_ping_pong);
     uart_log_key_val(hart_id, "Final Shared Counter = ", SHM->shared_counter);
 
-    // 8. Populate Register Banks (Bank 0 & Bank 1), fill Report Buffer & notify Host!
+    // ------------------------------------------------------------------------
+    // 8. Dual-Core I2C Multi-Master Arbitration Test
+    // ------------------------------------------------------------------------
+    uart_log_msg(hart_id, "Starting Dual-Core I2C Multi-Master Arbitration Test...");
+    i2c_init(I2C0_BASE, 4);
+
+    // Write test value 0xAA to slave reg 0x10 using protocol: S id write address data P
+    i2c_write_slave_reg(I2C0_BASE, 0x50, 0x10, 0xAA);
+    uart_log_msg(hart_id, "Wrote 0xAA to Slave Reg 0x10 via I2C0");
+
+    // Signal Core 1 to write its value to slave
+    SHM->i2c_sync_stage = 1UL;
+    cpu_fence();
+
+    // Wait for Core 1 to write 0x55 to slave reg 0x20
+    while (SHM->i2c_sync_stage != 2UL) {
+        cpu_fence();
+    }
+
+    // Schedule concurrent read from slave:
+    // Core 0 reads reg 0x10 (0001_0000)
+    // Core 1 reads reg 0x20 (0010_0000) -> will lose arbitration on bit 5!
+    uint32_t target_cycle = REG_CYCLE_COUNTER + 250UL;
+    SHM->i2c_sync_target = target_cycle;
+    cpu_fence();
+    SHM->i2c_sync_stage = 3UL;
+    cpu_fence();
+
+    // Synchronize to exact target cycle
+    while ((int32_t)(SHM->i2c_sync_target - REG_CYCLE_COUNTER) > 0) {
+        // tight wait
+    }
+
+    // Core 0 initiates read: S id write address(0x10) S id read data(8bit) P
+    uint8_t c0_rx = 0;
+    int ret0 = i2c_read_slave_reg(I2C0_BASE, 0x50, 0x10, &c0_rx);
+    if (ret0 == 0) {
+        SHM->i2c_c0_data = (uint32_t)c0_rx;
+        uart_log_key_hex(hart_id, "I2C transfer complete! Read addr 0x10 = ", c0_rx);
+    } else {
+        uart_log_msg(hart_id, "Error: Core 0 unexpectedly lost I2C transfer!");
+    }
+
+    // Wait for Core 1 to detect arbitration lost, poll bus free, retry and finish
+    while (SHM->i2c_c1_data != 0x55UL) {
+        cpu_fence();
+    }
+    uart_log_msg(hart_id, "Dual-Core I2C Arbitration Test Verified Successfully!");
+
+    // 9. Populate Register Banks (Bank 0 & Bank 1), fill Report Buffer & notify Host!
     fw_publish_report_to_host(hart_id);
 
-    // 9. Signal Core 0 simulation complete
+    // 10. Signal Core 0 simulation complete
     REG_SIM_DONE_FLAGS = SIM_CORE0_DONE;
     return 0;
 }

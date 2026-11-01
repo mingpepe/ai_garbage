@@ -61,4 +61,18 @@ static inline void uart_log_key_val(uint32_t core_id, const char *msg, uint32_t 
     spin_unlock(&SHM->uart_lock);
 }
 
+static inline void uart_log_key_hex(uint32_t core_id, const char *msg, uint32_t val) {
+    const char *hex = "0123456789ABCDEF";
+    spin_lock(&SHM->uart_lock);
+    uart_puts("[Core");
+    uart_putc((char)('0' + core_id));
+    uart_puts("] ");
+    uart_puts(msg);
+    uart_puts("0x");
+    uart_putc(hex[(val >> 4) & 0xF]);
+    uart_putc(hex[val & 0xF]);
+    uart_putc('\n');
+    spin_unlock(&SHM->uart_lock);
+}
+
 #endif // UART_H

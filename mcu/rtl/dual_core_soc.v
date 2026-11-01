@@ -53,7 +53,14 @@ module dual_core_soc #(
     output wire [7:0]  dbg_rpt_rd_ptr,
     output wire [7:0]  dbg_rpt_status,
     output wire [7:0]  dbg_rpt_len,
-    output wire [31:0] dbg_arb_conflict_cnt
+    output wire [31:0] dbg_arb_conflict_cnt,
+
+    // Dual-Master I2C Bus & Arbitration Debug Outputs
+    output wire        dbg_i2c_bus_scl,
+    output wire        dbg_i2c_bus_sda,
+    output wire        dbg_i2c0_arb_lost,
+    output wire        dbg_i2c1_arb_lost,
+    output wire        dbg_i2c_bus_busy
 );
 
     // Master 0 (Core 0) bus signals
@@ -103,6 +110,29 @@ module dual_core_soc #(
     wire [3:0]  regbank_wstrb;
     wire [15:0] regbank_addr;
     wire [31:0] regbank_wdata, regbank_rdata;
+
+    // Slave 6: I2C0 Master signals
+    wire        i2c0_req, i2c0_we, i2c0_ready;
+    wire [3:0]  i2c0_wstrb;
+    wire [7:0]  i2c0_addr;
+    wire [31:0] i2c0_wdata, i2c0_rdata;
+
+    // Slave 7: I2C1 Master signals
+    wire        i2c1_req, i2c1_we, i2c1_ready;
+    wire [3:0]  i2c1_wstrb;
+    wire [7:0]  i2c1_addr;
+    wire [31:0] i2c1_wdata, i2c1_rdata;
+
+    // I2C Open-Drain Bus Wires
+    wire        i2c0_scl_oe, i2c0_sda_oe;
+    wire        i2c1_scl_oe, i2c1_sda_oe;
+    wire        slave_scl_oe, slave_sda_oe;
+
+    wire        i2c_bus_scl = !(i2c0_scl_oe || i2c1_scl_oe || slave_scl_oe);
+    wire        i2c_bus_sda = !(i2c0_sda_oe || i2c1_sda_oe || slave_sda_oe);
+
+    assign dbg_i2c_bus_scl = i2c_bus_scl;
+    assign dbg_i2c_bus_sda = i2c_bus_sda;
 
     // Boot & IPI control wires
     wire        core0_boot_en;
@@ -232,6 +262,20 @@ module dual_core_soc #(
         .regbank_wdata    (regbank_wdata),
         .regbank_ready    (regbank_ready),
         .regbank_rdata    (regbank_rdata),
+        .i2c0_req         (i2c0_req),
+        .i2c0_we          (i2c0_we),
+        .i2c0_wstrb       (i2c0_wstrb),
+        .i2c0_addr        (i2c0_addr),
+        .i2c0_wdata       (i2c0_wdata),
+        .i2c0_ready       (i2c0_ready),
+        .i2c0_rdata       (i2c0_rdata),
+        .i2c1_req         (i2c1_req),
+        .i2c1_we          (i2c1_we),
+        .i2c1_wstrb       (i2c1_wstrb),
+        .i2c1_addr        (i2c1_addr),
+        .i2c1_wdata       (i2c1_wdata),
+        .i2c1_ready       (i2c1_ready),
+        .i2c1_rdata       (i2c1_rdata),
         .dbg_shm_grant_c0 (dbg_shm_grant_c0),
         .dbg_shm_grant_c1 (dbg_shm_grant_c1),
         .dbg_amo_active   (dbg_amo_active),
@@ -378,5 +422,78 @@ module dual_core_soc #(
             endcase
         end
     end
+
+    // ========================================================================
+    // Dual I2C Master Controllers & I2C Slave Memory Subsystem (@ 0x5000_0000)
+    // ========================================================================
+    wire [3:0] dbg_i2c0_state, dbg_i2c1_state, dbg_slave_state;
+    wire       dbg_i2c0_tip, dbg_i2c1_tip;
+    wire       dbg_i2c0_owned, dbg_i2c1_owned;
+    wire       dbg_i2c0_blocked, dbg_i2c1_blocked;
+    wire [6:0] dbg_slave_reg_addr;
+    wire [7:0] dbg_slave_data;
+
+    i2c_master #(
+        .DEFAULT_CLK_DIV(8'd4)
+    ) u_i2c0 (
+        .clk               (clk),
+        .rst_n             (rst_n),
+        .req               (i2c0_req),
+        .we                (i2c0_we),
+        .wstrb             (i2c0_wstrb),
+        .addr              (i2c0_addr),
+        .wdata             (i2c0_wdata),
+        .ready             (i2c0_ready),
+        .rdata             (i2c0_rdata),
+        .scl_in            (i2c_bus_scl),
+        .scl_oe            (i2c0_scl_oe),
+        .sda_in            (i2c_bus_sda),
+        .sda_oe            (i2c0_sda_oe),
+        .dbg_state         (dbg_i2c0_state),
+        .dbg_tip           (dbg_i2c0_tip),
+        .dbg_bus_busy      (dbg_i2c_bus_busy),
+        .dbg_bus_owned     (dbg_i2c0_owned),
+        .dbg_arb_lost      (dbg_i2c0_arb_lost),
+        .dbg_start_blocked (dbg_i2c0_blocked)
+    );
+
+    i2c_master #(
+        .DEFAULT_CLK_DIV(8'd4)
+    ) u_i2c1 (
+        .clk               (clk),
+        .rst_n             (rst_n),
+        .req               (i2c1_req),
+        .we                (i2c1_we),
+        .wstrb             (i2c1_wstrb),
+        .addr              (i2c1_addr),
+        .wdata             (i2c1_wdata),
+        .ready             (i2c1_ready),
+        .rdata             (i2c1_rdata),
+        .scl_in            (i2c_bus_scl),
+        .scl_oe            (i2c1_scl_oe),
+        .sda_in            (i2c_bus_sda),
+        .sda_oe            (i2c1_sda_oe),
+        .dbg_state         (dbg_i2c1_state),
+        .dbg_tip           (dbg_i2c1_tip),
+        .dbg_bus_busy      (),
+        .dbg_bus_owned     (dbg_i2c1_owned),
+        .dbg_arb_lost      (dbg_i2c1_arb_lost),
+        .dbg_start_blocked (dbg_i2c1_blocked)
+    );
+
+    i2c_slave_mem #(
+        .SLAVE_ADDR(7'h50),
+        .MEM_SIZE  (128)
+    ) u_i2c_slave (
+        .clk                (clk),
+        .rst_n              (rst_n),
+        .scl_in             (i2c_bus_scl),
+        .scl_oe             (slave_scl_oe),
+        .sda_in             (i2c_bus_sda),
+        .sda_oe             (slave_sda_oe),
+        .dbg_slave_state    (dbg_slave_state),
+        .dbg_slave_reg_addr (dbg_slave_reg_addr),
+        .dbg_slave_data     (dbg_slave_data)
+    );
 
 endmodule

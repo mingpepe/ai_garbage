@@ -26,6 +26,27 @@
 | `0x3000_0000` - `0x3000_0FFF` | 4 KB | `UART / Trace` | **UART Console 輸出** (`0x3000_0000`) 與 `REG_DBG_TRACE` (`0x3000_0008`) |
 | `0x4000_0000` - `0x4000_007F` | 128 B | `u_regbank_subsys` | **雙 Register Bank 視窗** (`0x00..0x7E` 為當前 Bank 暫存器，`0x7F` 為切 Bank) |
 | `0x4000_1000` - `0x4000_10FF` | 256 B | `u_regbank_subsys` | **Report Buffer 記憶體視窗** (供 FW 寫入大塊 Report 資料) |
+| `0x5000_0000` - `0x5000_0FFF` | 4 KB | `u_i2c0` | **Core 0 專屬 I2C Master 控制器** (支援 Multi-Master Arbitration、Bus Busy 防發 Start、Repeat Start) |
+| `0x5000_1000` - `0x5000_1FFF` | 4 KB | `u_i2c1` | **Core 1 專屬 I2C Master 控制器** (支援 Multi-Master Arbitration、Bus Busy 防發 Start、Repeat Start) |
+
+---
+
+## 雙核心 I2C Multi-Master 仲裁 (Arbitration) 與 I2C Slave 通訊協定
+
+本專案於 SoC 內建兩組 I2C Master 控制器 (`u_i2c0`, `u_i2c1`) 與一組 I2C Slave 記憶體 (`u_i2c_slave`)：
+1. **I2C Slave 通訊協定 (Protocol)**：
+   - 7-bit Slave Address: `0x50`
+   - **讀取協定**：`S [id+W] [addr(7-bit)] S [id+R] [data(8-bit)] P`（發送 Repeated START `S`，支援自由讀寫 Slave 128 bytes 記憶體空間）
+   - **寫入協定**：`S [id+W] [addr(7-bit)] [data(8-bit)] P`
+2. **硬體 Bus Busy 互鎖與 Repeat Start**：
+   - **Bus Busy 防發 START**：當硬體偵測到 I2C 匯流排處於 Busy（非本 Master 所發出的 START），FW 嘗試寫入 `CMD_START` 會被硬體**即刻攔截阻止**，不拉低 SCL/SDA，並設定 `STATUS_START_BLOCKED` 與 `STATUS_ARB_LOST` 標誌。
+   - **Repeat Start 允許**：若 Bus Busy 是由**本 Master 自己佔著 (Bus Owned)**，則允許發出 **Repeated START**，順利完成隨機位址讀取協定。
+3. **雙核心同時存取與仲裁丟失 (Arbitration Lost)**：
+   - Core 0 與 Core 1 分別透過 I2C0 與 I2C1 同步存取同一個 Slave (`0x50`)。
+   - Core 0 存取暫存器 `0x10` (`0001_0000`)，Core 1 存取暫存器 `0x20` (`0010_0000`)。
+   - 在位址第 5 bit，Core 0 輸出 0（拉低 SDA），Core 1 釋放 1（SDA 應為高電位但感測到低電位）→ **Core 1 硬體即刻判定仲裁丟失 (Arbitration Lost)**，立刻釋放 SCL/SDA 並設 `STATUS_ARB_LOST=1`。
+   - Core 0 贏得仲裁繼續發出 Repeated START 並讀回 `0xAA`。
+   - Core 1 FW 偵測到仲裁丟失後，驗證 Busy 期間無法發 START，接著**進入 Polling 迴圈等待 `STATUS_BUS_BUSY == 0`**；待 Core 0 發出 STOP 釋放匯流排後，Core 1 成功重試讀回 `0x55`！
 
 ---
 
