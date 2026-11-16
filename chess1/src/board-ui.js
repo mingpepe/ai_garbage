@@ -17,6 +17,9 @@ export class BoardUI {
     this.stalemateSquare = null; // e.g. 'h8'
     this.tutorialHint = null; // { from, to }
 
+    this.customArrows = [];
+    this.customHighlights = [];
+
     this.draggedPiece = null;
     this.dragSourceSquare = null;
 
@@ -72,6 +75,26 @@ export class BoardUI {
   setTutorialHint(from, to) {
     this.tutorialHint = (from && to) ? { from, to } : null;
     this.renderOverlay();
+    this.updateHighlights();
+  }
+
+  setCustomArrows(arrows) {
+    this.customArrows = Array.isArray(arrows) ? arrows : [];
+    this.renderOverlay();
+  }
+
+  clearCustomArrows() {
+    this.customArrows = [];
+    this.renderOverlay();
+  }
+
+  setCustomHighlights(highlights) {
+    this.customHighlights = Array.isArray(highlights) ? highlights : [];
+    this.updateHighlights();
+  }
+
+  clearCustomHighlights() {
+    this.customHighlights = [];
     this.updateHighlights();
   }
 
@@ -142,7 +165,11 @@ export class BoardUI {
     // Clear all special classes
     const allSquares = this.gridEl.querySelectorAll('.board-square');
     allSquares.forEach(sq => {
-      sq.classList.remove('selected', 'legal-dest', 'legal-capture', 'legal-castle', 'last-move', 'in-check', 'in-stalemate', 'tutorial-source', 'tutorial-target');
+      sq.classList.remove(
+        'selected', 'legal-dest', 'legal-capture', 'legal-castle', 'last-move',
+        'in-check', 'in-stalemate', 'tutorial-source', 'tutorial-target',
+        'coach-attack', 'coach-defense', 'coach-threat', 'coach-best'
+      );
       const dot = sq.querySelector('.move-indicator');
       if (dot) dot.remove();
     });
@@ -203,51 +230,85 @@ export class BoardUI {
         }
       });
     }
+
+    // Coach custom highlights
+    if (this.customHighlights && this.customHighlights.length > 0) {
+      this.customHighlights.forEach(h => {
+        const hEl = this.gridEl.querySelector(`[data-square="${h.square}"]`);
+        if (hEl) {
+          hEl.classList.add(`coach-${h.type}`);
+        }
+      });
+    }
   }
 
   renderOverlay() {
     if (!this.overlayEl) return;
     this.overlayEl.innerHTML = '';
 
-    // Draw arrow for tutorial hint if present
+    const arrows = [];
     if (this.tutorialHint) {
-      this.drawArrow(this.tutorialHint.from, this.tutorialHint.to, '#22c55e');
+      arrows.push({ from: this.tutorialHint.from, to: this.tutorialHint.to, color: '#22c55e', width: 6 });
     }
+    if (this.customArrows && this.customArrows.length > 0) {
+      arrows.push(...this.customArrows);
+    }
+
+    if (arrows.length === 0) return;
+
+    const gridRect = this.gridEl.getBoundingClientRect();
+    if (gridRect.width === 0 || gridRect.height === 0) return;
+
+    // Collect unique colors for marker defs
+    const uniqueColors = [...new Set(arrows.map(a => a.color || '#22c55e'))];
+    let defsHtml = '<defs>';
+    uniqueColors.forEach(color => {
+      const markerId = `arrow-head-${color.replace('#', '')}`;
+      defsHtml += `
+        <marker id="${markerId}" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
+          <polygon points="0 1, 7 4, 0 7" fill="${color}" opacity="0.88" />
+        </marker>
+      `;
+    });
+    defsHtml += '</defs>';
+
+    let linesHtml = '';
+    arrows.forEach(arr => {
+      const fromEl = this.gridEl.querySelector(`[data-square="${arr.from}"]`);
+      const toEl = this.gridEl.querySelector(`[data-square="${arr.to}"]`);
+      if (!fromEl || !toEl) return;
+
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+
+      const x1 = fromRect.left - gridRect.left + fromRect.width / 2;
+      const y1 = fromRect.top - gridRect.top + fromRect.height / 2;
+      const x2 = toRect.left - gridRect.left + toRect.width / 2;
+      const y2 = toRect.top - gridRect.top + toRect.height / 2;
+
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const shorten = 18;
+      const endX = x2 - shorten * Math.cos(angle);
+      const endY = y2 - shorten * Math.sin(angle);
+
+      const color = arr.color || '#22c55e';
+      const markerId = `arrow-head-${color.replace('#', '')}`;
+      const width = arr.width || 6;
+      const opacity = arr.opacity || 0.82;
+
+      linesHtml += `
+        <line x1="${x1}" y1="${y1}" x2="${endX}" y2="${endY}" 
+              stroke="${color}" stroke-width="${width}" stroke-linecap="round" opacity="${opacity}"
+              marker-end="url(#${markerId})" />
+      `;
+    });
+
+    this.overlayEl.innerHTML = defsHtml + linesHtml;
   }
 
   drawArrow(fromSquare, toSquare, color = '#22c55e') {
-    const fromEl = this.gridEl.querySelector(`[data-square="${fromSquare}"]`);
-    const toEl = this.gridEl.querySelector(`[data-square="${toSquare}"]`);
-    if (!fromEl || !toEl) return;
-
-    const gridRect = this.gridEl.getBoundingClientRect();
-    const fromRect = fromEl.getBoundingClientRect();
-    const toRect = toEl.getBoundingClientRect();
-
-    const x1 = fromRect.left - gridRect.left + fromRect.width / 2;
-    const y1 = fromRect.top - gridRect.top + fromRect.height / 2;
-    const x2 = toRect.left - gridRect.left + toRect.width / 2;
-    const y2 = toRect.top - gridRect.top + toRect.height / 2;
-
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const arrowHeadLen = 14;
-    const shorten = 18; // shorten so it doesn't cover center of target square
-
-    const endX = x2 - shorten * Math.cos(angle);
-    const endY = y2 - shorten * Math.sin(angle);
-
-    const markerId = `arrow-head-${color.replace('#', '')}`;
-
-    this.overlayEl.innerHTML = `
-      <defs>
-        <marker id="${markerId}" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto">
-          <polygon points="0 1, 7 4, 0 7" fill="${color}" opacity="0.85" />
-        </marker>
-      </defs>
-      <line x1="${x1}" y1="${y1}" x2="${endX}" y2="${endY}" 
-            stroke="${color}" stroke-width="6" stroke-linecap="round" opacity="0.75"
-            marker-end="url(#${markerId})" />
-    `;
+    this.customArrows = [{ from: fromSquare, to: toSquare, color, width: 6 }];
+    this.renderOverlay();
   }
 
   /**

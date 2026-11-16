@@ -27,6 +27,9 @@
       <button class="mode-tab-btn" data-mode="two-player" id="tab-two-player">
         <span>👥</span> 雙人對戰
       </button>
+      <button class="mode-tab-btn" data-mode="coach" id="tab-coach">
+        <span>💡</span> 戰術教練
+      </button>
       <button class="mode-tab-btn" data-mode="tutorial" id="tab-tutorial">
         <span>🎓</span> 開局教學
       </button>
@@ -206,6 +209,71 @@
               <div class="score-box-val" id="score-draws">0</div>
             </div>
           </div>
+        </div>
+
+        <!-- Coach Assistant Toggle inside settings -->
+        <div class="form-group" style="margin-top: 0.85rem; border-top: 1px solid var(--border-color); padding-top: 0.65rem;">
+          <label class="checkbox-label">
+            <input type="checkbox" id="check-enable-coach-hints">
+            <span>💡 開啟即時戰術提示 (棋盤顯示進攻與防守箭頭)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Panel 1.5: Tactical Coach Mode (Active during Coach Mode) -->
+      <div class="card" id="coach-card" style="display: none;">
+        <h2 class="card-title">
+          <span>💡 戰術教練分析系統</span>
+          <span class="badge-cat" id="coach-turn-tag">輪到您走棋</span>
+        </h2>
+
+        <!-- Strategic Overview Box -->
+        <div class="coach-overview-box">
+          <div class="coach-eval-row">
+            <span class="coach-eval-label">局勢總評：</span>
+            <span class="coach-eval-score" id="coach-eval-score">+0.0</span>
+          </div>
+          <div class="coach-overview-text" id="coach-advantage-text">
+            局勢勢均力敵，雙方處於平衡對峙。
+          </div>
+          <div class="coach-threat-alert" id="coach-threat-alert">
+            🛡️ 盤面暫無直接失子威脅，後方防線穩固。
+          </div>
+        </div>
+
+        <!-- Filter / Arrow Display Control Bar -->
+        <div class="coach-arrow-filters">
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-right:2px;">標示：</span>
+          <button class="coach-filter-btn active" data-filter="all" id="btn-coach-filter-all">全部標示</button>
+          <button class="coach-filter-btn" data-filter="attack" id="btn-coach-filter-attack">⚔️ 進攻 🔴</button>
+          <button class="coach-filter-btn" data-filter="defense" id="btn-coach-filter-defense">🛡️ 防守 🔵</button>
+          <button class="coach-filter-btn" data-filter="best" id="btn-coach-filter-best">🎯 最佳 🟢</button>
+          <button class="coach-filter-btn" data-filter="none" id="btn-coach-filter-none">關閉標記</button>
+        </div>
+
+        <!-- Suggestions List -->
+        <div class="coach-sections-container" id="coach-sections-container">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Coach Settings & Actions -->
+        <div class="coach-controls-footer">
+          <div class="form-group" style="margin-bottom:0.5rem;">
+            <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>對手 AI 難度：</span>
+              <span id="coach-difficulty-desc" style="font-size:0.75rem; color:var(--accent-gold);">等級 3 (中級)</span>
+            </label>
+            <div class="difficulty-level-grid">
+              <button class="toggle-option-btn diff-btn" data-level="1" id="btn-coach-diff-1">1 新手</button>
+              <button class="toggle-option-btn diff-btn" data-level="2" id="btn-coach-diff-2">2 休閒</button>
+              <button class="toggle-option-btn diff-btn active" data-level="3" id="btn-coach-diff-3">3 中級</button>
+              <button class="toggle-option-btn diff-btn" data-level="4" id="btn-coach-diff-4">4 進階</button>
+              <button class="toggle-option-btn diff-btn" data-level="5" id="btn-coach-diff-5">5 大師</button>
+            </div>
+          </div>
+          <button class="action-btn" id="btn-coach-refresh" style="width:100%; margin-top:0.3rem;">
+            🔄 重新評估當前盤面
+          </button>
         </div>
       </div>
 

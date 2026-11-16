@@ -6,6 +6,7 @@ import { findBestMove, evaluateBoard, DIFFICULTY_CONFIG, normalizeDifficulty } f
 import { OPENINGS_DATABASE, getOpeningById } from './src/openings.js?v=2.2';
 import { MRONG_COURSES, getMrOngCourseById, MRONG_ALL_VIDEOS } from './src/mrong-courses.js?v=2.2';
 import { getPieceSvg, PIECE_VALUES } from './src/pieces.js?v=2.2';
+import { analyzeCoachPosition } from './src/coach.js?v=2.2';
 
 // 確保 BoardUI 原型防禦性容錯（防止瀏覽器記憶體快取未及時更新時報錯）
 if (typeof BoardUI !== 'undefined') {
@@ -59,9 +60,15 @@ class ChessApp {
     this.mrongAutoplayTimer = null;
     this.mrongActiveCategory = 'all';
 
+    // Tactical Coach Mode State
+    this.enableCoachHints = false;
+    this.coachFilter = 'all'; // 'all', 'attack', 'defense', 'best', 'none'
+    this.lastCoachAnalysis = null;
+
     // Initialize UI
     this.initBoardUI();
     this.initDOMListeners();
+    this.initCoachListeners();
     this.initTutorialSelect();
     this.initMrOngMode();
     this.initZoomControls();
@@ -74,7 +81,7 @@ class ChessApp {
     const config = DIFFICULTY_CONFIG[this.aiDifficulty] || DIFFICULTY_CONFIG[3];
 
     // Update active button state
-    document.querySelectorAll('#ai-settings-section .diff-btn').forEach(btn => {
+    document.querySelectorAll('#ai-settings-section .diff-btn, #coach-card .diff-btn').forEach(btn => {
       const lvl = parseInt(btn.dataset.level, 10);
       btn.classList.toggle('active', lvl === this.aiDifficulty);
     });
@@ -82,6 +89,8 @@ class ChessApp {
     // Update description texts
     const descEl = document.getElementById('ai-difficulty-desc');
     if (descEl) descEl.textContent = `${config.name} (${config.elo})`;
+    const coachDescEl = document.getElementById('coach-difficulty-desc');
+    if (coachDescEl) coachDescEl.textContent = `${config.name} (${config.elo})`;
     const detailEl = document.getElementById('ai-difficulty-detail');
     if (detailEl) detailEl.textContent = config.description;
 
@@ -360,6 +369,8 @@ class ChessApp {
 
     const mrongCardEl = document.getElementById('mrong-card');
     if (mrongCardEl) mrongCardEl.style.display = 'none';
+    const coachCardEl = document.getElementById('coach-card');
+    if (coachCardEl) coachCardEl.style.display = 'none';
 
     if (mode === 'vs-ai') {
       settingsCard.style.display = 'block';
@@ -373,6 +384,14 @@ class ChessApp {
       aiSection.style.display = 'none';
       twoPlayerSection.style.display = 'block';
       modeTag.textContent = '雙人同機';
+    } else if (mode === 'coach') {
+      settingsCard.style.display = 'none';
+      tutorialCard.style.display = 'none';
+      if (coachCardEl) coachCardEl.style.display = 'block';
+      modeTag.textContent = '戰術教練';
+      this.resetGame();
+      this.updateCoachAnalysis();
+      return;
     } else if (mode === 'tutorial') {
       settingsCard.style.display = 'none';
       tutorialCard.style.display = 'block';
@@ -402,7 +421,7 @@ class ChessApp {
     this.aiTurnId = (this.aiTurnId || 0) + 1;
     this.pendingMove = null;
 
-    if (this.mode === 'vs-ai') {
+    if (this.mode === 'vs-ai' || this.mode === 'coach') {
       this.boardUI.setOrientation(this.playerColor);
     } else if (this.mode === 'two-player') {
       this.boardUI.setOrientation('w');
@@ -417,8 +436,8 @@ class ChessApp {
 
     this.updateGameState();
 
-    // If vs AI and player picked Black, AI moves first as White
-    if (this.mode === 'vs-ai' && this.playerColor === 'b') {
+    // If vs AI or coach and player picked Black, AI moves first as White
+    if ((this.mode === 'vs-ai' || this.mode === 'coach') && this.playerColor === 'b') {
       this.triggerAiMove();
     }
   }
@@ -426,8 +445,8 @@ class ChessApp {
   getLegalMovesForSquare(square) {
     if (this.isAiThinking) return [];
 
-    // In vs AI mode, disallow moving opponent pieces
-    if (this.mode === 'vs-ai') {
+    // In vs AI or coach mode, disallow moving opponent pieces
+    if (this.mode === 'vs-ai' || this.mode === 'coach') {
       if (this.game.turn() !== this.playerColor) return [];
     }
 
@@ -442,8 +461,10 @@ class ChessApp {
     const ksKingDest = isWhite ? 'g1' : 'g8';
     const qsKingDest = isWhite ? 'c1' : 'c8';
 
+    const pieceOnSquare = this.game.get(square);
+
     // 1. If King is selected: allow moving 2 squares OR clicking/dropping onto Rook
-    if (square === kingSq) {
+    if (square === kingSq && pieceOnSquare && pieceOnSquare.type === 'k' && pieceOnSquare.color === turn) {
       for (const m of standardMoves) {
         if (m.flags.includes('k') && m.to === ksKingDest) {
           extraMoves.push({
@@ -472,38 +493,40 @@ class ChessApp {
       }
     }
 
-    // 2. If Rook is selected: allow clicking the King to trigger castling
-    if (square === ksRookSq) {
-      const kingMoves = this.game.moves({ square: kingSq, verbose: true });
-      const hasKsCastle = kingMoves.some(m => m.flags.includes('k') && m.to === ksKingDest);
-      if (hasKsCastle) {
-        extraMoves.push({
-          from: ksRookSq,
-          to: kingSq,
-          piece: 'r',
-          flags: 'k',
-          isCastlingRook: true,
-          actualFrom: kingSq,
-          actualTo: ksKingDest,
-          san: 'O-O'
-        });
+    // 2. If Rook is selected: allow clicking the King to trigger castling ONLY if current piece is actually a rook
+    if (pieceOnSquare && pieceOnSquare.type === 'r' && pieceOnSquare.color === turn) {
+      if (square === ksRookSq) {
+        const kingMoves = this.game.moves({ square: kingSq, verbose: true });
+        const hasKsCastle = kingMoves.some(m => m.flags.includes('k') && m.to === ksKingDest);
+        if (hasKsCastle) {
+          extraMoves.push({
+            from: ksRookSq,
+            to: kingSq,
+            piece: 'r',
+            flags: 'k',
+            isCastlingRook: true,
+            actualFrom: kingSq,
+            actualTo: ksKingDest,
+            san: 'O-O'
+          });
+        }
       }
-    }
 
-    if (square === qsRookSq) {
-      const kingMoves = this.game.moves({ square: kingSq, verbose: true });
-      const hasQsCastle = kingMoves.some(m => m.flags.includes('q') && m.to === qsKingDest);
-      if (hasQsCastle) {
-        extraMoves.push({
-          from: qsRookSq,
-          to: kingSq,
-          piece: 'r',
-          flags: 'q',
-          isCastlingRook: true,
-          actualFrom: kingSq,
-          actualTo: qsKingDest,
-          san: 'O-O-O'
-        });
+      if (square === qsRookSq) {
+        const kingMoves = this.game.moves({ square: kingSq, verbose: true });
+        const hasQsCastle = kingMoves.some(m => m.flags.includes('q') && m.to === qsKingDest);
+        if (hasQsCastle) {
+          extraMoves.push({
+            from: qsRookSq,
+            to: kingSq,
+            piece: 'r',
+            flags: 'q',
+            isCastlingRook: true,
+            actualFrom: kingSq,
+            actualTo: qsKingDest,
+            san: 'O-O-O'
+          });
+        }
       }
     }
 
@@ -513,18 +536,14 @@ class ChessApp {
   handlePlayerMove(from, to, moveDetails) {
     if (this.isAiThinking) return;
 
-    // Normalize castling moves (King to Rook, or Rook to King, or direct)
-    let actualFrom = moveDetails?.actualFrom || from;
-    let actualTo = moveDetails?.actualTo || to;
+    // Normalize castling moves ONLY when it is an explicit castling action
+    let actualFrom = from;
+    let actualTo = to;
 
-    if (from === 'e1' && to === 'h1') { actualFrom = 'e1'; actualTo = 'g1'; }
-    else if (from === 'e1' && to === 'a1') { actualFrom = 'e1'; actualTo = 'c1'; }
-    else if (from === 'e8' && to === 'h8') { actualFrom = 'e8'; actualTo = 'g8'; }
-    else if (from === 'e8' && to === 'a8') { actualFrom = 'e8'; actualTo = 'c8'; }
-    else if (from === 'h1' && to === 'e1') { actualFrom = 'e1'; actualTo = 'g1'; }
-    else if (from === 'a1' && to === 'e1') { actualFrom = 'e1'; actualTo = 'c1'; }
-    else if (from === 'h8' && to === 'e8') { actualFrom = 'e8'; actualTo = 'g8'; }
-    else if (from === 'a8' && to === 'e8') { actualFrom = 'e8'; actualTo = 'c8'; }
+    if (moveDetails?.isCastlingRook && moveDetails.actualFrom && moveDetails.actualTo) {
+      actualFrom = moveDetails.actualFrom;
+      actualTo = moveDetails.actualTo;
+    }
 
     // Check if this move is a pawn promotion
     const isPawn = moveDetails.piece === 'p';
@@ -617,8 +636,8 @@ class ChessApp {
       }, 300);
     }
 
-    // In vs-AI mode, trigger AI reply if game is ongoing
-    if (this.mode === 'vs-ai' && !this.game.isGameOver() && this.game.turn() !== this.playerColor) {
+    // In vs-AI or coach mode, trigger AI reply if game is ongoing
+    if ((this.mode === 'vs-ai' || this.mode === 'coach') && !this.game.isGameOver() && this.game.turn() !== this.playerColor) {
       this.triggerAiMove();
     }
   }
@@ -736,7 +755,7 @@ class ChessApp {
     if (this.historyIndex < 0 && this.historyStack.length === 0) return;
     if (this.historyIndex === -1) return;
 
-    if (this.mode === 'vs-ai') {
+    if (this.mode === 'vs-ai' || this.mode === 'coach') {
       if (this.playerColor === 'w') {
         // Player is White. If it is White's turn, step back 2 plies to White's previous turn
         if (this.game.turn() === 'w') {
@@ -764,7 +783,7 @@ class ChessApp {
     this.applyHistoryPosition();
 
     // If player is Black and undid to -1, AI should make a move
-    if (this.mode === 'vs-ai' && this.playerColor === 'b' && this.historyIndex === -1) {
+    if ((this.mode === 'vs-ai' || this.mode === 'coach') && this.playerColor === 'b' && this.historyIndex === -1) {
       setTimeout(() => {
         if (this.historyIndex === -1 && this.game.turn() === 'w') {
           this.triggerAiMove();
@@ -861,6 +880,16 @@ class ChessApp {
 
     // 7. Update Navigation buttons enabled/disabled states
     this.updateNavButtons();
+
+    // 8. Update Tactical Coach Advice & Visual Arrows
+    if (this.mode === 'coach' || this.enableCoachHints) {
+      this.updateCoachAnalysis();
+    } else {
+      if (this.boardUI && typeof this.boardUI.clearCustomArrows === 'function') {
+        this.boardUI.clearCustomArrows();
+        this.boardUI.clearCustomHighlights();
+      }
+    }
   }
 
   findKingSquare(color) {
@@ -992,7 +1021,7 @@ class ChessApp {
     topTurn.style.display = isTopTurn ? 'flex' : 'none';
     bottomTurn.style.display = isTopTurn ? 'none' : 'flex';
 
-    if (this.mode === 'vs-ai') {
+    if (this.mode === 'vs-ai' || this.mode === 'coach') {
       const config = DIFFICULTY_CONFIG[this.aiDifficulty] || DIFFICULTY_CONFIG[3];
       const diffLabel = `${config.shortName} (${config.elo})`;
       if (this.playerColor === 'w') {
@@ -1239,17 +1268,21 @@ class ChessApp {
     const currentStep = this.currentOpening.moves[this.tutorialStepIndex];
     if (!currentStep) return;
 
-    // Normalize castling moves for tutorial verification
+    // Normalize castling moves for tutorial verification ONLY if current step is castling
     let from = moveObj.from;
     let to = moveObj.to;
-    if (from === 'e1' && to === 'h1') to = 'g1';
-    else if (from === 'e1' && to === 'a1') to = 'c1';
-    else if (from === 'e8' && to === 'h8') to = 'g8';
-    else if (from === 'e8' && to === 'a8') to = 'c8';
-    else if (from === 'h1' && to === 'e1') { from = 'e1'; to = 'g1'; }
-    else if (from === 'a1' && to === 'e1') { from = 'e1'; to = 'c1'; }
-    else if (from === 'h8' && to === 'e8') { from = 'e8'; to = 'g8'; }
-    else if (from === 'a8' && to === 'e8') { from = 'e8'; to = 'c8'; }
+    const isStepCastle = (currentStep.from === 'e1' && (currentStep.to === 'g1' || currentStep.to === 'c1')) ||
+                         (currentStep.from === 'e8' && (currentStep.to === 'g8' || currentStep.to === 'c8'));
+    if (isStepCastle) {
+      if (from === 'e1' && to === 'h1') to = 'g1';
+      else if (from === 'e1' && to === 'a1') to = 'c1';
+      else if (from === 'e8' && to === 'h8') to = 'g8';
+      else if (from === 'e8' && to === 'a8') to = 'c8';
+      else if (from === 'h1' && to === 'e1') { from = 'e1'; to = 'g1'; }
+      else if (from === 'a1' && to === 'e1') { from = 'e1'; to = 'c1'; }
+      else if (from === 'h8' && to === 'e8') { from = 'e8'; to = 'g8'; }
+      else if (from === 'a8' && to === 'e8') { from = 'e8'; to = 'c8'; }
+    }
 
     // Did user match the required move?
     if (from === currentStep.from && to === currentStep.to) {
@@ -1556,14 +1589,18 @@ class ChessApp {
 
     let from = moveObj.from;
     let to = moveObj.to;
-    if (from === 'e1' && to === 'h1') to = 'g1';
-    else if (from === 'e1' && to === 'a1') to = 'c1';
-    else if (from === 'e8' && to === 'h8') to = 'g8';
-    else if (from === 'e8' && to === 'a8') to = 'c8';
-    else if (from === 'h1' && to === 'e1') { from = 'e1'; to = 'g1'; }
-    else if (from === 'a1' && to === 'e1') { from = 'e1'; to = 'c1'; }
-    else if (from === 'h8' && to === 'e8') { from = 'e8'; to = 'g8'; }
-    else if (from === 'a8' && to === 'e8') { from = 'e8'; to = 'c8'; }
+    const isStepCastle = (currentStep.from === 'e1' && (currentStep.to === 'g1' || currentStep.to === 'c1')) ||
+                         (currentStep.from === 'e8' && (currentStep.to === 'g8' || currentStep.to === 'c8'));
+    if (isStepCastle) {
+      if (from === 'e1' && to === 'h1') to = 'g1';
+      else if (from === 'e1' && to === 'a1') to = 'c1';
+      else if (from === 'e8' && to === 'h8') to = 'g8';
+      else if (from === 'e8' && to === 'a8') to = 'c8';
+      else if (from === 'h1' && to === 'e1') { from = 'e1'; to = 'g1'; }
+      else if (from === 'a1' && to === 'e1') { from = 'e1'; to = 'c1'; }
+      else if (from === 'h8' && to === 'e8') { from = 'e8'; to = 'g8'; }
+      else if (from === 'a8' && to === 'e8') { from = 'e8'; to = 'c8'; }
+    }
 
     if (from === currentStep.from && to === currentStep.to) {
       const result = this.game.move({
@@ -1647,6 +1684,257 @@ class ChessApp {
       if (autoBtn) autoBtn.textContent = '自動 ⏯️';
     }
     this.loadMrOngCourse(this.currentMrOngCourse.id);
+  }
+
+  // ==================== TACTICAL COACH MODE LOGIC ====================
+  initCoachListeners() {
+    // Arrow filter buttons
+    document.querySelectorAll('.coach-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.coach-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.coachFilter = btn.dataset.filter;
+        this.applyCoachBoardVisuals(this.lastCoachAnalysis);
+      });
+    });
+
+    // In-game coach checkbox inside settings card
+    const checkCoach = document.getElementById('check-enable-coach-hints');
+    if (checkCoach) {
+      checkCoach.addEventListener('change', (e) => {
+        this.enableCoachHints = e.target.checked;
+        if (this.enableCoachHints) {
+          this.updateCoachAnalysis();
+        } else if (this.mode !== 'coach') {
+          if (this.boardUI && typeof this.boardUI.clearCustomArrows === 'function') {
+            this.boardUI.clearCustomArrows();
+            this.boardUI.clearCustomHighlights();
+          }
+        }
+      });
+    }
+
+    // Coach difficulty buttons
+    [1, 2, 3, 4, 5].forEach(level => {
+      const btn = document.getElementById(`btn-coach-diff-${level}`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          this.setAiDifficulty(level);
+        });
+      }
+    });
+
+    // Refresh coach analysis button
+    const refreshBtn = document.getElementById('btn-coach-refresh');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        this.updateCoachAnalysis();
+      });
+    }
+  }
+
+  updateCoachAnalysis() {
+    if (!this.game) return;
+    const analysis = analyzeCoachPosition(this.game, this.playerColor);
+    this.lastCoachAnalysis = analysis;
+
+    this.renderCoachCard(analysis);
+    this.applyCoachBoardVisuals(analysis);
+  }
+
+  applyCoachBoardVisuals(analysis, focusItem = null) {
+    if (!this.boardUI) return;
+
+    if (!analysis || analysis.isGameOver) {
+      this.boardUI.clearCustomArrows();
+      this.boardUI.clearCustomHighlights();
+      return;
+    }
+
+    if (focusItem) {
+      // Focus on a single item (either a move or a threat)
+      const arrows = focusItem.arrow ? [focusItem.arrow] : [];
+      const highlights = [];
+      if (focusItem.highlight) highlights.push(focusItem.highlight);
+      if (focusItem.arrow?.from) {
+        highlights.push({ square: focusItem.arrow.from, type: focusItem.type || 'best' });
+      }
+      if (focusItem.square) {
+        highlights.push({ square: focusItem.square, type: 'threat' });
+      }
+      this.boardUI.setCustomArrows(arrows);
+      this.boardUI.setCustomHighlights(highlights);
+      return;
+    }
+
+    if (this.coachFilter === 'none') {
+      this.boardUI.clearCustomArrows();
+      this.boardUI.clearCustomHighlights();
+      return;
+    }
+
+    const arrows = [];
+    const highlights = [];
+
+    // Threats highlight (amber pulse on threatened squares)
+    if (analysis.threats && analysis.threats.length > 0) {
+      analysis.threats.forEach(t => {
+        highlights.push({ square: t.square, type: 'threat' });
+      });
+    }
+
+    // Best move
+    if (analysis.bestSuggestion && (this.coachFilter === 'all' || this.coachFilter === 'best')) {
+      arrows.push(analysis.bestSuggestion.arrow);
+      highlights.push(analysis.bestSuggestion.highlight);
+    }
+
+    // Attack suggestions
+    if (analysis.attackSuggestions && (this.coachFilter === 'all' || this.coachFilter === 'attack')) {
+      analysis.attackSuggestions.forEach(atk => {
+        arrows.push(atk.arrow);
+        highlights.push(atk.highlight);
+      });
+    }
+
+    // Defense suggestions
+    if (analysis.defenseSuggestions && (this.coachFilter === 'all' || this.coachFilter === 'defense')) {
+      analysis.defenseSuggestions.forEach(def => {
+        arrows.push(def.arrow);
+        highlights.push(def.highlight);
+      });
+    }
+
+    this.boardUI.setCustomArrows(arrows);
+    this.boardUI.setCustomHighlights(highlights);
+  }
+
+  renderCoachCard(analysis) {
+    const cardEl = document.getElementById('coach-card');
+    if (!cardEl) return;
+
+    const evalEl = document.getElementById('coach-eval-score');
+    const advEl = document.getElementById('coach-advantage-text');
+    const threatEl = document.getElementById('coach-threat-alert');
+    const turnTag = document.getElementById('coach-turn-tag');
+    const container = document.getElementById('coach-sections-container');
+
+    if (evalEl) evalEl.textContent = `${analysis.evalScore >= 0 ? '+' : ''}${analysis.evalScore}`;
+    if (advEl) advEl.textContent = analysis.advantageText || '';
+    if (threatEl) {
+      threatEl.textContent = analysis.threatSummary || '';
+      threatEl.className = `coach-threat-alert ${analysis.threats?.length > 0 ? 'danger' : ''}`;
+    }
+    if (turnTag) {
+      const isPlayerTurn = this.game.turn() === this.playerColor;
+      turnTag.textContent = isPlayerTurn ? '輪到您走棋' : '電腦思考中...';
+      turnTag.style.background = isPlayerTurn ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+      turnTag.style.color = isPlayerTurn ? 'var(--accent-emerald)' : '#f87171';
+    }
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (analysis.isGameOver) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:1.5rem 0.5rem; color:var(--text-muted); font-size:0.9rem;">
+          🏁 ${analysis.statusText}
+        </div>
+      `;
+      return;
+    }
+
+    // Helper to create card HTML
+    const createSuggestionCard = (item, type, badgeText) => {
+      const card = document.createElement('div');
+      card.className = `coach-card-item ${type}`;
+      card.innerHTML = `
+        <div class="coach-card-header">
+          <span class="coach-card-title">${item.title}</span>
+          <span class="coach-tag ${type}">${badgeText}</span>
+        </div>
+        <div class="coach-card-exp">${item.explanation}</div>
+        ${item.followUp ? `<div class="coach-card-followup">💡 <strong>後續思路：</strong>${item.followUp}</div>` : ''}
+        <div class="coach-card-actions">
+          <button class="coach-btn-preview" title="在棋盤上專注顯示此著法箭頭">👁️ 棋盤圖解</button>
+          <button class="coach-btn-play" title="在棋盤上立即走出這一步">⚡ 走這一步</button>
+        </div>
+      `;
+
+      card.querySelector('.coach-btn-preview').addEventListener('click', () => {
+        this.applyCoachBoardVisuals(analysis, item);
+      });
+
+      card.querySelector('.coach-btn-play').addEventListener('click', () => {
+        if (!this.isAiThinking && (this.mode !== 'vs-ai' && this.mode !== 'coach' || this.game.turn() === this.playerColor)) {
+          this.executeMove(item.move);
+        }
+      });
+
+      return card;
+    };
+
+    // 1. Overall Best Move
+    if (analysis.bestSuggestion) {
+      const titleEl = document.createElement('div');
+      titleEl.className = 'coach-section-title';
+      titleEl.innerHTML = `<span>🎯</span> <strong>大師全局推薦 (Best Move)</strong>`;
+      container.appendChild(titleEl);
+      container.appendChild(createSuggestionCard(analysis.bestSuggestion, 'best', '綜合首選 🟢'));
+    }
+
+    // 2. Defense Advice & Threats
+    if (analysis.threats && analysis.threats.length > 0) {
+      const threatSectionTitle = document.createElement('div');
+      threatSectionTitle.className = 'coach-section-title';
+      threatSectionTitle.style.color = '#fbbf24';
+      threatSectionTitle.innerHTML = `<span>⚠️</span> <strong>受攻警示與弱點分析 (${analysis.threats.length} 處)</strong>`;
+      container.appendChild(threatSectionTitle);
+
+      const threatListCard = document.createElement('div');
+      threatListCard.className = 'coach-card-item defense';
+      threatListCard.style.borderLeftColor = '#f59e0b';
+      threatListCard.innerHTML = `
+        <div style="font-size:0.775rem; line-height:1.45; color:var(--text-primary);">
+          ${analysis.threats.map((t, idx) => `
+            <div style="margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
+              <div><strong>${idx + 1}.</strong> ${t.square.toUpperCase()} 格 ${t.pieceName}：${t.reason}</div>
+              <button class="coach-btn-preview btn-focus-threat" data-sq="${t.square}" style="padding:0.15rem 0.4rem; font-size:0.65rem; white-space:nowrap; margin-left:6px;">標記格點</button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      threatListCard.querySelectorAll('.btn-focus-threat').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const sq = btn.dataset.sq;
+          this.applyCoachBoardVisuals(analysis, { square: sq });
+        });
+      });
+
+      container.appendChild(threatListCard);
+    }
+
+    if (analysis.defenseSuggestions && analysis.defenseSuggestions.length > 0) {
+      const defTitle = document.createElement('div');
+      defTitle.className = 'coach-section-title';
+      defTitle.innerHTML = `<span>🛡️</span> <strong>防守對策建議 (Defense)</strong>`;
+      container.appendChild(defTitle);
+      analysis.defenseSuggestions.forEach(def => {
+        container.appendChild(createSuggestionCard(def, 'defense', '防守推薦 🔵'));
+      });
+    }
+
+    // 3. Attack Suggestions
+    if (analysis.attackSuggestions && analysis.attackSuggestions.length > 0) {
+      const atkTitle = document.createElement('div');
+      atkTitle.className = 'coach-section-title';
+      atkTitle.innerHTML = `<span>⚔️</span> <strong>進攻契機與戰術 (Attack)</strong>`;
+      container.appendChild(atkTitle);
+      analysis.attackSuggestions.forEach(atk => {
+        container.appendChild(createSuggestionCard(atk, 'attack', '進攻推薦 🔴'));
+      });
+    }
   }
 
   mrongToggleAutoplay() {

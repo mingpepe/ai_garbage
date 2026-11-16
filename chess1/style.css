@@ -1417,3 +1417,270 @@ body {
   padding: 0.1rem 0.45rem;
   border-radius: var(--radius-sm);
 }
+
+/* ==========================================================================
+   戰術教練模式 (Tactical Coach Mode) 與棋盤圖解標記
+   ========================================================================== */
+.board-square.coach-attack {
+  background-color: rgba(239, 68, 68, 0.26) !important;
+  box-shadow: inset 0 0 0 3px rgba(239, 68, 68, 0.85);
+}
+
+.board-square.coach-defense {
+  background-color: rgba(59, 130, 246, 0.26) !important;
+  box-shadow: inset 0 0 0 3px rgba(59, 130, 246, 0.85);
+}
+
+.board-square.coach-threat {
+  background-color: rgba(245, 158, 11, 0.28) !important;
+  box-shadow: inset 0 0 0 3px rgba(245, 158, 11, 0.95);
+  animation: threatPulse 1.4s infinite alternate;
+}
+
+.board-square.coach-best {
+  background-color: rgba(16, 185, 129, 0.26) !important;
+  box-shadow: inset 0 0 0 3px rgba(16, 185, 129, 0.9);
+}
+
+@keyframes threatPulse {
+  from {
+    box-shadow: inset 0 0 0 3px rgba(245, 158, 11, 0.7);
+    background-color: rgba(245, 158, 11, 0.2);
+  }
+  to {
+    box-shadow: inset 0 0 0 4px rgba(239, 68, 68, 0.95);
+    background-color: rgba(239, 68, 68, 0.35);
+  }
+}
+
+/* Coach Card Overview */
+.coach-overview-box {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.coach-eval-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.35rem;
+}
+
+.coach-eval-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.coach-eval-score {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-emerald);
+  background: rgba(16, 185, 129, 0.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.coach-overview-text {
+  font-size: 0.825rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 0.45rem;
+}
+
+.coach-threat-alert {
+  font-size: 0.775rem;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+  border-left: 3px solid #f59e0b;
+  padding: 0.35rem 0.55rem;
+  border-radius: 3px;
+  line-height: 1.35;
+}
+
+.coach-threat-alert.danger {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+  border-left-color: #ef4444;
+}
+
+/* Coach Arrow Filter Buttons */
+.coach-arrow-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.coach-filter-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.coach-filter-btn:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.coach-filter-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+/* Coach Section and Suggestion Cards */
+.coach-sections-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.coach-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.coach-card-item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.coach-card-item:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.coach-card-item.attack {
+  border-left-color: #ef4444;
+}
+
+.coach-card-item.defense {
+  border-left-color: #3b82f6;
+}
+
+.coach-card-item.best {
+  border-left-color: #10b981;
+}
+
+.coach-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.coach-card-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.coach-tag {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.coach-tag.attack {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.coach-tag.defense {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+}
+
+.coach-tag.best {
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
+.coach-card-exp {
+  font-size: 0.785rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.coach-card-followup {
+  font-size: 0.725rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  background: rgba(0, 0, 0, 0.15);
+  padding: 0.3rem 0.45rem;
+  border-radius: 3px;
+}
+
+.coach-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+.coach-btn-preview,
+.coach-btn-play {
+  font-size: 0.725rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+}
+
+.coach-btn-preview:hover {
+  background: var(--border-color);
+  color: #ffffff;
+}
+
+.coach-btn-play {
+  background: var(--accent-emerald);
+  border-color: var(--accent-emerald);
+  color: #ffffff;
+}
+
+.coach-btn-play:hover {
+  filter: brightness(1.1);
+}
+
+.coach-controls-footer {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.65rem;
+}
+
