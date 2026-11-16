@@ -1,12 +1,12 @@
 // Main Chess Application Controller
-import { Chess } from './lib/chess.js?v=2.2';
-import { sounds } from './src/sound.js?v=2.2';
-import { BoardUI } from './src/board-ui.js?v=2.2';
-import { findBestMove, evaluateBoard, DIFFICULTY_CONFIG, normalizeDifficulty } from './src/ai.js?v=2.2';
-import { OPENINGS_DATABASE, getOpeningById } from './src/openings.js?v=2.2';
-import { MRONG_COURSES, getMrOngCourseById, MRONG_ALL_VIDEOS } from './src/mrong-courses.js?v=2.2';
-import { getPieceSvg, PIECE_VALUES } from './src/pieces.js?v=2.2';
-import { analyzeCoachPosition } from './src/coach.js?v=2.2';
+import { Chess } from './lib/chess.js?v=2.6';
+import { sounds } from './src/sound.js?v=2.6';
+import { BoardUI } from './src/board-ui.js?v=2.6';
+import { findBestMove, evaluateBoard, DIFFICULTY_CONFIG, normalizeDifficulty } from './src/ai.js?v=2.6';
+import { OPENINGS_DATABASE, getOpeningById } from './src/openings.js?v=2.6';
+import { MRONG_COURSES, getMrOngCourseById, MRONG_ALL_VIDEOS } from './src/mrong-courses.js?v=2.6';
+import { getPieceSvg, PIECE_VALUES } from './src/pieces.js?v=2.6';
+import { analyzeCoachPosition } from './src/coach.js?v=2.6';
 
 // 確保 BoardUI 原型防禦性容錯（防止瀏覽器記憶體快取未及時更新時報錯）
 if (typeof BoardUI !== 'undefined') {
@@ -1735,6 +1735,15 @@ class ChessApp {
 
   updateCoachAnalysis() {
     if (!this.game) return;
+    const isVsOpponentMode = this.mode === 'coach' || this.mode === 'vs-ai';
+    if (isVsOpponentMode && !this.game.isGameOver() && this.game.turn() !== this.playerColor) {
+      const waitingAnalysis = { waitingForOpponent: true };
+      this.lastCoachAnalysis = waitingAnalysis;
+      this.renderCoachCard(waitingAnalysis);
+      this.applyCoachBoardVisuals(waitingAnalysis);
+      return;
+    }
+
     const analysis = analyzeCoachPosition(this.game, this.playerColor);
     this.lastCoachAnalysis = analysis;
 
@@ -1745,15 +1754,17 @@ class ChessApp {
   applyCoachBoardVisuals(analysis, focusItem = null) {
     if (!this.boardUI) return;
 
-    if (!analysis || analysis.isGameOver) {
+    if (!analysis || analysis.isGameOver || analysis.waitingForOpponent) {
       this.boardUI.clearCustomArrows();
       this.boardUI.clearCustomHighlights();
       return;
     }
 
     if (focusItem) {
-      // Focus on a single item (either a move or a threat)
-      const arrows = focusItem.arrow ? [focusItem.arrow] : [];
+      // Focus on a single item: show 1->2->3 continuation arrows if available
+      const arrows = focusItem.continuationArrows && focusItem.continuationArrows.length > 0
+        ? focusItem.continuationArrows
+        : (focusItem.arrow ? [focusItem.arrow] : []);
       const highlights = [];
       if (focusItem.highlight) highlights.push(focusItem.highlight);
       if (focusItem.arrow?.from) {
@@ -1785,7 +1796,11 @@ class ChessApp {
 
     // Best move
     if (analysis.bestSuggestion && (this.coachFilter === 'all' || this.coachFilter === 'best')) {
-      arrows.push(analysis.bestSuggestion.arrow);
+      if (this.coachFilter === 'best' && analysis.bestSuggestion.continuationArrows) {
+        arrows.push(...analysis.bestSuggestion.continuationArrows);
+      } else {
+        arrows.push(analysis.bestSuggestion.arrow);
+      }
       highlights.push(analysis.bestSuggestion.highlight);
     }
 
@@ -1819,6 +1834,26 @@ class ChessApp {
     const turnTag = document.getElementById('coach-turn-tag');
     const container = document.getElementById('coach-sections-container');
 
+    if (analysis.waitingForOpponent) {
+      if (turnTag) {
+        turnTag.textContent = '對手思考中';
+        turnTag.style.background = 'rgba(239, 68, 68, 0.2)';
+        turnTag.style.color = '#f87171';
+      }
+      if (threatEl) {
+        threatEl.textContent = '⏳ 等待對手行棋中，輪到您時將自動提供攻防建議。';
+        threatEl.className = 'coach-threat-alert';
+      }
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:1.75rem 1rem; color:var(--text-muted); font-size:1rem; line-height:1.6;">
+            🤖 目前輪到對手行棋<br>等待對手落子後，系統將即時為您分析最佳攻防著法。
+          </div>
+        `;
+      }
+      return;
+    }
+
     if (evalEl) evalEl.textContent = `${analysis.evalScore >= 0 ? '+' : ''}${analysis.evalScore}`;
     if (advEl) advEl.textContent = analysis.advantageText || '';
     if (threatEl) {
@@ -1837,7 +1872,7 @@ class ChessApp {
 
     if (analysis.isGameOver) {
       container.innerHTML = `
-        <div style="text-align:center; padding:1.5rem 0.5rem; color:var(--text-muted); font-size:0.9rem;">
+        <div style="text-align:center; padding:1.75rem 0.75rem; color:var(--text-muted); font-size:1.05rem;">
           🏁 ${analysis.statusText}
         </div>
       `;
@@ -1848,15 +1883,17 @@ class ChessApp {
     const createSuggestionCard = (item, type, badgeText) => {
       const card = document.createElement('div');
       card.className = `coach-card-item ${type}`;
+      const coordLabel = item.move ? `${item.move.from.toUpperCase()}→${item.move.to.toUpperCase()}` : '';
       card.innerHTML = `
         <div class="coach-card-header">
-          <span class="coach-card-title">${item.title}</span>
+          <span class="coach-card-title">${item.title} <span style="font-weight:600; font-size:0.9rem; color:var(--text-muted);">[${coordLabel}]</span></span>
           <span class="coach-tag ${type}">${badgeText}</span>
         </div>
-        <div class="coach-card-exp">${item.explanation}</div>
-        ${item.followUp ? `<div class="coach-card-followup">💡 <strong>後續思路：</strong>${item.followUp}</div>` : ''}
+        <div class="coach-card-exp"><strong>🔍 為什麼這樣走：</strong>${item.explanation}</div>
+        ${item.tacticalPurpose ? `<div class="coach-card-purpose"><strong>🎯 後續戰術目的：</strong>${item.tacticalPurpose}</div>` : ''}
+        ${item.followUp ? `<div class="coach-card-followup"><div style="margin-bottom:0.3rem; font-size:0.95rem; color:var(--accent-gold);"><strong>⏭️ 接下來怎麼走 (1→2→3 連招推演)：</strong></div>${item.followUp}</div>` : ''}
         <div class="coach-card-actions">
-          <button class="coach-btn-preview" title="在棋盤上專注顯示此著法箭頭">👁️ 棋盤圖解</button>
+          <button class="coach-btn-preview" title="在棋盤上顯示 ①本步 → ②對手應手 → ③我方下一步 連招路徑箭頭">👁️ 連招圖解 (1→2→3)</button>
           <button class="coach-btn-play" title="在棋盤上立即走出這一步">⚡ 走這一步</button>
         </div>
       `;
@@ -1895,11 +1932,11 @@ class ChessApp {
       threatListCard.className = 'coach-card-item defense';
       threatListCard.style.borderLeftColor = '#f59e0b';
       threatListCard.innerHTML = `
-        <div style="font-size:0.775rem; line-height:1.45; color:var(--text-primary);">
+        <div style="font-size:0.94rem; line-height:1.6; color:var(--text-primary);">
           ${analysis.threats.map((t, idx) => `
-            <div style="margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
-              <div><strong>${idx + 1}.</strong> ${t.square.toUpperCase()} 格 ${t.pieceName}：${t.reason}</div>
-              <button class="coach-btn-preview btn-focus-threat" data-sq="${t.square}" style="padding:0.15rem 0.4rem; font-size:0.65rem; white-space:nowrap; margin-left:6px;">標記格點</button>
+            <div style="margin-bottom:0.45rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+              <div><strong>${idx + 1}.</strong> ${t.square.toUpperCase()} 格 <strong>${t.pieceName}</strong>：${t.reason}</div>
+              <button class="coach-btn-preview btn-focus-threat" data-sq="${t.square}" style="padding:0.25rem 0.6rem; font-size:0.82rem; white-space:nowrap;">標記格點</button>
             </div>
           `).join('')}
         </div>

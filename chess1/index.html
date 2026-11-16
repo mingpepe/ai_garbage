@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>西洋棋大師 Chess Master - 對戰與開局教學</title>
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=2.6">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♟️</text></svg>">
 </head>
 <body>
@@ -144,7 +144,7 @@
       <div class="card" id="settings-card">
         <h2 class="card-title">
           <span>⚙️ 對局設定</span>
-          <span id="current-mode-tag" style="font-size: 0.75rem; color: var(--accent-emerald);">人機對戰</span>
+          <span id="current-mode-tag" style="font-size: 0.92rem; color: var(--accent-emerald);">人機對戰</span>
         </h2>
 
         <!-- AI Settings Options -->
@@ -164,7 +164,7 @@
           <div class="form-group">
             <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
               <span>電腦 AI 難度等級：</span>
-              <span id="ai-difficulty-desc" style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 700;">等級 3：業餘中級 (~1400)</span>
+              <span id="ai-difficulty-desc" style="font-size: 0.9rem; color: var(--accent-gold); font-weight: 700;">等級 3：業餘中級 (~1400)</span>
             </label>
             <div class="difficulty-level-grid">
               <button class="toggle-option-btn diff-btn" data-level="1" id="btn-diff-1" title="等級 1：新手入門 (~800)">1 新手</button>
@@ -173,7 +173,7 @@
               <button class="toggle-option-btn diff-btn" data-level="4" id="btn-diff-4" title="等級 4：高手進階 (~1700)">4 進階</button>
               <button class="toggle-option-btn diff-btn" data-level="5" id="btn-diff-5" title="等級 5：特級大師 (~2000+)">5 大師</button>
             </div>
-            <p id="ai-difficulty-detail" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; line-height: 1.4;">
+            <p id="ai-difficulty-detail" style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; line-height: 1.5;">
               深度 3 搜尋 + PST 盤面價值表。在最佳評分 55 厘兵內的優質走法池中 Softmax 抽樣，兼顧實力與靈活變化。
             </p>
           </div>
@@ -190,10 +190,10 @@
         </div>
 
         <!-- Scoreboard / Material Advantage Counter -->
-        <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
-          <label class="form-label" style="display: flex; justify-content: space-between;">
+        <div class="form-group" style="margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 0.85rem;">
+          <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
             <span>🏆 本次對戰計分板</span>
-            <button id="btn-reset-score" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem;">清空戰績</button>
+            <button id="btn-reset-score" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:0.88rem; font-weight:600;">清空戰績</button>
           </label>
           <div class="scoreboard-grid">
             <div class="score-box">
@@ -212,7 +212,7 @@
         </div>
 
         <!-- Coach Assistant Toggle inside settings -->
-        <div class="form-group" style="margin-top: 0.85rem; border-top: 1px solid var(--border-color); padding-top: 0.65rem;">
+        <div class="form-group" style="margin-top: 0.95rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
           <label class="checkbox-label">
             <input type="checkbox" id="check-enable-coach-hints">
             <span>💡 開啟即時戰術提示 (棋盤顯示進攻與防守箭頭)</span>
@@ -243,7 +243,7 @@
 
         <!-- Filter / Arrow Display Control Bar -->
         <div class="coach-arrow-filters">
-          <span style="font-size:0.75rem; color:var(--text-muted); margin-right:2px;">標示：</span>
+          <span style="font-size:0.9rem; font-weight:600; color:var(--text-muted); margin-right:4px;">標示：</span>
           <button class="coach-filter-btn active" data-filter="all" id="btn-coach-filter-all">全部標示</button>
           <button class="coach-filter-btn" data-filter="attack" id="btn-coach-filter-attack">⚔️ 進攻 🔴</button>
           <button class="coach-filter-btn" data-filter="defense" id="btn-coach-filter-defense">🛡️ 防守 🔵</button>
@@ -258,10 +258,10 @@
 
         <!-- Coach Settings & Actions -->
         <div class="coach-controls-footer">
-          <div class="form-group" style="margin-bottom:0.5rem;">
+          <div class="form-group" style="margin-bottom:0.65rem;">
             <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
               <span>對手 AI 難度：</span>
-              <span id="coach-difficulty-desc" style="font-size:0.75rem; color:var(--accent-gold);">等級 3 (中級)</span>
+              <span id="coach-difficulty-desc" style="font-size:0.9rem; font-weight:700; color:var(--accent-gold);">等級 3 (中級)</span>
             </label>
             <div class="difficulty-level-grid">
               <button class="toggle-option-btn diff-btn" data-level="1" id="btn-coach-diff-1">1 新手</button>
@@ -271,7 +271,7 @@
               <button class="toggle-option-btn diff-btn" data-level="5" id="btn-coach-diff-5">5 大師</button>
             </div>
           </div>
-          <button class="action-btn" id="btn-coach-refresh" style="width:100%; margin-top:0.3rem;">
+          <button class="action-btn" id="btn-coach-refresh" style="width:100%; justify-content:center; margin-top:0.45rem; font-size:0.95rem;">
             🔄 重新評估當前盤面
           </button>
         </div>
@@ -281,7 +281,7 @@
       <div class="card" id="tutorial-card" style="display: none;">
         <h2 class="card-title">
           <span>🎓 開局教學系統</span>
-          <span id="tut-cat-badge" style="font-size: 0.75rem; color: var(--accent-gold);">12 大名局</span>
+          <span id="tut-cat-badge" style="font-size: 0.9rem; color: var(--accent-gold);">12 大名局</span>
         </h2>
 
         <!-- Opening Selector Dropdown -->
@@ -412,7 +412,7 @@
         <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.65rem;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
             <label class="form-label" style="margin:0;">📌 子聰學長實戰心法：</label>
-            <button id="btn-mrong-all-videos" style="background:none; border:none; color:var(--accent-gold); cursor:pointer; font-size:0.75rem; text-decoration:underline;">
+            <button id="btn-mrong-all-videos" style="background:none; border:none; color:var(--accent-gold); cursor:pointer; font-size:0.88rem; font-weight:600; text-decoration:underline;">
               📚 頻道 25 部影片總錄
             </button>
           </div>
@@ -424,7 +424,7 @@
       <div class="card" id="history-card">
         <h2 class="card-title">
           <span>📜 對局著法表記 (PGN)</span>
-          <button id="btn-copy-pgn" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:0.75rem;">複製記錄</button>
+          <button id="btn-copy-pgn" style="background:none; border:none; color:var(--accent-blue); cursor:pointer; font-size:0.88rem; font-weight:600;">複製記錄</button>
         </h2>
         <div class="move-history-container" id="move-history-container">
           <table class="move-history-table">
@@ -531,6 +531,6 @@
   </div>
 
   <!-- Main JavaScript App -->
-  <script type="module" src="app.js?v=2.2"></script>
+  <script type="module" src="app.js?v=2.6"></script>
 </body>
 </html>

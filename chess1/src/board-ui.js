@@ -1,5 +1,5 @@
 // Interactive Chessboard UI Renderer with Drag-and-Drop, Touch, Click-to-Move, and Visual Hints
-import { getPieceSvg } from './pieces.js';
+import { getPieceSvg } from './pieces.js?v=2.6';
 
 export class BoardUI {
   constructor(containerEl, options = {}) {
@@ -295,12 +295,23 @@ export class BoardUI {
       const markerId = `arrow-head-${color.replace('#', '')}`;
       const width = arr.width || 6;
       const opacity = arr.opacity || 0.82;
+      const dashAttr = arr.dashed ? 'stroke-dasharray="9, 6"' : '';
 
       linesHtml += `
         <line x1="${x1}" y1="${y1}" x2="${endX}" y2="${endY}" 
               stroke="${color}" stroke-width="${width}" stroke-linecap="round" opacity="${opacity}"
+              ${dashAttr}
               marker-end="url(#${markerId})" />
       `;
+
+      if (arr.stepText) {
+        const bx = x1 + (endX - x1) * 0.45;
+        const by = y1 + (endY - y1) * 0.45;
+        linesHtml += `
+          <circle cx="${bx}" cy="${by}" r="10" fill="${color}" stroke="#0f172a" stroke-width="2" opacity="0.95" />
+          <text x="${bx}" y="${by + 3.5}" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="800" font-family="sans-serif">${arr.stepText}</text>
+        `;
+      }
     });
 
     this.overlayEl.innerHTML = defsHtml + linesHtml;

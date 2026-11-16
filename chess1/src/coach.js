@@ -1,8 +1,14 @@
 // ============================================================================
 // 戰術教練分析引擎 (Tactical Coach Analysis Engine)
-// 提供局勢評估、敵方威脅偵測、進攻契機與防守解法，並生成視覺化圖解數據
+// 結合 3-Ply Alpha-Beta + 靜態搜尋 + 全盤合法吃子交換驗證 (Legal SEE)，
+// 提供「為什麼這樣走」、「後續戰術目的」與「1→2→3 連招推演圖解」
 // ============================================================================
-import { evaluateBoard } from './ai.js';
+import {
+  scoreMovesWithSearch,
+  getPureMaterial,
+  resolveSquareExchange,
+  toAlgebraicSquare
+} from './ai.js?v=2.6';
 
 const PIECE_NAMES = {
   p: '兵 (Pawn)',
@@ -32,7 +38,7 @@ const PIECE_VALUES = {
 };
 
 /**
- * 深入分析當前局勢，回傳進攻、防守與整體最佳著法建議
+ * 深入分析當前局勢，回傳進攻、防守與整體最佳著法建議（含深度原因與後續連招推演）
  * @param {Chess} game - chess.js 實例
  * @param {string} playerColor - 玩家執子方 ('w' 或 'b')
  * @returns {Object} 包含 threats, attackSuggestions, defenseSuggestions, bestSuggestion, summary
@@ -65,7 +71,7 @@ export function analyzeCoachPosition(game, playerColor = 'w') {
   // 1. 偵測當前行動方受到的威脅 (Threats)
   const threats = detectThreats(game, currentTurn);
 
-  // 2. 獲取所有合法走步並模擬評估
+  // 2. 獲取所有合法走步並透過全盤吃子交換驗證 + Depth-3 Alpha-Beta 進行評分
   const legalMoves = game.moves({ verbose: true });
   if (legalMoves.length === 0) {
     return {
@@ -78,63 +84,149 @@ export function analyzeCoachPosition(game, playerColor = 'w') {
     };
   }
 
-  // 評估每個走法的局勢與戰術特徵
-  const evaluatedMoves = [];
-  const baseEval = evaluateBoard(game);
-  const sideMultiplier = currentTurn === 'w' ? 1 : -1;
+  const baseMaterial = getPureMaterial(game, currentTurn);
+  const moveMap = new Map();
+  const safetyMap = new Map();
+  let bestWholeBoardDelta = -Infinity;
 
   for (const m of legalMoves) {
-    game.move(m);
-    const scoreAfter = evaluateBoard(game) * sideMultiplier;
-    const inCheck = game.inCheck();
-    game.undo();
-
-    evaluatedMoves.push({
-      move: m,
-      score: scoreAfter,
-      inCheck
-    });
+    const key = `${m.from}-${m.to}-${m.promotion || ''}`;
+    moveMap.set(key, m);
+    const safety = checkMoveSafety(game, m, currentTurn, oppColor, baseMaterial);
+    safetyMap.set(key, safety);
+    if (safety.wholeBoardDelta > bestWholeBoardDelta) {
+      bestWholeBoardDelta = safety.wholeBoardDelta;
+    }
   }
 
-  // 依相對分數降冪排序（分數越高對當前行動方越有利）
+  const acceptableBoardDelta = Math.min(0, bestWholeBoardDelta) - 65;
+  const skipMoveKeys = new Set();
+  for (const [key, safety] of safetyMap.entries()) {
+    if (safety.losesOnTarget || safety.wholeBoardDelta < acceptableBoardDelta) {
+      skipMoveKeys.add(key);
+    }
+  }
+  if (skipMoveKeys.size === legalMoves.length) {
+    skipMoveKeys.clear();
+  }
+
+  const searchedMoves = scoreMovesWithSearch(game, 3, skipMoveKeys);
+  const evaluatedMoves = [];
+
+  for (const s of searchedMoves) {
+    const key = `${s.from}-${s.to}-${s.promotion || ''}`;
+    const verboseMove = moveMap.get(key);
+    const safety = safetyMap.get(key);
+    if (verboseMove && safety) {
+      evaluatedMoves.push({
+        move: verboseMove,
+        rawScore: s.score,
+        score: s.score,
+        inCheck: s.inCheck,
+        safety,
+        isBlunder: false
+      });
+    }
+  }
+
+  if (evaluatedMoves.length === 0) {
+    return {
+      isGameOver: false,
+      threats,
+      attackSuggestions: [],
+      defenseSuggestions: [],
+      bestSuggestion: null,
+      summary: '目前無任何合法著法'
+    };
+  }
+
+  // 標記並重罰任何會「落點送死」或「放任全盤失子」的步數（必勝將殺除外）
+  for (const item of evaluatedMoves) {
+    if (item.rawScore >= 50000) continue;
+    const losesMaterialOnBoard = item.safety.wholeBoardDelta < acceptableBoardDelta;
+    if (item.safety.losesOnTarget || losesMaterialOnBoard) {
+      item.isBlunder = true;
+      const materialPenalty = Math.min(item.safety.targetExchangeDelta, item.safety.wholeBoardDelta - Math.min(0, bestWholeBoardDelta));
+      item.score = item.rawScore - 1500 + materialPenalty * 3;
+    }
+  }
+
+  // 重新依防漏子校正後的分數降冪排序
   evaluatedMoves.sort((a, b) => b.score - a.score);
 
+  const bestScore = evaluatedMoves[0].score;
+  const sideMultiplier = currentTurn === 'w' ? 1 : -1;
+
+  const hasNonBlunder = evaluatedMoves.some(item => !item.isBlunder);
+  for (const item of evaluatedMoves) {
+    if (hasNonBlunder && item.score < bestScore - 75 && item.rawScore < 50000) {
+      item.isBlunder = true;
+    }
+  }
+
   // 3. 提煉進攻建議 (Attack Suggestions)
-  const attackSuggestions = findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor);
+  const attackSuggestions = findAttackSuggestions(game, evaluatedMoves, bestScore, currentTurn, oppColor, threats);
 
   // 4. 提煉防守建議 (Defense Suggestions)
-  const defenseSuggestions = findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppColor);
+  const defenseSuggestions = findDefenseSuggestions(game, evaluatedMoves, bestScore, baseMaterial, threats, currentTurn, oppColor);
 
   // 5. 提煉整體最佳走步 (Best Move)
   const bestCandidate = evaluatedMoves[0];
-  const bestSuggestion = formatBestSuggestion(game, bestCandidate, currentTurn, threats);
+  const bestSuggestion = formatBestSuggestion(game, bestCandidate, currentTurn, oppColor, threats);
 
-  // 6. 生成整體戰略摘要評述
-  const currentAdvantage = baseEval * sideMultiplier;
+  // 6. 為最終選出的建議統一計算「深度原因、戰術目的與 1→2→3 後續連招推演」
+  const enrichedCache = new Map();
+  const enrichItem = (sug, mainColor) => {
+    if (!sug || !sug.move) return;
+    const key = `${sug.move.from}-${sug.move.to}-${sug.move.promotion || ''}`;
+    let details = enrichedCache.get(key);
+    if (!details) {
+      details = buildDeepTacticalDetails(game, sug, currentTurn, oppColor, threats);
+      enrichedCache.set(key, details);
+    }
+    sug.explanation = details.whyText;
+    sug.tacticalPurpose = details.purposeText;
+    sug.followUp = details.nextStepsHtml;
+    sug.arrow.stepText = '1';
+    sug.continuationArrows = [
+      { ...sug.arrow, width: 6, stepText: '1' },
+      ...details.extraArrows
+    ];
+  };
+
+  if (bestSuggestion) enrichItem(bestSuggestion, '#10b981');
+  attackSuggestions.forEach(s => enrichItem(s, '#ef4444'));
+  defenseSuggestions.forEach(s => enrichItem(s, '#3b82f6'));
+
+  // 7. 生成整體戰略摘要評述
+  const currentAdvantage = bestCandidate.rawScore;
+  const whitePerspectiveEval = currentAdvantage * sideMultiplier;
   let advantageText = '';
-  if (Math.abs(currentAdvantage) < 50) {
-    advantageText = '局勢勢均力敵，雙方處於平衡對峙。';
-  } else if (currentAdvantage >= 50 && currentAdvantage < 200) {
-    advantageText = '我方略微佔優，可積極開展子力調度。';
+  if (Math.abs(currentAdvantage) < 60) {
+    advantageText = '局勢勢均力敵，雙方處於平衡對峙，宜優先完成出子與搶佔中心。';
+  } else if (currentAdvantage >= 60 && currentAdvantage < 200) {
+    advantageText = '我方略微佔優，可積極調度子力施壓敵方弱點。';
   } else if (currentAdvantage >= 200) {
-    advantageText = '我方優勢顯著，可尋求突破並瓦解敵方防禦！';
+    advantageText = '我方優勢顯著，可透過優勢交換或創造捉雙突破敵方防線！';
   } else if (currentAdvantage <= -200) {
-    advantageText = '目前處於劣勢，需穩固防線、避免子力失誤。';
+    advantageText = '目前處於劣勢，務必優先保護無防守子力並尋求反擊契機。';
   } else {
-    advantageText = '局勢略微被動，需加強關鍵格子防守。';
+    advantageText = '局勢略微被動，需鞏固關鍵格防守並改善子力位置。';
   }
 
   let threatSummary = '';
-  if (threats.length === 0) {
-    threatSummary = '盤面暫無直接失子威脅，後方防線穩固。';
+  if (game.inCheck()) {
+    threatSummary = '⚠️ 緊急警告：我方國王正遭受將軍，本回合必須優先解將！';
+  } else if (threats.length === 0) {
+    threatSummary = '🛡️ 盤面安全：目前無直接失子威脅，後方防線穩固。';
   } else {
     const highestThreat = threats[0];
-    threatSummary = `⚠️ 注意：位於 ${highestThreat.square.toUpperCase()} 的 ${highestThreat.pieceName} 正面臨威脅！`;
+    threatSummary = `⚠️ 防守警報：位於 ${highestThreat.square.toUpperCase()} 的 ${highestThreat.pieceName} 正面臨敵方 ${highestThreat.attackerName} (${highestThreat.attackerSquare.toUpperCase()}) 威脅！`;
   }
 
   return {
     isGameOver: false,
-    evalScore: (baseEval / 100).toFixed(1),
+    evalScore: (whitePerspectiveEval / 100).toFixed(1),
     advantageText,
     threatSummary,
     threats,
@@ -142,6 +234,349 @@ export function analyzeCoachPosition(game, playerColor = 'w') {
     defenseSuggestions,
     bestSuggestion,
     isPlayerTurn
+  };
+}
+
+/**
+ * 深入剖析單一建議著法的：
+ * 1. 為什麼這樣走 (whyText)
+ * 2. 後續戰術目的 (purposeText)
+ * 3. 接下來怎麼走：對手預計應手 ② + 我方後續連招 ③ (nextStepsHtml & extraArrows)
+ */
+function buildDeepTacticalDetails(game, sug, currentTurn, oppColor, threatsBefore) {
+  const m = sug.move;
+  const safety = sug.safety || {};
+  const moverName = PIECE_NAMES[m.piece];
+  const moverShort = PIECE_SHORT[m.piece];
+  const fromUp = m.from.toUpperCase();
+  const toUp = m.to.toUpperCase();
+
+  const oppThreatsBefore = detectThreats(game, oppColor);
+  const oppThreatSquaresBefore = new Set(oppThreatsBefore.map(t => t.square));
+
+  game.move(m);
+
+  // A. 檢查此步化解了哪些我方原有的危機
+  const myThreatsAfter = detectThreats(game, currentTurn);
+  const myThreatSquaresAfter = new Set(myThreatsAfter.map(t => t.square));
+  const rescuedPieces = threatsBefore.filter(t => !myThreatSquaresAfter.has(t.square) && (t.square !== m.from || !myThreatSquaresAfter.has(m.to)));
+
+  // B. 檢查此步落子後，新落點 m.to 直接瞄準了哪些敵方棋子
+  const directAttackedEnemies = [];
+  const centerControlled = [];
+  for (let r = 8; r >= 1; r--) {
+    for (let f = 0; f < 8; f++) {
+      const sq = 'abcdefgh'[f] + r;
+      const isHitByMovedPiece = game.attackers(sq, currentTurn).includes(m.to);
+      if (isHitByMovedPiece) {
+        if (['d4', 'e4', 'd5', 'e5'].includes(sq)) {
+          centerControlled.push(sq.toUpperCase());
+        }
+        const target = game.get(sq);
+        if (target && target.color === oppColor) {
+          directAttackedEnemies.push({
+            square: sq.toUpperCase(),
+            type: target.type,
+            name: PIECE_NAMES[target.type],
+            short: PIECE_SHORT[target.type],
+            val: PIECE_VALUES[target.type],
+            undefended: !game.isAttacked(sq, oppColor)
+          });
+        }
+      }
+    }
+  }
+  directAttackedEnemies.sort((a, b) => b.val - a.val);
+
+  // C. 檢查全盤新產生的對敵威脅（含閃擊 / 打開射線後的威脅）
+  const oppThreatsAfter = detectThreats(game, oppColor);
+  const newlyCreatedThreats = oppThreatsAfter.filter(t => !oppThreatSquaresBefore.has(t.square));
+
+  // D. 推演後續 2 步連招 (② 對手最佳應手 -> ③ 我方後續最佳連擊)
+  let oppBestMove = null;
+  let ourFollowUpMove = null;
+  const extraArrows = [];
+
+  if (!game.isGameOver()) {
+    const oppScored = scoreMovesWithSearch(game, 1);
+    if (oppScored.length > 0) {
+      const topOpp = oppScored[0];
+      const oppVerboseList = game.moves({ verbose: true });
+      oppBestMove = oppVerboseList.find(
+        om => om.from === topOpp.from && om.to === topOpp.to && (!topOpp.promotion || om.promotion === topOpp.promotion)
+      ) || oppVerboseList[0];
+
+      if (oppBestMove) {
+        extraArrows.push({
+          from: oppBestMove.from,
+          to: oppBestMove.to,
+          color: '#94a3b8',
+          width: 4,
+          dashed: true,
+          opacity: 0.85,
+          stepText: '2'
+        });
+
+        game.move(oppBestMove);
+        if (!game.isGameOver()) {
+          const ourScored = scoreMovesWithSearch(game, 1);
+          if (ourScored.length > 0) {
+            const topOur = ourScored[0];
+            const ourVerboseList = game.moves({ verbose: true });
+            ourFollowUpMove = ourVerboseList.find(
+              fm => fm.from === topOur.from && fm.to === topOur.to && (!topOur.promotion || fm.promotion === topOur.promotion)
+            ) || ourVerboseList[0];
+
+            if (ourFollowUpMove) {
+              extraArrows.push({
+                from: ourFollowUpMove.from,
+                to: ourFollowUpMove.to,
+                color: '#f59e0b',
+                width: 5,
+                dashed: true,
+                opacity: 0.92,
+                stepText: '3'
+              });
+            }
+          }
+        }
+        game.undo();
+      }
+    }
+  }
+
+  const isCheckmateNow = game.isCheckmate();
+  const isCheckNow = game.inCheck();
+  game.undo();
+
+  // =========================================================================
+  // 1. 組裝「為什麼這樣走 (whyText)」
+  // =========================================================================
+  const whyParts = [];
+
+  // (1) 核心走步動作與子力交換計算
+  if (isCheckmateNow) {
+    whyParts.push(`將${moverName}移至 ${toUp} 直接將死敵方國王，一舉終結比賽！`);
+  } else if (m.captured) {
+    const capName = PIECE_NAMES[m.captured];
+    const capVal = (PIECE_VALUES[m.captured] / 100).toFixed(0);
+    if (!safety.isAttacked) {
+      whyParts.push(`敵方位於 ${toUp} 的${capName}處於無防守懸空狀態，以我方${moverName} (${fromUp}→${toUp}) 吃掉可免費淨賺 +${capVal} 分子力。`);
+    } else if (safety.targetExchangeDelta >= 80) {
+      whyParts.push(`以${moverName} (${fromUp}→${toUp}) 吃掉敵方${capName}；雖該格有敵子盯防，但經完整交換鏈結算，我方最終可淨賺約 +${(safety.targetExchangeDelta / 100).toFixed(1)} 分優勢。`);
+    } else {
+      whyParts.push(`以${moverName} (${fromUp}→${toUp}) 主動兌換敵方重要${capName}，消除對手在該區域的戰術支點。`);
+    }
+  } else if (m.flags && (m.flags.includes('k') || m.flags.includes('q'))) {
+    whyParts.push(`發動王車易位 (${m.san})，一口氣完成「隱藏國王至安全側翼兵陣」與「啟動底線城堡進入中央通道」兩大任務。`);
+  } else if (rescuedPieces.length > 0) {
+    const r0 = rescuedPieces[0];
+    if (m.from === r0.square) {
+      whyParts.push(`我方位於 ${fromUp} 的${r0.pieceName}正遭敵方${r0.attackerName} (${r0.attackerSquare.toUpperCase()}) 瞄準，移往 ${toUp} 可及時脫離險境、避免白白失子。`);
+    } else {
+      whyParts.push(`我方 ${r0.square.toUpperCase()} 格的${r0.pieceName}正受敵方威脅，走 ${m.san} (${fromUp}→${toUp}) 能建立協同防線，讓對手無法得手。`);
+    }
+  } else {
+    const backRank = currentTurn === 'w' ? '1' : '8';
+    if (['n', 'b'].includes(m.piece) && m.from[1] === backRank) {
+      whyParts.push(`將尚未出動的后排${moverName}從 ${fromUp} 推進至前線活躍格 ${toUp}，提升子力機動性並加快開局動員。`);
+    } else if (['d4', 'e4', 'd5', 'e5'].includes(m.to)) {
+      whyParts.push(`以${moverName} (${fromUp}→${toUp}) 直接佔據棋盤核心中心格 ${toUp}，掌握中場空間主導權。`);
+    } else {
+      whyParts.push(`將${moverName}由 ${fromUp} 調度至戰略要點 ${toUp}，改善子力配置並強化攻守協調。`);
+    }
+  }
+
+  // (2) 落子後對敵方目標或中心格的直接打擊
+  if (!isCheckmateNow) {
+    if (isCheckNow) {
+      whyParts.push(`此步直接將軍敵方國王，具有最高強制性，對手本回合無法發動反擊、必須優先應對將軍。`);
+    } else if (directAttackedEnemies.length >= 2) {
+      const tNames = directAttackedEnemies.slice(0, 2).map(e => `${e.square} 的${e.name}`).join(' 與 ');
+      whyParts.push(`進駐 ${toUp} 後形成一子雙擊（捉雙），同時直接威脅敵方 ${tNames}！`);
+    } else if (directAttackedEnemies.length === 1) {
+      const e0 = directAttackedEnemies[0];
+      whyParts.push(`落子後直接瞄準敵方位於 ${e0.square} 的${e0.name}${e0.undefended ? '（該子目前無保護）' : ''}，施加正面壓力。`);
+    } else if (centerControlled.length > 0 && !['d4', 'e4', 'd5', 'e5'].includes(m.to)) {
+      whyParts.push(`同時從 ${toUp} 格輻射控制中央 ${centerControlled.join('、')} 關鍵格，限制敵方輕子切入。`);
+    }
+  }
+
+  // (3) 落點安全性證明（讓玩家安心確認不會送死）
+  if (!isCheckmateNow && safety.isAttacked !== undefined) {
+    if (!safety.isAttacked) {
+      whyParts.push(`【安全驗證】${toUp} 格目前完全不在敵方任何棋子的攻擊射程內，無被吃風險。`);
+    } else if (safety.defenders && safety.defenders.length > 0 && safety.targetExchangeDelta >= 0) {
+      const defList = safety.defenders.slice(0, 2).map(s => s.toUpperCase()).join('、');
+      whyParts.push(`【安全驗證】${toUp} 格雖有敵子盯防，但我方有 ${defList} 格友軍提供充足保護，敵方若強行換子只會吃虧。`);
+    }
+  }
+
+  // =========================================================================
+  // 2. 組裝「後續戰術目的 (purposeText)」
+  // =========================================================================
+  let purposeText = '';
+  if (isCheckmateNow) {
+    purposeText = '直接完成將殺，取得對局勝利。';
+  } else if (newlyCreatedThreats.length > 0) {
+    const nt = newlyCreatedThreats[0];
+    purposeText = `創造對敵方 ${nt.square.toUpperCase()} 格${nt.pieceName}的實質吃子威脅，迫使對手下一手陷入被動逃亡或防守，藉機奪取場上先手權（Initiative）並擴大子力優勢。`;
+  } else if (directAttackedEnemies.length >= 2) {
+    purposeText = `利用捉雙戰術讓對手顧此失彼，待對手移開其中一子後，於下一手穩穩吃掉另一枚敵子以贏得子力差。`;
+  } else if (isCheckNow) {
+    purposeText = `透過將軍破壞敵方王城陣型（或迫使敵王失去易位權利），趁對手應付將軍的空檔，為我方後續重子切入創造時間差（Tempo）。`;
+  } else if (rescuedPieces.length > 0) {
+    purposeText = `先穩住陣腳、消除我方陣營的失子破口，讓對手撲空並消耗其進攻動能，待防線鞏固後再伺機轉守為攻。`;
+  } else if (m.flags && (m.flags.includes('k') || m.flags.includes('q'))) {
+    purposeText = `徹底消除中路國王被戰術偷襲的隱憂，並在後續回合將城堡推向中央開放線（d線或e線），展開中局攻勢。`;
+  } else if (['d4', 'e4', 'd5', 'e5'].includes(m.to)) {
+    purposeText = `建立穩固的中心據點，將敵方子力擠壓在後排狹小空間，並作為我方後續兵鏈推進或雙翼進攻的跳板。`;
+  } else {
+    purposeText = `優化子力協同位置並控制關鍵線路，壓縮對手好走步的選擇空間，等待對手陣型出現弱點時立即發動戰術打擊。`;
+  }
+
+  // =========================================================================
+  // 3. 組裝「接下來怎麼走 — 1→2→3 連招推演 (nextStepsHtml)」
+  // =========================================================================
+  const stepLines = [];
+  stepLines.push(`<strong>① 本步行動：</strong>走 <code>${m.san}</code>（${moverShort} ${fromUp} → ${toUp}）`);
+
+  if (isCheckmateNow) {
+    stepLines.push(`<strong>🏁 結局：</strong>對手無任何合法解將步，直接獲勝！`);
+  } else {
+    if (newlyCreatedThreats.length > 0) {
+      const nt = newlyCreatedThreats[0];
+      stepLines.push(`<strong>⚡ 直接威脅（若對手不防備）：</strong>下回合可直接攻取敵方 <strong>${nt.square.toUpperCase()} 格的${nt.pieceName}</strong>！`);
+    }
+
+    if (oppBestMove) {
+      const oppShort = PIECE_SHORT[oppBestMove.piece];
+      const oppFrom = oppBestMove.from.toUpperCase();
+      const oppTo = oppBestMove.to.toUpperCase();
+      let oppActionDesc = '';
+      if (oppBestMove.captured) {
+        oppActionDesc = `（反吃 ${oppTo} 格${PIECE_SHORT[oppBestMove.captured]}）`;
+      } else if (isCheckNow) {
+        oppActionDesc = `（被迫應對將軍）`;
+      } else if (newlyCreatedThreats.length > 0 && oppBestMove.from === newlyCreatedThreats[0].square) {
+        oppActionDesc = `（逃避我方威脅）`;
+      } else {
+        oppActionDesc = `（對手最佳應手）`;
+      }
+      stepLines.push(`<strong>② 預判對手應手：</strong>對手最可能走 <code>${oppBestMove.san}</code>（${oppShort} ${oppFrom} → ${oppTo}）${oppActionDesc}`);
+    }
+
+    if (ourFollowUpMove) {
+      const ourShort = PIECE_SHORT[ourFollowUpMove.piece];
+      const ourFrom = ourFollowUpMove.from.toUpperCase();
+      const ourTo = ourFollowUpMove.to.toUpperCase();
+      let ourActionReason = '';
+      if (ourFollowUpMove.captured) {
+        ourActionReason = `，順勢吃掉敵方 ${ourTo} 格的${PIECE_NAMES[ourFollowUpMove.captured]}擴大戰果！`;
+      } else if (ourFollowUpMove.san.includes('+')) {
+        ourActionReason = `，發動連續將軍追擊敵王！`;
+      } else if (['d4', 'e4', 'd5', 'e5'].includes(ourFollowUpMove.to)) {
+        ourActionReason = `，繼續搶佔中心核心格強化控制！`;
+      } else {
+        ourActionReason = `，持續推進陣型並鞏固場面優勢！`;
+      }
+      stepLines.push(`<strong>③ 我方後續連招：</strong>接著我們可走 <code>${ourFollowUpMove.san}</code>（${ourShort} ${ourFrom} → ${ourTo}）${ourActionReason}`);
+    }
+  }
+
+  return {
+    whyText: whyParts.join(' '),
+    purposeText,
+    nextStepsHtml: stepLines.join('<br>'),
+    extraArrows
+  };
+}
+
+/**
+ * 檢查走法在落子後的落點交換淨值與全盤最差失子風險
+ */
+function checkMoveSafety(game, move, currentTurn, oppColor, baseMaterial) {
+  game.move(move);
+
+  if (game.isCheckmate()) {
+    game.undo();
+    return {
+      isSafe: true,
+      isUncontested: true,
+      isAttacked: false,
+      isHanging: false,
+      losesOnTarget: false,
+      targetExchangeDelta: 10000,
+      wholeBoardDelta: 10000,
+      attackers: [],
+      defenders: [],
+      minAttackerVal: Infinity
+    };
+  }
+
+  const attackers = game.attackers(move.to, oppColor);
+  const defenders = game.attackers(move.to, currentTurn);
+  const myType = move.promotion || move.piece;
+  const myVal = PIECE_VALUES[myType] || 100;
+
+  let minAttackerVal = Infinity;
+  for (const atkSq of attackers) {
+    const atkPiece = game.get(atkSq);
+    if (atkPiece && PIECE_VALUES[atkPiece.type] < minAttackerVal) {
+      minAttackerVal = PIECE_VALUES[atkPiece.type];
+    }
+  }
+
+  // 1. 計算落點格 move.to 的精確合法吃子交換鏈結果 (Legal SEE)
+  const matAfterTarget = resolveSquareExchange(game, move.to, currentTurn);
+  const targetExchangeDelta = matAfterTarget - baseMaterial;
+
+  // 2. 掃描對手下一手在全盤其他格點的合法吃子（每個目標格僅取最低價值攻擊子 LVA 測試一次）
+  let minBoardMat = Math.min(getPureMaterial(game, currentTurn), matAfterTarget);
+  const oppRawMoves = game._moves();
+  const lvaBySquare = new Map();
+  for (let i = 0; i < oppRawMoves.length; i++) {
+    const om = oppRawMoves[i];
+    if (om.captured || om.promotion) {
+      const capSq = toAlgebraicSquare(om.to);
+      if (capSq === move.to) continue;
+      const existing = lvaBySquare.get(capSq);
+      if (!existing || (PIECE_VALUES[om.piece] || 100) < (PIECE_VALUES[existing.piece] || 100)) {
+        lvaBySquare.set(capSq, om);
+      }
+    }
+  }
+  for (const [capSq, om] of lvaBySquare.entries()) {
+    game._makeMove(om);
+    const matAfter = resolveSquareExchange(game, capSq, currentTurn);
+    game._undoMove();
+    if (matAfter < minBoardMat) {
+      minBoardMat = matAfter;
+    }
+  }
+  const wholeBoardDelta = minBoardMat - baseMaterial;
+
+  game.undo();
+
+  const isAttacked = attackers.length > 0;
+  const isHanging = isAttacked && defenders.length === 0;
+  const isLowerAttacker = isAttacked && minAttackerVal < myVal;
+
+  const losesOnTarget = targetExchangeDelta <= -60 || (!move.captured && isLowerAttacker);
+  const isUncontested = !losesOnTarget && (!isAttacked || (minAttackerVal > myVal + 50 && targetExchangeDelta >= 0));
+  const isSafe = !losesOnTarget && wholeBoardDelta >= -60;
+
+  return {
+    isSafe,
+    isUncontested,
+    isAttacked,
+    isHanging,
+    losesOnTarget,
+    targetExchangeDelta,
+    wholeBoardDelta,
+    attackers,
+    defenders,
+    minAttackerVal
   };
 }
 
@@ -163,7 +598,6 @@ function detectThreats(game, targetColor) {
         const defenders = game.attackers(square, targetColor);
         const myVal = PIECE_VALUES[piece.type];
 
-        // 找出攻擊方中價值最低的棋子
         let minAttackerVal = Infinity;
         let primaryAttackerSquare = attackers[0];
         for (const atkSq of attackers) {
@@ -175,7 +609,7 @@ function detectThreats(game, targetColor) {
         }
 
         const isHanging = defenders.length === 0;
-        const isUnderDefended = attackers.length > defenders.length;
+        const isUnderDefended = attackers.length > defenders.length && minAttackerVal <= myVal;
         const isFavorableExchange = minAttackerVal < myVal;
 
         if (isHanging || isUnderDefended || isFavorableExchange) {
@@ -206,67 +640,52 @@ function detectThreats(game, targetColor) {
     }
   }
 
-  // 依棋子價值高低排序威脅
   threats.sort((a, b) => b.severity - a.severity);
   return threats;
 }
 
 /**
- * 提煉進攻建議（吃子、捉雙、牽制、將軍、突破中心等）
+ * 提煉進攻建議（僅從無送子風險的健全著法中挑選）
  */
-function findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor) {
+function findAttackSuggestions(game, evaluatedMoves, bestScore, currentTurn, oppColor, threats) {
   const suggestions = [];
   const seenMoves = new Set();
 
-  for (const item of evaluatedMoves) {
+  const soundMoves = evaluatedMoves.filter(item => !item.isBlunder);
+
+  for (const item of soundMoves) {
     const m = item.move;
     const moveKey = `${m.from}-${m.to}`;
     if (seenMoves.has(moveKey)) continue;
 
+    const safety = item.safety;
+    const myVal = PIECE_VALUES[m.piece] || 100;
+
     let attackType = null;
     let title = '';
-    let explanation = '';
-    let followUp = '';
     let priority = 0;
 
     // 情況 A：吃子攻勢
     if (m.captured) {
-      const capturedName = PIECE_NAMES[m.captured];
-      const moverName = PIECE_NAMES[m.piece];
-      const myVal = PIECE_VALUES[m.piece];
       const targetVal = PIECE_VALUES[m.captured];
 
-      // 檢查吃子後目標格是否被對手保護
-      game.move(m);
-      const defendedByOpp = game.isAttacked(m.to, oppColor);
-      game.undo();
-
-      if (!defendedByOpp) {
+      if (!safety.isAttacked && safety.targetExchangeDelta >= targetVal - 20) {
         attackType = 'free-capture';
         title = `🎯 吃子斬獲：${m.san} (淨賺 ${PIECE_SHORT[m.captured]})`;
-        explanation = `以 ${moverName} 斬獲對手無保護的 ${capturedName} (${m.to.toUpperCase()})，直接建立子力優勢！`;
-        followUp = `吃子後該格安全無虞，可持續擴大局勢壓迫。`;
-        priority = 90 + targetVal / 10;
-      } else if (targetVal >= myVal) {
+        priority = 95 + targetVal / 10;
+      } else if (safety.targetExchangeDelta >= 80) {
         attackType = 'favorable-trade';
-        title = `⚔️ 有利兌子：${m.san} (吃 ${PIECE_SHORT[m.captured]})`;
-        explanation = `以 ${moverName} 換取對手 ${capturedName} (${m.to.toUpperCase()})，即使被反吃亦完全不虧甚至淨賺。`;
-        followUp = `順利瓦解對手防禦佈局並簡化局面。`;
-        priority = 75 + (targetVal - myVal) / 10;
+        title = `⚔️ 贏得兌換：${m.san} (吃 ${PIECE_SHORT[m.captured]})`;
+        priority = 88 + safety.targetExchangeDelta / 10;
+      } else if (targetVal >= myVal && safety.targetExchangeDelta >= 0 && item.score >= bestScore - 30) {
+        attackType = 'equal-trade';
+        title = `⚔️ 主動兌子：${m.san} (兌換 ${PIECE_SHORT[m.captured]})`;
+        priority = 72;
       }
     }
 
-    // 情況 B：將軍 (Check) 攻勢
-    if (!attackType && item.inCheck) {
-      attackType = 'check';
-      title = `⚡ 將軍突擊：${m.san} (攻擊國王)`;
-      explanation = `將 ${PIECE_NAMES[m.piece]} 推進至 ${m.to.toUpperCase()} 直接將軍對手國王，迫使對方被動應手！`;
-      followUp = `對方必須立即墊子、吃子或避王，能為我方贏得寶貴的進攻主動權。`;
-      priority = 80;
-    }
-
-    // 情況 C：捉雙 (Fork) 戰術判定
-    if (!attackType) {
+    // 情況 B：捉雙 (Fork) 戰術判定
+    if (!attackType && safety.isUncontested) {
       game.move(m);
       const attackedPieces = [];
       for (let r = 8; r >= 1; r--) {
@@ -275,7 +694,8 @@ function findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor) {
           const targetPiece = game.get(sq);
           if (targetPiece && targetPiece.color === oppColor) {
             const isHit = game.attackers(sq, currentTurn).includes(m.to);
-            if (isHit && (PIECE_VALUES[targetPiece.type] >= 300 || !game.isAttacked(sq, oppColor))) {
+            const targetVal = PIECE_VALUES[targetPiece.type];
+            if (isHit && (targetVal > myVal || targetPiece.type === 'k' || !game.isAttacked(sq, oppColor))) {
               attackedPieces.push({ square: sq, type: targetPiece.type });
             }
           }
@@ -285,31 +705,30 @@ function findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor) {
 
       if (attackedPieces.length >= 2) {
         attackType = 'fork';
-        const p1 = PIECE_NAMES[attackedPieces[0].type];
-        const p2 = PIECE_NAMES[attackedPieces[1].type];
         title = `🔱 捉雙戰術：${m.san} (同時攻擊雙子)`;
-        explanation = `將 ${PIECE_NAMES[m.piece]} 走至 ${m.to.toUpperCase()}，同時威脅對手位於 ${attackedPieces[0].square.toUpperCase()} 的 ${p1} 與 ${attackedPieces[1].square.toUpperCase()} 的 ${p2}！`;
-        followUp = `對手無法在一手內同時解救兩子，下回合我方必能斬獲其一！`;
-        priority = 85;
+        priority = 90;
       }
     }
 
-    // 情況 D：強攻牽制或佔據核心中心格 (e4, d4, e5, d5, c4, f4)
-    if (!attackType && ['d4', 'e4', 'd5', 'e5'].includes(m.to) && ['p', 'n', 'b'].includes(m.piece)) {
-      attackType = 'center-control';
-      title = `🏰 爭奪中心：${m.san} (壓迫中路)`;
-      explanation = `將 ${PIECE_NAMES[m.piece]} 挺進中心核心格 ${m.to.toUpperCase()}，控制對手中場活動空間。`;
-      followUp = `能為後續后翼或王翼子力展開提供強力的支點。`;
-      priority = 60 + item.score / 50;
+    // 情況 C：安全將軍 (Check) 攻勢
+    if (!attackType && item.inCheck && (item.rawScore >= 50000 || safety.isUncontested || safety.targetExchangeDelta >= 80)) {
+      attackType = 'check';
+      title = `⚡ 將軍突擊：${m.san} (攻擊國王)`;
+      priority = item.rawScore >= 50000 ? 120 : 85;
     }
 
-    // 情況 E：兵鏈推進突破
-    if (!attackType && m.piece === 'p' && (m.to[1] === '5' || m.to[1] === '4')) {
+    // 情況 D：安全爭奪核心中心格 (e4, d4, e5, d5)
+    if (!attackType && !m.captured && safety.isUncontested && ['d4', 'e4', 'd5', 'e5'].includes(m.to) && ['p', 'n', 'b'].includes(m.piece)) {
+      attackType = 'center-control';
+      title = `🏰 爭奪中心：${m.san} (壓迫中路)`;
+      priority = 65 + (item.score - bestScore) / 20;
+    }
+
+    // 情況 E：安全兵線挺進突破
+    if (!attackType && !m.captured && safety.isUncontested && m.piece === 'p' && (m.to[1] === '5' || m.to[1] === '4')) {
       attackType = 'pawn-push';
       title = `🔥 兵線挺進：${m.san} (壓縮空間)`;
-      explanation = `推進兵至 ${m.to.toUpperCase()} 撕開對手兵陣結構，驅趕敵方駐守輕子。`;
-      followUp = `可為我方後方重子打通開放線路。`;
-      priority = 50 + item.score / 50;
+      priority = 55 + (item.score - bestScore) / 20;
     }
 
     if (attackType) {
@@ -318,9 +737,11 @@ function findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor) {
         type: 'attack',
         attackType,
         move: m,
+        safety,
         title,
-        explanation,
-        followUp,
+        explanation: '',
+        tacticalPurpose: '',
+        followUp: '',
         score: item.score,
         priority,
         arrow: {
@@ -336,41 +757,41 @@ function findAttackSuggestions(game, evaluatedMoves, currentTurn, oppColor) {
       });
     }
 
-    if (suggestions.length >= 3) break;
+    if (suggestions.length >= 4) break;
   }
 
-  // 排序優先順序
   suggestions.sort((a, b) => b.priority - a.priority);
   return suggestions.slice(0, 2);
 }
 
 /**
- * 提煉防守建議（撤退避險、增援守護、消除威脅、王車易位安王等）
+ * 提煉防守建議（僅從無送子風險且真正能化解威脅的著法中挑選）
  */
-function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppColor) {
+function findDefenseSuggestions(game, evaluatedMoves, bestScore, baseMaterial, threats, currentTurn, oppColor) {
   const suggestions = [];
   const seenMoves = new Set();
 
+  const soundMoves = evaluatedMoves.filter(item => !item.isBlunder);
+  const candidatePool = soundMoves.length > 0 ? soundMoves : evaluatedMoves.slice(0, 2);
+
   // 若當前在將軍狀態，解將為最高防守優先級
   if (game.inCheck()) {
-    for (const item of evaluatedMoves) {
+    for (const item of candidatePool) {
       const m = item.move;
       const moveKey = `${m.from}-${m.to}`;
       if (seenMoves.has(moveKey)) continue;
-
-      let title = `🛡️ 解除將軍：${m.san}`;
-      let explanation = `國王目前正受威脅！透過 ${m.san} 成功化解將軍危機。`;
-      let followUp = `解將後務必重新檢視防線，避免被對手連續將軍抽子。`;
 
       seenMoves.add(moveKey);
       suggestions.push({
         type: 'defense',
         defenseType: 'evade-check',
         move: m,
-        title,
-        explanation,
-        followUp,
-        priority: 100 + item.score / 20,
+        safety: item.safety,
+        title: `🛡️ 解除將軍：${m.san}`,
+        explanation: '',
+        tacticalPurpose: '',
+        followUp: '',
+        priority: 100 + (item.score - bestScore) / 20,
         arrow: {
           from: m.from,
           to: m.to,
@@ -388,58 +809,51 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
     return suggestions;
   }
 
-  // 若有受威脅棋子，優先尋求撤退、防守或反吃
+  // 若有受威脅棋子，優先尋求反吃、安全撤退或真正有效的增援
   if (threats.length > 0) {
     const highestThreat = threats[0];
     const targetSq = highestThreat.square;
 
-    for (const item of evaluatedMoves) {
+    for (const item of soundMoves) {
       const m = item.move;
       const moveKey = `${m.from}-${m.to}`;
       if (seenMoves.has(moveKey)) continue;
 
+      const safety = item.safety;
+
       let defenseType = null;
       let title = '';
-      let explanation = '';
-      let followUp = '';
       let priority = 0;
 
-      // 策略 1：受威脅棋子撤退至安全格
-      if (m.from === targetSq) {
-        game.move(m);
-        const stillAttacked = game.isAttacked(m.to, oppColor);
-        game.undo();
-
-        if (!stillAttacked) {
-          defenseType = 'retreat';
-          title = `🛡️ 安全撤退：${m.san} (避開攻擊)`;
-          explanation = `將受威脅的 ${highestThreat.pieceName} 從 ${m.from.toUpperCase()} 撤移至安全的 ${m.to.toUpperCase()} 格。`;
-          followUp = `成功避免 ${highestThreat.pieceName} 被白白吃掉，保全戰力。`;
-          priority = 95 + highestThreat.severity / 100;
-        }
-      }
-
-      // 策略 2：吃掉攻擊者 (消滅威脅根源)
-      if (m.to === highestThreat.attackerSquare) {
+      // 策略 1：吃掉攻擊者
+      if (m.to === highestThreat.attackerSquare && safety.targetExchangeDelta >= -20) {
         defenseType = 'eliminate-threat';
         title = `⚔️ 反擊威脅：${m.san} (拔除攻擊子)`;
-        explanation = `主動斬獲威脅我方陣地的敵方 ${highestThreat.attackerName} (${highestThreat.attackerSquare.toUpperCase()})！`;
-        followUp = `以攻為守，不僅解除危機，更奪回戰略主導權。`;
         priority = 98 + highestThreat.severity / 100;
       }
 
-      // 策略 3：走子為受威脅格增加防守子力
-      if (!defenseType && m.from !== targetSq) {
+      // 策略 2：受威脅棋子撤退至真正安全的格點
+      if (!defenseType && m.from === targetSq && safety.isUncontested) {
+        defenseType = 'retreat';
+        title = `🛡️ 安全撤退：${m.san} (避開攻擊)`;
+        priority = 95 + highestThreat.severity / 100;
+      }
+
+      // 策略 3：增援守護
+      if (!defenseType && m.from !== targetSq && safety.isUncontested) {
         game.move(m);
         const newDefenders = game.attackers(targetSq, currentTurn);
+        let targetSaved = false;
+        if (newDefenders.includes(m.to)) {
+          const matAfterTarget = resolveSquareExchange(game, targetSq, currentTurn);
+          targetSaved = (matAfterTarget - baseMaterial) >= -30;
+        }
         game.undo();
 
-        if (newDefenders.includes(m.to)) {
+        if (targetSaved) {
           defenseType = 'reinforce';
-          title = `🛡️ 增援守護：${m.san} (建立防守)`;
-          explanation = `將 ${PIECE_NAMES[m.piece]} 移至 ${m.to.toUpperCase()}，為 ${targetSq.toUpperCase()} 的 ${highestThreat.pieceName} 建立保護支援！`;
-          followUp = `形成協同防守陣型，讓對手不敢輕易動手交換。`;
-          priority = 75 + highestThreat.severity / 200;
+          title = `🛡️ 增援守護：${m.san} (鞏固防線)`;
+          priority = 80 + highestThreat.severity / 200;
         }
       }
 
@@ -449,9 +863,11 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
           type: 'defense',
           defenseType,
           move: m,
+          safety,
           title,
-          explanation,
-          followUp,
+          explanation: '',
+          tacticalPurpose: '',
+          followUp: '',
           priority,
           arrow: {
             from: m.from,
@@ -470,9 +886,9 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
     }
   }
 
-  // 策略 4：若盤面無即時威脅，尋求王車易位 (Castling) 穩固王翼
+  // 策略 4：王車易位 (Castling) 穩固王翼
   if (suggestions.length < 2) {
-    for (const item of evaluatedMoves) {
+    for (const item of soundMoves) {
       const m = item.move;
       const isCastle = m.flags && (m.flags.includes('k') || m.flags.includes('q'));
       if (isCastle && !seenMoves.has(`${m.from}-${m.to}`)) {
@@ -481,9 +897,11 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
           type: 'defense',
           defenseType: 'castle',
           move: m,
+          safety: item.safety,
           title: `🏰 王車易位：${m.san} (王城安全)`,
-          explanation: `進行王車易位，將國王移至厚實的兵陣護衛內，同時將底線城堡迅速調度至中央作戰。`,
-          followUp: `這是現代西洋棋最關鍵的防守里程碑，能徹底杜絕中央線被突然破陣的風險。`,
+          explanation: '',
+          tacticalPurpose: '',
+          followUp: '',
           priority: 82,
           arrow: {
             from: m.from,
@@ -501,17 +919,21 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
     }
   }
 
-  // 策略 5：防守型穩健走步（防護後方、防範弱點）
-  if (suggestions.length === 0 && evaluatedMoves.length > 0) {
-    const safest = evaluatedMoves[0];
-    const m = safest.move;
+  // 策略 5：穩健無瑕佈局走步
+  if (suggestions.length === 0 && soundMoves.length > 0) {
+    const safePositional = soundMoves.filter(x => x.safety.isUncontested);
+    const pool = safePositional.length > 0 ? safePositional : soundMoves;
+    const pick = pool.length > 1 ? pool[1] : pool[0];
+    const m = pick.move;
     suggestions.push({
       type: 'defense',
       defenseType: 'positional',
       move: m,
+      safety: pick.safety,
       title: `🛡️ 穩健佈局：${m.san}`,
-      explanation: `加強盤面結構與陣型協同，穩固陣地等待出擊契機。`,
-      followUp: `防範對手潛在的偷襲與子力滲透。`,
+      explanation: '',
+      tacticalPurpose: '',
+      followUp: '',
       priority: 60,
       arrow: {
         from: m.from,
@@ -533,29 +955,20 @@ function findDefenseSuggestions(game, evaluatedMoves, threats, currentTurn, oppC
 /**
  * 格式化整體評估最佳走步
  */
-function formatBestSuggestion(game, bestItem, currentTurn, threats) {
+function formatBestSuggestion(game, bestItem, currentTurn, oppColor, threats) {
   if (!bestItem) return null;
   const m = bestItem.move;
 
-  let rationale = '';
-  if (m.captured) {
-    rationale = `直接吃掉對手 ${PIECE_NAMES[m.captured]} (${m.to.toUpperCase()})，獲取直接淨勝子力。`;
-  } else if (bestItem.inCheck) {
-    rationale = `推進 ${m.san} 將軍對手，掌握主動權並壓制敵方國王。`;
-  } else if (m.flags && (m.flags.includes('k') || m.flags.includes('q'))) {
-    rationale = `王車易位，將國王帶入掩體並啟動城堡進攻通道。`;
-  } else if (threats.length > 0 && m.from === threats[0].square) {
-    rationale = `精準避開對手攻擊，及時化解失子危機。`;
-  } else {
-    rationale = `在攻守兩端均具備最佳戰略效益，能有效提升我方陣地控制力。`;
-  }
-
   return {
+    type: 'best',
     move: m,
+    safety: bestItem.safety,
     san: m.san,
     title: `🏆 最佳推薦著法：${m.san}`,
-    explanation: rationale,
-    score: (bestItem.score / 100).toFixed(1),
+    explanation: '',
+    tacticalPurpose: '',
+    followUp: '',
+    score: (bestItem.rawScore / 100).toFixed(1),
     arrow: {
       from: m.from,
       to: m.to,

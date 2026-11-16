@@ -284,22 +284,12 @@ function toPublicMove(rawMove) {
 }
 
 /**
- * 0x88 盤面靜態評估函數 (Static Board Evaluation)
- * @param {Chess} game 
- * @returns {number} 評分 (從白方視角，正數代表白優，負數代表黑優)
+ * 0x88 盤面極速靜態評估函數（不含走法生成，專供搜尋樹葉節點呼叫）
  */
-export function evaluateBoard(game) {
-  if (game.isCheckmate()) {
-    return game.turn() === 'w' ? -100000 : 100000;
-  }
-  if (game.isDraw()) {
-    return 0;
-  }
-
+function evaluateBoardFast(game) {
   let score = 0;
   const board = game._board;
 
-  // 遍歷 0x88 盤面（利用位元遮罩跳過越界格點，0 記憶體垃圾配置）
   for (let i = 0; i < 128; i++) {
     if (i & 0x88) {
       i += 7;
@@ -312,7 +302,6 @@ export function evaluateBoard(game) {
     const val = PIECE_VALS[type] || 0;
     const r = i >> 4;
     const c = i & 7;
-    // 依黑白方計算 PST 位置權重索引
     const sqIdx = piece.color === 'w' ? (r * 8 + c) : ((7 - r) * 8 + c);
     const pstVal = PST[type] ? PST[type][sqIdx] : 0;
 
@@ -325,6 +314,88 @@ export function evaluateBoard(game) {
   }
 
   return score;
+}
+
+/**
+ * 計算純子力分差（不含位置分 PST，避免位置權重干擾吃子得失判斷）
+ * @param {Chess} game
+ * @param {string} perspectiveColor - 'w' 或 'b'
+ */
+export function getPureMaterial(game, perspectiveColor = 'w') {
+  let score = 0;
+  const board = game._board;
+  for (let i = 0; i < 128; i++) {
+    if (i & 0x88) {
+      i += 7;
+      continue;
+    }
+    const piece = board[i];
+    if (!piece || piece.type === 'k') continue;
+    const val = PIECE_VALS[piece.type] || 0;
+    if (piece.color === perspectiveColor) {
+      score += val;
+    } else {
+      score -= val;
+    }
+  }
+  return score;
+}
+
+/**
+ * 在指定目標格 targetSquare 上執行精確的合法吃子交換鏈（Legal SEE）
+ * 自動考慮絕對牽制 (Pin)、國王不可入受攻格與最低價值攻擊者優先 (LVA)
+ */
+export function resolveSquareExchange(game, targetSquare, rootColor) {
+  const currentSide = game.turn();
+  const matNow = getPureMaterial(game, rootColor);
+
+  const rawMoves = game._moves();
+  if (rawMoves.length === 0) {
+    if (game.isCheck()) {
+      return currentSide === rootColor ? -99999 : 99999;
+    }
+    return matNow;
+  }
+
+  const sqCaptures = [];
+  for (let i = 0; i < rawMoves.length; i++) {
+    const rm = rawMoves[i];
+    if (toAlgebraicSquare(rm.to) === targetSquare) {
+      sqCaptures.push(rm);
+    }
+  }
+
+  if (sqCaptures.length === 0) {
+    return matNow;
+  }
+
+  sqCaptures.sort((a, b) => (PIECE_VALS[a.piece] || 0) - (PIECE_VALS[b.piece] || 0));
+  const bestCapture = sqCaptures[0];
+
+  game._makeMove(bestCapture);
+  const afterExchangeMat = resolveSquareExchange(game, targetSquare, rootColor);
+  game._undoMove();
+
+  if (currentSide === rootColor) {
+    return Math.max(matNow, afterExchangeMat);
+  } else {
+    return Math.min(matNow, afterExchangeMat);
+  }
+}
+
+/**
+ * 0x88 盤面靜態評估函數 (Static Board Evaluation)
+ * @param {Chess} game 
+ * @returns {number} 評分 (從白方視角，正數代表白優，負數代表黑優)
+ */
+export function evaluateBoard(game) {
+  if (game.isCheckmate()) {
+    return game.turn() === 'w' ? -100000 : 100000;
+  }
+  if (game.isDraw()) {
+    return 0;
+  }
+  return evaluateBoardFast(game);
 }
 
 // 全局 64-bit Zobrist 置換表 (Transposition Table) 與殺手著法快取
@@ -367,20 +438,20 @@ function orderMovesFast(moves, hashMove, ply) {
  * 避免「地平線效應」(Horizon Effect)，在搜索葉節點持續評估所有吃子兌換直到局面平靜。
  */
 function quiescenceFast(game, alpha, beta, isMax, depth = 0) {
-  const standPat = evaluateBoard(game);
+  const standPat = evaluateBoardFast(game);
   if (depth >= 3) return standPat;
 
   if (isMax) {
     if (standPat >= beta) return beta;
     if (standPat > alpha) alpha = standPat;
-
-    // Delta 剪枝：若即使吃掉后 (950) 依然無法超越下限，直接剪枝
     if (standPat + 950 < alpha) return alpha;
 
     const rawMoves = game._moves();
     const captures = [];
     for (let i = 0; i < rawMoves.length; i++) {
-      if (rawMoves[i].captured) captures.push(rawMoves[i]);
+      if (rawMoves[i].captured || rawMoves[i].promotion) {
+        captures.push(rawMoves[i]);
+      }
     }
     if (captures.length === 0) return standPat;
 
@@ -402,13 +473,14 @@ function quiescenceFast(game, alpha, beta, isMax, depth = 0) {
   } else {
     if (standPat <= alpha) return alpha;
     if (standPat < beta) beta = standPat;
-
     if (standPat - 950 > beta) return beta;
 
     const rawMoves = game._moves();
     const captures = [];
     for (let i = 0; i < rawMoves.length; i++) {
-      if (rawMoves[i].captured) captures.push(rawMoves[i]);
+      if (rawMoves[i].captured || rawMoves[i].promotion) {
+        captures.push(rawMoves[i]);
+      }
     }
     if (captures.length === 0) return standPat;
 
@@ -440,7 +512,7 @@ function alphaBetaFast(game, depth, alpha, beta, isMax, ply = 0, enableQuiescenc
 
   if (tt) {
     hashMove = tt.bestMove;
-    if (tt.depth >= depth) {
+    if (tt.depth >= depth && tt.quiescence === enableQuiescence) {
       if (tt.flag === 0) return tt.score; // 精確值
       if (tt.flag === 1 && tt.score <= alpha) return alpha; // 上界
       if (tt.flag === 2 && tt.score >= beta) return beta; // 下界
@@ -448,7 +520,7 @@ function alphaBetaFast(game, depth, alpha, beta, isMax, ply = 0, enableQuiescenc
   }
 
   if (depth === 0) {
-    return enableQuiescence ? quiescenceFast(game, alpha, beta, isMax, 0) : evaluateBoard(game);
+    return enableQuiescence ? quiescenceFast(game, alpha, beta, isMax, 0) : evaluateBoardFast(game);
   }
 
   const rawMoves = game._moves();
@@ -462,6 +534,7 @@ function alphaBetaFast(game, depth, alpha, beta, isMax, ply = 0, enableQuiescenc
   const moves = orderMovesFast(rawMoves, hashMove, ply);
   let bestMove = moves[0];
   const originalAlpha = alpha;
+  const originalBeta = beta;
 
   if (isMax) {
     let maxEval = -Infinity;
@@ -484,9 +557,9 @@ function alphaBetaFast(game, depth, alpha, beta, isMax, ply = 0, enableQuiescenc
       }
     }
 
-    const flag = maxEval <= originalAlpha ? 1 : (maxEval >= beta ? 2 : 0);
+    const flag = maxEval <= originalAlpha ? 1 : (maxEval >= originalBeta ? 2 : 0);
     if (TT.size < MAX_TT_SIZE) {
-      TT.set(hash, { depth, score: maxEval, flag, bestMove });
+      TT.set(hash, { depth, score: maxEval, flag, bestMove, quiescence: enableQuiescence });
     }
     return maxEval;
   } else {
@@ -510,9 +583,9 @@ function alphaBetaFast(game, depth, alpha, beta, isMax, ply = 0, enableQuiescenc
       }
     }
 
-    const flag = minEval <= originalAlpha ? 1 : (minEval >= beta ? 2 : 0);
+    const flag = minEval <= originalAlpha ? 1 : (minEval >= originalBeta ? 2 : 0);
     if (TT.size < MAX_TT_SIZE) {
-      TT.set(hash, { depth, score: minEval, flag, bestMove });
+      TT.set(hash, { depth, score: minEval, flag, bestMove, quiescence: enableQuiescence });
     }
     return minEval;
   }
@@ -671,4 +744,71 @@ export function findBestMove(game, difficulty = 3) {
       resolve(toPublicMove(chosenRawMove || scoredMoves[0].move));
     }, 40);
   });
+}
+
+/**
+ * 使用 Alpha-Beta + 靜態搜尋對當前盤面所有合法著法進行深度評分
+ * 供戰術教練分析引擎過濾送子漏著與精準排序
+ *
+ * @param {Chess} game - chess.js 棋局實例
+ * @param {number} depth - 搜尋深度 (預設 3 層 + 靜態搜尋)
+ * @returns {Array<{ from: string, to: string, promotion?: string, score: number, inCheck: boolean }>}
+ */
+export function scoreMovesWithSearch(game, depth = 3, skipMoveKeys = null) {
+  const rawMoves = game._moves();
+  if (rawMoves.length === 0) return [];
+
+  const isMax = game.turn() === 'w';
+  const hash = game._hash;
+  const tt = TT.get(hash);
+  const hashMove = tt ? tt.bestMove : null;
+  const orderedMoves = orderMovesFast(rawMoves, hashMove, 0);
+
+  const scored = [];
+  let bestRootScore = isMax ? -Infinity : Infinity;
+  const windowMargin = 140;
+
+  for (const m of orderedMoves) {
+    const pub = toPublicMove(m);
+    const key = `${pub.from}-${pub.to}-${pub.promotion || ''}`;
+
+    game._makeMove(m);
+    const inCheck = game.isCheck();
+
+    let score;
+    if (skipMoveKeys && skipMoveKeys.has(key) && !inCheck) {
+      // 已被 1-Ply 全盤合法交換驗證判定為送子漏著，無須浪費 3 層深搜
+      score = evaluateBoardFast(game);
+    } else {
+      const rootAlpha = (isMax && bestRootScore > -50000) ? (bestRootScore - windowMargin) : -Infinity;
+      const rootBeta = (!isMax && bestRootScore < 50000) ? (bestRootScore + windowMargin) : Infinity;
+      score = alphaBetaFast(
+        game,
+        depth - 1,
+        rootAlpha,
+        rootBeta,
+        !isMax,
+        1,
+        true
+      );
+      if (isMax) {
+        if (score > bestRootScore) bestRootScore = score;
+      } else {
+        if (score < bestRootScore) bestRootScore = score;
+      }
+    }
+    game._undoMove();
+
+    const relScore = isMax ? score : -score;
+    scored.push({
+      from: pub.from,
+      to: pub.to,
+      promotion: pub.promotion,
+      score: relScore,
+      inCheck
+    });
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored;
 }
