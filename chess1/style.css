@@ -1708,3 +1708,44 @@ body {
   padding-top: 0.85rem;
 }
 
+/* ==========================================================================
+   頂部選單摺疊與側邊欄玩家資訊列 (Compact Board Arena Layout)
+   ========================================================================== */
+.app-header.collapsed {
+  display: none;
+}
+
+.header-collapse-btn {
+  position: fixed;
+  top: 6px;
+  right: 14px;
+  z-index: 120;
+  background: rgba(30, 41, 59, 0.92);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.header-collapse-btn:hover {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.players-sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.players-sidebar-stack .player-bar {
+  max-width: 100%;
+  margin-bottom: 0;
+  padding: 0.6rem 0.9rem;
+}
+

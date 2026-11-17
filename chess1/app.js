@@ -286,6 +286,20 @@ class ChessApp {
     });
     document.getElementById('btn-new-game').addEventListener('click', () => this.resetGame());
 
+    const askAiBtn = document.getElementById('btn-ask-ai');
+    if (askAiBtn) {
+      askAiBtn.addEventListener('click', () => this.requestCliAiHelp());
+    }
+
+    const toggleHeaderBtn = document.getElementById('btn-toggle-header');
+    const appHeader = document.getElementById('app-header');
+    if (toggleHeaderBtn && appHeader) {
+      toggleHeaderBtn.addEventListener('click', () => {
+        const isCollapsed = appHeader.classList.toggle('collapsed');
+        toggleHeaderBtn.textContent = isCollapsed ? '▼ 展開選單' : '▲ 收合選單';
+      });
+    }
+
     // Reset score
     document.getElementById('btn-reset-score').addEventListener('click', () => {
       if (confirm('確定要清空本次對戰戰績紀錄嗎？')) {
@@ -931,6 +945,45 @@ class ChessApp {
     card.style.display = 'block';
   }
 
+  setAskAiButtonState(state) {
+    const btn = document.getElementById('btn-ask-ai');
+    if (!btn) return;
+    if (state === 'waiting') {
+      btn.textContent = '⏳ 等待 AI 接收...';
+      btn.disabled = true;
+    } else if (state === 'analyzing') {
+      btn.textContent = '🧠 AI 分析中...';
+      btn.disabled = true;
+    } else {
+      btn.textContent = '🤖 Ask AI for Help';
+      btn.disabled = false;
+    }
+  }
+
+  requestCliAiHelp() {
+    if (!this.game) return;
+    this.setAskAiButtonState('waiting');
+    const lastHist = this.historyIndex >= 0 ? this.historyStack[this.historyIndex] : null;
+    fetch('/api/help', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: this.mode,
+        playerColor: this.playerColor,
+        turn: this.game.turn(),
+        fen: this.game.fen(),
+        pgn: this.game.pgn(),
+        lastMove: lastHist ? {
+          from: lastHist.move.from,
+          to: lastHist.move.to,
+          san: lastHist.move.san
+        } : null
+      })
+    }).catch(() => {
+      this.setAskAiButtonState('idle');
+    });
+  }
+
   initAdviceStream() {
     if (typeof EventSource === 'undefined') return;
     try {
@@ -938,9 +991,14 @@ class ChessApp {
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          if (data.status === 'analyzing') {
+            this.setAskAiButtonState('analyzing');
+            return;
+          }
           if (data.cleared) {
             this.cliAdvice = null;
             this.renderCliAdviceCard(null);
+            this.setAskAiButtonState('idle');
             if (this.mode !== 'coach' && !this.enableCoachHints && this.boardUI) {
               this.boardUI.clearCustomArrows();
               this.boardUI.clearCustomHighlights();
@@ -949,6 +1007,7 @@ class ChessApp {
           }
           if (data.from && data.to && this.boardUI) {
             this.cliAdvice = data;
+            this.setAskAiButtonState('idle');
             this.renderCliAdviceCard(data);
             this.boardUI.setCustomArrows([{
               from: data.from,
@@ -1168,21 +1227,21 @@ class ChessApp {
   updateStatusBanner() {
     const banner = document.getElementById('game-status-banner');
     const textEl = document.getElementById('game-status-text');
-    banner.className = 'game-status-banner';
+    if (banner) banner.className = 'game-status-banner';
     if (this.boardUI && typeof this.boardUI.setStalemateSquare === 'function') {
       this.boardUI.setStalemateSquare(null);
     }
 
     if (this.game.isCheckmate()) {
-      banner.classList.add('alert-mate');
+      if (banner) banner.classList.add('alert-mate');
       const winner = this.game.turn() === 'w' ? '黑方' : '白方';
-      textEl.textContent = `🏆 將死 (Checkmate)！${winner} 獲得勝利！`;
+      if (textEl) textEl.textContent = `🏆 將死 (Checkmate)！${winner} 獲得勝利！`;
       this.handleGameOver(winner === '白方' ? 'w' : 'b', '將死勝出');
       return;
     }
 
     if (this.game.isDraw()) {
-      banner.classList.add('alert-draw');
+      if (banner) banner.classList.add('alert-draw');
       let reason = '雙方和局';
       let detail = '雙方勢均力敵，判定為和局。';
 
@@ -1202,20 +1261,20 @@ class ChessApp {
         detail = '子力不足 (Insufficient Material)：雙方剩餘子力無法形成將死，依規則判定為和局！';
       }
 
-      textEl.textContent = `🤝 對局結束：${reason}！`;
+      if (textEl) textEl.textContent = `🤝 對局結束：${reason}！`;
       this.handleGameOver('d', detail);
       return;
     }
 
     if (this.game.inCheck()) {
-      banner.classList.add('alert-check');
+      if (banner) banner.classList.add('alert-check');
       const side = this.game.turn() === 'w' ? '白方' : '黑方';
-      textEl.textContent = `⚠️ 將軍 (Check)！${side} 國王受到攻擊！`;
+      if (textEl) textEl.textContent = `⚠️ 將軍 (Check)！${side} 國王受到攻擊！`;
       return;
     }
 
     const currentTurn = this.game.turn() === 'w' ? '白方' : '黑方';
-    textEl.textContent = `對局進行中，輪到 ${currentTurn} 走棋`;
+    if (textEl) textEl.textContent = `對局進行中，輪到 ${currentTurn} 走棋`;
   }
 
   handleGameOver(result, reason) {

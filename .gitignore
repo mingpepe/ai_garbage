@@ -4,6 +4,7 @@ Thumbs.db
 *.swp
 chess1/current_state.json
 chess1/ai_advice.json
+chess1/help_request.json
 
 # Node.js / TypeScript
 node_modules/
