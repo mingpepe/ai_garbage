@@ -69,6 +69,7 @@ class ChessApp {
     this.initBoardUI();
     this.initDOMListeners();
     this.initCoachListeners();
+    this.initAdviceStream();
     this.initTutorialSelect();
     this.initMrOngMode();
     this.initZoomControls();
@@ -433,6 +434,9 @@ class ChessApp {
       this.boardUI.setStalemateSquare(null);
     }
     this.boardUI.setTutorialHint(null, null);
+    this.cliAdvice = null;
+    this.renderCliAdviceCard(null);
+    fetch('/api/reset', { method: 'POST' }).catch(() => {});
 
     this.updateGameState();
 
@@ -890,6 +894,111 @@ class ChessApp {
         this.boardUI.clearCustomHighlights();
       }
     }
+
+    // 9. Sync live game state to local bridge server (for CLI AI coaching)
+    this.cliAdvice = null;
+    this.renderCliAdviceCard(null);
+    this.syncStateToServer();
+  }
+
+  renderCliAdviceCard(data) {
+    const card = document.getElementById('cli-advice-card');
+    const moveEl = document.getElementById('cli-advice-move');
+    const bodyEl = document.getElementById('cli-advice-body');
+    if (!card || !moveEl || !bodyEl) return;
+
+    if (!data || data.cleared || !data.from || !data.to) {
+      card.style.display = 'none';
+      bodyEl.innerHTML = '';
+      return;
+    }
+
+    const coord = `${data.from.toUpperCase()} → ${data.to.toUpperCase()}`;
+    moveEl.textContent = data.san ? `${data.san} (${coord})` : coord;
+
+    const parts = [];
+    if (data.explanation) {
+      parts.push(`<div><strong>🔍 為什麼這樣走：</strong>${data.explanation}</div>`);
+    }
+    if (data.purpose) {
+      parts.push(`<div style="background: rgba(59,130,246,0.12); border-left: 3px solid #3b82f6; padding: 0.45rem 0.65rem; border-radius: 4px;"><strong>🎯 戰術目的：</strong>${data.purpose}</div>`);
+    }
+    if (data.nextPlan) {
+      parts.push(`<div style="background: rgba(0,0,0,0.25); padding: 0.45rem 0.65rem; border-radius: 4px; color: var(--text-secondary);"><strong>⏭️ 後續計畫：</strong>${data.nextPlan}</div>`);
+    }
+
+    bodyEl.innerHTML = parts.length > 0 ? parts.join('') : `<div>推薦走法：${coord}</div>`;
+    card.style.display = 'block';
+  }
+
+  initAdviceStream() {
+    if (typeof EventSource === 'undefined') return;
+    try {
+      const es = new EventSource('/api/advice/stream');
+      es.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.cleared) {
+            this.cliAdvice = null;
+            this.renderCliAdviceCard(null);
+            if (this.mode !== 'coach' && !this.enableCoachHints && this.boardUI) {
+              this.boardUI.clearCustomArrows();
+              this.boardUI.clearCustomHighlights();
+            }
+            return;
+          }
+          if (data.from && data.to && this.boardUI) {
+            this.cliAdvice = data;
+            this.renderCliAdviceCard(data);
+            this.boardUI.setCustomArrows([{
+              from: data.from,
+              to: data.to,
+              color: data.color || '#a855f7',
+              width: 7,
+              stepText: '★'
+            }]);
+            this.boardUI.setCustomHighlights([
+              { square: data.from, type: 'best' },
+              { square: data.to, type: 'best' }
+            ]);
+          }
+        } catch {}
+      };
+    } catch {}
+  }
+
+  syncStateToServer() {
+    if (!this.game) return;
+    const lastHist = this.historyIndex >= 0 ? this.historyStack[this.historyIndex] : null;
+    const analysis = this.lastCoachAnalysis;
+    const payload = {
+      updatedAt: new Date().toISOString(),
+      mode: this.mode,
+      playerColor: this.playerColor,
+      turn: this.game.turn(),
+      fen: this.game.fen(),
+      pgn: this.game.pgn(),
+      inCheck: this.game.inCheck(),
+      isGameOver: this.game.isGameOver(),
+      lastMove: lastHist ? {
+        from: lastHist.move.from,
+        to: lastHist.move.to,
+        san: lastHist.move.san
+      } : null,
+      coachSummary: (analysis && !analysis.waitingForOpponent && !analysis.isGameOver) ? {
+        evalScore: analysis.evalScore,
+        threats: (analysis.threats || []).map(t => `${t.square.toUpperCase()} (${t.pieceName}): ${t.reason}`),
+        bestMove: analysis.bestSuggestion ? `${analysis.bestSuggestion.san} [${analysis.bestSuggestion.move.from}->${analysis.bestSuggestion.move.to}]` : null,
+        attackMoves: (analysis.attackSuggestions || []).map(a => `${a.move.san} [${a.move.from}->${a.move.to}] (${a.attackType})`),
+        defenseMoves: (analysis.defenseSuggestions || []).map(d => `${d.move.san} [${d.move.from}->${d.move.to}] (${d.defenseType})`)
+      } : null
+    };
+
+    fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => {});
   }
 
   findKingSquare(color) {

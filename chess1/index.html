@@ -140,6 +140,15 @@
 
     <!-- Sidebar Column -->
     <aside class="sidebar-column">
+      <!-- Panel 0: Real-time CLI AI Advice Card (Shown when ai_advice.json arrives) -->
+      <div class="card" id="cli-advice-card" style="display: none; border-left: 5px solid #a855f7; background: linear-gradient(135deg, rgba(88, 28, 135, 0.25) 0%, rgba(15, 23, 42, 0.95) 100%);">
+        <h2 class="card-title" style="margin-bottom: 0.6rem;">
+          <span>🤖 AI 即時戰術建議</span>
+          <span id="cli-advice-move" class="badge-cat" style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; font-size: 0.95rem;">Bg3</span>
+        </h2>
+        <div id="cli-advice-body" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.5rem;"></div>
+      </div>
+
       <!-- Panel 1: Mode Settings (Vs AI / 2 Player) -->
       <div class="card" id="settings-card">
         <h2 class="card-title">
@@ -531,6 +540,6 @@
   </div>
 
   <!-- Main JavaScript App -->
-  <script type="module" src="app.js?v=2.6"></script>
+  <script type="module" src="app.js?v=2.8"></script>
 </body>
 </html>

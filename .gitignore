@@ -2,6 +2,8 @@
 .DS_Store
 Thumbs.db
 *.swp
+chess1/current_state.json
+chess1/ai_advice.json
 
 # Node.js / TypeScript
 node_modules/
