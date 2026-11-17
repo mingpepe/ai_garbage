@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PIXEL AUDIO HEX // WAV &amp; AAC Binary Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="crt-scanlines" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <!-- Top Header & File Controls -->
+    <header class="pixel-box top-bar">
+      <div class="brand">
+        <div class="pixel-logo" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div>
+          <h1>PIXEL AUDIO HEX</h1>
+          <p class="subtitle">WAV (RIFF) &amp; AAC (ADTS) BINARY FORMAT ANALYZER</p>
+        </div>
+      </div>
+
+      <div class="file-actions">
+        <label class="pixel-btn btn-primary" for="fileInput">
+          [UPLOAD .WAV / .AAC]
+        </label>
+        <input type="file" id="fileInput" accept=".wav,.aac,.m4a,audio/wav,audio/aac,audio/mp4,audio/x-wav,audio/x-m4a" hidden />
+        <button id="btnSampleWav" class="pixel-btn btn-secondary" type="button" title="生成 8-bit 晶片音樂 WAV 測試檔">
+          [DEMO: 8-BIT WAV]
+        </button>
+        <span id="formatBadge" class="format-badge badge-empty">NO FILE</span>
+      </div>
+    </header>
+
+    <!-- Transport & Pixel Visualizer Bar -->
+    <section class="pixel-box transport-panel">
+      <div class="transport-controls">
+        <button id="btnPlayPause" class="pixel-btn btn-green" type="button" disabled>[&#9654; PLAY]</button>
+        <button id="btnStop" class="pixel-btn btn-red" type="button" disabled>[&#9632; STOP]</button>
+
+        <div class="seek-group">
+          <span id="timeCurrent" class="timecode">00:00.000</span>
+          <input id="seekBar" class="pixel-slider" type="range" min="0" max="1000" value="0" disabled />
+          <span id="timeTotal" class="timecode">00:00.000</span>
+        </div>
+
+        <div class="volume-group">
+          <span class="label-sm">VOL</span>
+          <input id="volumeBar" class="pixel-slider vol-slider" type="range" min="0" max="100" value="80" />
+        </div>
+
+        <label class="pixel-toggle">
+          <input id="chkFollow" type="checkbox" checked />
+          <span>AUTO-FOLLOW HEX</span>
+        </label>
+      </div>
+
+      <div class="visualizer-row">
+        <div class="canvas-wrap">
+          <canvas id="visCanvas" width="480" height="72"></canvas>
+          <div class="vis-mode-tabs">
+            <button id="visModeWave" class="mini-btn active" type="button">WAVE</button>
+            <button id="visModeSpec" class="mini-btn" type="button">SPEC</button>
+          </div>
+        </div>
+
+        <div class="telemetry-grid">
+          <div class="tele-cell">
+            <span class="tele-label">FILE SIZE</span>
+            <span id="teleFileSize" class="tele-val">-</span>
+          </div>
+          <div class="tele-cell">
+            <span class="tele-label">SAMPLE RATE</span>
+            <span id="teleSampleRate" class="tele-val">-</span>
+          </div>
+          <div class="tele-cell">
+            <span class="tele-label">CHANNELS / BITS</span>
+            <span id="teleChannels" class="tele-val">-</span>
+          </div>
+          <div class="tele-cell highlight-cell">
+            <span class="tele-label">ACTIVE BYTE OFFSET</span>
+            <span id="teleActiveOffset" class="tele-val">-</span>
+          </div>
+          <div class="tele-cell highlight-cell">
+            <span class="tele-label">PLAYBACK UNIT</span>
+            <span id="teleActiveUnit" class="tele-val">-</span>
+          </div>
+          <div class="tele-cell">
+            <span class="tele-label">ENDIANNESS</span>
+            <span id="teleEndian" class="tele-val">-</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Split Workspace -->
+    <main class="workspace-grid">
+      <!-- Left Column: Structure & Field Inspector -->
+      <section class="pixel-box inspector-panel">
+        <div class="panel-tabs">
+          <button class="tab-btn active" data-tab="structure" type="button">STRUCTURE &amp; FIELDS</button>
+          <button class="tab-btn" data-tab="bitview" type="button">BIT / SAMPLE VIEW</button>
+          <button class="tab-btn" data-tab="guide" type="button">FORMAT GUIDE</button>
+        </div>
+
+        <!-- Tab 1: Structure Tree + Field Table -->
+        <div id="tab-structure" class="tab-content active">
+          <div class="split-vertical">
+            <div class="chunk-list-box">
+              <div class="section-header">
+                <span>PARSED CHUNKS / FRAMES</span>
+                <span id="chunkCountLabel" class="muted">0 items</span>
+              </div>
+              <div id="chunkList" class="chunk-list">
+                <div class="empty-state">
+                  <p>請上傳 .WAV 或 .AAC 檔案</p>
+                  <p class="muted">或點擊上方 [DEMO: 8-BIT WAV] 立即體驗</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-detail-box">
+              <div class="section-header">
+                <span id="selectedBlockTitle">HEADER &amp; FIELD DETAILS</span>
+                <span id="selectedBlockRange" class="muted">-</span>
+              </div>
+              <div id="fieldDetails" class="field-details">
+                <div class="empty-state">
+                  <p class="muted">點選上方區塊或右側 Binary Hex 位元組，即可檢視詳細欄位規格與說明。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Bit-Field (AAC) or PCM Sample (WAV) -->
+        <div id="tab-bitview" class="tab-content">
+          <div id="bitSampleView" class="bit-sample-view">
+            <div class="empty-state">
+              <p class="muted">載入檔案後，這裡會顯示：</p>
+              <p class="muted">- AAC: ADTS 7-Byte (56-bit) Header 逐位元拆解圖</p>
+              <p class="muted">- WAV: 目前播放位置的即時 PCM Sample 數值與二進位</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Educational Format Guide -->
+        <div id="tab-guide" class="tab-content">
+          <div class="guide-content">
+            <h3>音訊格式設計原理與播放管線 (WAV vs AAC)</h3>
+
+            <div class="guide-card">
+              <h4>0. 整體概念：容器 (Container) vs 編碼 (Codec)</h4>
+              <ul>
+                <li><strong>編碼 (Codec)</strong>：決定聲音如何用位元表示（例如未壓縮的 <code>PCM</code>、有損壓縮的 <code>AAC</code>）。</li>
+                <li><strong>容器 (Container)</strong>：決定檔案如何組織資料與中繼資訊（例如 <code>RIFF/WAVE</code>、<code>MP4/M4A</code>、或無容器的 <code>ADTS</code> 串流）。</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <h4>1. WAV (RIFF/WAVE) — 為什麼這樣設計？</h4>
+              <ul>
+                <li><strong>設計目標</strong>：極簡、無損、隨機存取 <code>O(1)</code>。</li>
+                <li><strong>Chunk 積木架構 (<code>ID + Size + Data</code>)</strong>：允許向前/向後相容。若未來新增 <code>LIST/INFO</code> 或 <code>bext</code> 等區塊，舊播放器遇到不認識的 ID 只要讀取 <code>Size</code> 就能整塊跳過，不會解析崩潰。</li>
+                <li><strong>Little-Endian (小端序)</strong>：源自 x86 / Windows 生態系，CPU 可直接映射記憶體位元組為整數。</li>
+                <li><strong>線性時間定位</strong>：因未壓縮且每個取樣點大小固定 (<code>BlockAlign</code>)，跳轉至第 <code>t</code> 秒只需精確乘法：<code>ByteOffset = dataStart + floor(t * SampleRate) * BlockAlign</code>。</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <h4>2. AAC — 為什麼有 ADTS 與 MP4/M4A 兩種設計？</h4>
+              <ul>
+                <li><strong>VBR 可變長度本質</strong>：AAC 透過 <strong>MDCT</strong> 將波形轉為頻域係數、丟棄人耳被遮蔽的頻段，再用 <strong>Huffman</strong> 壓縮。複雜片段需要較多 bits、安靜片段極少，因此每個 Frame 長度不同，無法用乘法直接算位址。</li>
+                <li><strong>ADTS (<code>.aac</code> 裸串流)</strong>：為<strong>網路廣播 / 即時串流</strong>設計。無全域檔頭，每個 Frame 自帶 7-byte (或 9-byte) <code>0xFFF</code> Header，斷線重連或從中間切入都能重新同步，但每個 Frame 重複攜帶標頭且 Seek 需從頭掃描。</li>
+                <li><strong>MP4 / M4A (<code>ftyp + moov + mdat</code>)</strong>：為<strong>本地儲存 / 快速 Seek</strong> 設計。將共通設定抽到 <code>moov &gt; ... &gt; esds</code> (<code>AudioSpecificConfig</code>)，將每個 Frame 的長度與偏移寫進 <code>stsz</code> / <code>stco</code> 索引表，<code>mdat</code> 只放純裸 AAC Access Unit，省去重複標頭並支援查表快速 Seek。</li>
+              </ul>
+            </div>
+
+            <div class="guide-card">
+              <h4>3. Payload 怎麼播放？是直接傳給音效卡嗎？</h4>
+              <ul>
+                <li><strong>不是直接傳給音效卡！</strong>音效卡上的 <strong>DAC (數位類比轉換器)</strong> 只看得懂固定取樣率、固定位元深度的線性 <strong>PCM</strong> 數字，看不懂檔頭也看不懂壓縮資料。</li>
+                <li><strong>WAV (PCM) 路徑</strong>：解析 <code>fmt </code> 取得取樣率與位元深度後，<code>data</code> 內的 Payload 本身就是 PCM，經作業系統混音器 (如 Windows WASAPI) 轉換後直接寫入音效卡 <strong>DMA Ring Buffer</strong>，由 DAC 轉成類比電壓推動喇叭。</li>
+                <li><strong>AAC (ADTS / MP4) 路徑</strong>：
+                  <ol>
+                    <li><strong>Demux (解封裝)</strong>：依 ADTS <code>0xFFF</code> 或 MP4 <code>stco/stsz</code> 切出單一 AAC Frame。</li>
+                    <li><strong>Decode (解碼)</strong>：經 Huffman 解碼 → 反量化 → <strong>IMDCT</strong> 轉回時域，每個 Frame 固定產出 <strong>1024 個 PCM 樣本</strong>。</li>
+                    <li><strong>輸出硬體</strong>：解碼後的 PCM 樣本才送入 OS 混音器與音效卡 DMA Buffer 給 DAC 播放。</li>
+                  </ol>
+                </li>
+                <li><strong>本 Web App 運作方式</strong>：瀏覽器透過 <code>AudioContext.decodeAudioData()</code> 在背景將檔案解碼為 32-bit Float PCM (<code>AudioBuffer</code>) 播放，同時本工具依目前播放時間 <code>t</code> 反查對應的位元組區間，即時高亮於右側 Hex Viewer。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Virtual Hex & ASCII Binary Viewer -->
+      <section class="pixel-box hex-panel">
+        <div class="hex-toolbar">
+          <div class="hex-title">
+            <span>BINARY HEX VIEWER</span>
+            <span id="hexTotalBytes" class="muted">0 bytes</span>
+          </div>
+
+          <div class="hex-jump">
+            <input id="jumpOffsetInput" class="pixel-input" type="text" placeholder="0x0000" />
+            <button id="btnJumpOffset" class="mini-btn" type="button">JUMP</button>
+            <button id="btnJumpActive" class="mini-btn btn-green-outline" type="button">TO PLAYHEAD</button>
+          </div>
+        </div>
+
+        <div class="hex-legend">
+          <span class="leg-item"><i class="swatch sw-riff"></i>HEADER/SYNC</span>
+          <span class="leg-item"><i class="swatch sw-fmt"></i>FMT/META</span>
+          <span class="leg-item"><i class="swatch sw-data"></i>AUDIO DATA</span>
+          <span class="leg-item"><i class="swatch sw-active"></i>PLAYING NOW</span>
+          <span class="leg-item"><i class="swatch sw-selected"></i>SELECTED</span>
+        </div>
+
+        <div class="hex-col-header">
+          <span class="col-off">OFFSET</span>
+          <span class="col-hex">00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F</span>
+          <span class="col-asc">ASCII</span>
+        </div>
+
+        <div id="hexViewport" class="hex-viewport" tabindex="0">
+          <div id="hexSpacer" class="hex-spacer">
+            <div id="hexRows" class="hex-rows"></div>
+          </div>
+        </div>
+
+        <div id="hexHoverBar" class="hex-hover-bar">
+          <span>CURSOR: <strong id="hoverOffset">-</strong></span>
+          <span>HEX: <strong id="hoverHex">-</strong></span>
+          <span>DEC: <strong id="hoverDec">-</strong></span>
+          <span>BIN: <strong id="hoverBin">-</strong></span>
+          <span class="hover-field">FIELD: <strong id="hoverField">-</strong></span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Drag & Drop Overlay -->
+  <div id="dropOverlay" class="drop-overlay hidden">
+    <div class="pixel-box drop-card">
+      <p>DROP .WAV OR .AAC FILE HERE</p>
+      <p class="muted">放開滑鼠即可進行 Binary 解析與播放</p>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
