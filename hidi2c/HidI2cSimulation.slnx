@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="HidI2cSimulation.Console/HidI2cSimulation.Console.csproj" />
+  <Project Path="HidI2cSimulation.Core/HidI2cSimulation.Core.csproj" />
+  <Project Path="HidI2cSimulation.Tests/HidI2cSimulation.Tests.csproj" />
+  <Project Path="HidI2cSimulation.Visualizer/HidI2cSimulation.Visualizer.csproj" />
+</Solution>

@@ -1,0 +1,379 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:HidI2cSimulation.Visualizer.Controls"
+        x:Class="HidI2cSimulation.Visualizer.MainWindow"
+        Title="[8-BIT LAB] HID over I2C (HIDI2C) Protocol Workbench &amp; Logic Analyzer"
+        Width="1500" Height="940"
+        MinWidth="1120" MinHeight="740"
+        Background="#141020"
+        FontFamily="DejaVu Sans Mono, Liberation Mono, Courier 10 Pitch, Monospace">
+
+  <Window.Styles>
+    <Style Selector="Border.stepChip">
+      <Setter Property="Background" Value="#141020"/>
+      <Setter Property="BorderBrush" Value="#4A3F6E"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="Padding" Value="8,3"/>
+      <Setter Property="BoxShadow" Value="2 2 0 0 #050409"/>
+    </Style>
+    <Style Selector="Border.stepChip.done">
+      <Setter Property="Background" Value="#0D2F1B"/>
+      <Setter Property="BorderBrush" Value="#38E54D"/>
+    </Style>
+    <Style Selector="TextBlock.stepText">
+      <Setter Property="FontSize" Value="10.5"/>
+      <Setter Property="Foreground" Value="#9B92B8"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+    </Style>
+    <Style Selector="Border.stepChip.done TextBlock.stepText">
+      <Setter Property="Foreground" Value="#38E54D"/>
+    </Style>
+    <Style Selector="Border.regRow">
+      <Setter Property="Background" Value="#0B0913"/>
+      <Setter Property="BorderBrush" Value="#342B4F"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="Padding" Value="6,4"/>
+      <Setter Property="Margin" Value="2"/>
+    </Style>
+    <Style Selector="Border.regRow.hit">
+      <Setter Property="Background" Value="#0B2433"/>
+      <Setter Property="BorderBrush" Value="#00E5FF"/>
+    </Style>
+    <Style Selector="TextBlock.testBadge">
+      <Setter Property="Foreground" Value="#FF3366"/>
+    </Style>
+    <Style Selector="TextBlock.testBadge.pass">
+      <Setter Property="Foreground" Value="#38E54D"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,*,6,295">
+
+    <!-- ==================== ROW 0: RETRO WORKBENCH HEADER & BOOT STEPPER ==================== -->
+    <Border Grid.Row="0" Background="#1E182E" BorderBrush="#4A3F6E" BorderThickness="0,0,0,2" Padding="12,8">
+      <Grid RowDefinitions="Auto,Auto">
+
+        <!-- Top Action Strip -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Border Background="#007A99" BorderBrush="#00E5FF" BorderThickness="2" CornerRadius="0" Padding="7,3" BoxShadow="2 2 0 0 #050409">
+              <TextBlock Text="HID-I2C" FontWeight="Bold" FontSize="11" Foreground="#F6F2E9"/>
+            </Border>
+            <TextBlock Text="8-BIT LOGIC BENCH // v1.0" FontSize="13" FontWeight="Bold" Foreground="#FFB800" VerticalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Live Hardware Pin & State LEDs -->
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border Background="#0B0913" BorderBrush="{Binding IntPinColor}" BorderThickness="2" CornerRadius="0" Padding="9,3" BoxShadow="2 2 0 0 #050409">
+              <TextBlock Text="{Binding IntPinText}" Foreground="{Binding IntPinColor}" FontSize="11" FontWeight="Bold"/>
+            </Border>
+            <Border Background="#0B0913" BorderBrush="#FFB800" BorderThickness="2" CornerRadius="0" Padding="9,3" BoxShadow="2 2 0 0 #050409">
+              <TextBlock Text="{Binding PowerStateText}" Foreground="#FFB800" FontSize="11" FontWeight="Bold"/>
+            </Border>
+            <Border Background="#0B0913" BorderBrush="#4A3F6E" BorderThickness="2" CornerRadius="0" Padding="9,3" BoxShadow="2 2 0 0 #050409">
+              <TextBlock Text="{Binding FifoText}" Foreground="#F6F2E9" FontSize="11" FontWeight="Bold"/>
+            </Border>
+          </StackPanel>
+
+          <!-- Arcade Execution Controls -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+            <Button x:Name="BtnNextStep"
+                    Content="{Binding NextStepButtonText}"
+                    IsEnabled="{Binding CanExecuteNextBootStep}"
+                    Background="#006680" BorderBrush="#00E5FF"
+                    Classes="pill" Click="OnNextStepClick"/>
+            <Button x:Name="BtnAutoRun"
+                    Content="{Binding AutoRunButtonLabel}"
+                    Background="#11662E" BorderBrush="#38E54D"
+                    Classes="pill" Click="OnAutoRunClick"/>
+            <ComboBox x:Name="CmbSpeed" SelectedIndex="1" Width="106" FontSize="10.5" SelectionChanged="OnSpeedChanged">
+              <ComboBoxItem Content="SPD:FAST"/>
+              <ComboBoxItem Content="SPD:NORM"/>
+              <ComboBoxItem Content="SPD:SLOW"/>
+            </ComboBox>
+            <Button Content="RESET" Classes="pill" Background="#3B203E" BorderBrush="#FF3366" Click="OnResetAllClick"/>
+          </StackPanel>
+        </Grid>
+
+        <!-- Boot Sequence Stage Cartridges + ISR Controls -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+          <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+            <Border Classes="stepChip" Classes.done="{Binding IsStep1Done}">
+              <TextBlock Classes="stepText" Text="[1] ACPI"/>
+            </Border>
+            <TextBlock Text=">>" Foreground="#5A4C82" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border Classes="stepChip" Classes.done="{Binding IsStep2Done}">
+              <TextBlock Classes="stepText" Text="[2] RST#"/>
+            </Border>
+            <TextBlock Text=">>" Foreground="#5A4C82" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border Classes="stepChip" Classes.done="{Binding IsStep3Done}">
+              <TextBlock Classes="stepText" Text="[3] HID_DESC"/>
+            </Border>
+            <TextBlock Text=">>" Foreground="#5A4C82" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border Classes="stepChip" Classes.done="{Binding IsStep4Done}">
+              <TextBlock Classes="stepText" Text="[4] SOFT_RST"/>
+            </Border>
+            <TextBlock Text=">>" Foreground="#5A4C82" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border Classes="stepChip" Classes.done="{Binding IsStep5Done}">
+              <TextBlock Classes="stepText" Text="[5] RPT_DESC"/>
+            </Border>
+            <TextBlock Text=">>" Foreground="#5A4C82" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Border Classes="stepChip" Classes.done="{Binding IsStep6Done}">
+              <TextBlock Classes="stepText" Text="[6] PWR_ON"/>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <CheckBox IsChecked="{Binding AutoServiceInterrupts}"
+                      Content="AUTO_ISR"
+                      ToolTip.Tip="{Binding IsrModeDescription}"
+                      FontSize="11" FontWeight="Bold" Foreground="#F6F2E9"/>
+            <Button Content="SVC INT# (RD 0x0005)"
+                    IsEnabled="{Binding HasPendingInterrupt}"
+                    Background="#991438" BorderBrush="#FF3366"
+                    Classes="pill" Click="OnServiceIntClick"/>
+            <Button Content="{Binding PowerToggleText}"
+                    IsEnabled="{Binding IsEnumerated}"
+                    Background="#2B2242" BorderBrush="#FFB800"
+                    Classes="pill" Click="OnTogglePowerClick"/>
+          </StackPanel>
+        </Grid>
+
+      </Grid>
+    </Border>
+
+    <!-- ==================== ROW 1: PCB DIAGRAM + TOUCHPAD + INSPECTOR TABS ==================== -->
+    <Grid Grid.Row="1" ColumnDefinitions="1.42*,6,1*" Margin="8,8,8,2">
+
+      <!-- LEFT COLUMN: PCB Architecture & Touchpad -->
+      <Grid Grid.Column="0" RowDefinitions="*,8,178">
+        <Border Grid.Row="0" Classes="card" Padding="2">
+          <controls:ArchitectureDiagramControl x:Name="ArchDiagram"/>
+        </Border>
+
+        <Border Grid.Row="2" Classes="card" Padding="10">
+          <Grid ColumnDefinitions="235,12,*">
+            <controls:TouchpadCanvasControl x:Name="TouchpadCanvas" Grid.Column="0"/>
+
+            <Grid Grid.Column="2" RowDefinitions="Auto,Auto,Auto,*">
+              <TextBlock Grid.Row="0" Margin="0,0,0,6" Text="[TOUCHPAD_LAB] DRAG SENSOR MATRIX OR TRIGGER GESTURE"
+                         FontSize="10.5" FontWeight="Bold" Foreground="#FFB800"/>
+
+              <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,0,0,6">
+                <Button Content="TAP" Classes="pill" Background="#2B2242" Click="OnGestureTapClick"/>
+                <Button Content="DRAG" Classes="pill" Background="#2B2242" Click="OnGestureDragClick"/>
+                <Button Content="2F_SCROLL" Classes="pill" Background="#2B2242" Click="OnGestureScrollClick"/>
+                <Button Content="R_CLICK" Classes="pill" Background="#2B2242" Click="OnGestureRightClick"/>
+              </StackPanel>
+
+              <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="0,0,0,6">
+                <TextBlock Text="MODE:" FontSize="10.5" FontWeight="Bold" Foreground="#9B92B8" VerticalAlignment="Center"/>
+                <ComboBox SelectedIndex="{Binding FeatureMode}" Width="116" FontSize="10.5">
+                  <ComboBoxItem Content="0:MOUSE"/>
+                  <ComboBoxItem Content="1:PTP_PAD"/>
+                </ComboBox>
+                <TextBlock Text="HAP:" FontSize="10.5" FontWeight="Bold" Foreground="#9B92B8" VerticalAlignment="Center"/>
+                <Slider Minimum="0" Maximum="100" Value="{Binding FeatureHaptic}" Width="80" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding FeatureHaptic, StringFormat='{}{0}%'}" FontSize="10.5" Width="34" Foreground="#F6F2E9" VerticalAlignment="Center"/>
+                <Button Content="SET FEATURE" Classes="pill" Background="#4C1D95" BorderBrush="#C084FC" Click="OnApplyFeatureClick"/>
+              </StackPanel>
+
+              <Border Grid.Row="3" Classes="pixelWell" Padding="8,4">
+                <TextBlock Text="{Binding LastInputSummary}" FontSize="10.5" Foreground="#38E54D"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              </Border>
+            </Grid>
+          </Grid>
+        </Border>
+      </Grid>
+
+      <GridSplitter Grid.Column="1" Background="#141020" ResizeDirection="Columns"/>
+
+      <!-- RIGHT COLUMN: Deep Protocol Inspector Tabs -->
+      <Border Grid.Column="2" Classes="card" Padding="4">
+        <TabControl>
+
+          <!-- TAB 1: COMPONENT SEQUENCE -->
+          <TabItem Header="SEQ_LOG">
+            <Grid RowDefinitions="Auto,*">
+              <TextBlock Grid.Row="0" Margin="4,2,4,6" FontSize="10" Foreground="#9B92B8"
+                         Text="CLICK EVENT TO HIGHLIGHT FLOW &amp; ZOOM LA:"/>
+              <ListBox Grid.Row="1" x:Name="LstCommLogs" ItemsSource="{Binding CommLogs}"
+                       Background="#0B0913" BorderBrush="#342B4F" BorderThickness="2" CornerRadius="0"
+                       SelectionChanged="OnCommLogSelected">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Border BorderBrush="#261F3D" BorderThickness="0,0,0,2" Padding="4,5">
+                      <Grid ColumnDefinitions="32,56,*" RowDefinitions="Auto,Auto">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Sequence, StringFormat='#{0}'}"
+                                   FontSize="10" Foreground="#9B92B8" Margin="0,0,6,0"/>
+                        <Border Grid.Row="0" Grid.Column="1" Background="#141020" BorderBrush="{Binding ChannelColor}"
+                                BorderThickness="2" CornerRadius="0" Padding="4,1" HorizontalAlignment="Left" Margin="0,0,6,0">
+                          <TextBlock Text="{Binding ChannelBadge}" FontSize="9" FontWeight="Bold" Foreground="{Binding ChannelColor}"/>
+                        </Border>
+                        <Grid Grid.Row="0" Grid.Column="2" ColumnDefinitions="*,Auto">
+                          <TextBlock Grid.Column="0" Text="{Binding FlowText}" FontSize="10.5" FontWeight="Bold" Foreground="#F6F2E9"/>
+                          <TextBlock Grid.Column="1" Text="{Binding SimTimeText}" FontSize="9.5" Foreground="#FFB800"/>
+                        </Grid>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding Title}"
+                                   FontSize="10" Foreground="#C4B5FD" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+
+          <!-- TAB 2: REGISTERS & 30-BYTE HID DESCRIPTOR -->
+          <TabItem Header="REG/DESC">
+            <Grid RowDefinitions="Auto,Auto,Auto,*">
+              <TextBlock Grid.Row="0" Text="[SLAVE 0x20 REGISTER MAP]" FontSize="10.5" FontWeight="Bold" Foreground="#FFB800" Margin="4,2,4,4"/>
+              <ItemsControl Grid.Row="1" ItemsSource="{Binding RegisterMapRows}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Border Classes="regRow" Classes.hit="{Binding IsHighlighted}">
+                      <Grid ColumnDefinitions="58,112,32,*,44">
+                        <TextBlock Grid.Column="0" Text="{Binding Address}" FontSize="10.5" Foreground="#00E5FF" FontWeight="Bold"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="10" Foreground="#F6F2E9"/>
+                        <TextBlock Grid.Column="2" Text="{Binding Direction}" FontSize="9.5" Foreground="#9B92B8"/>
+                        <TextBlock Grid.Column="3" Text="{Binding Summary}" FontSize="10" Foreground="#C4B5FD" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="4" Text="{Binding LastAccess}" FontSize="9.5" Foreground="#FFB800" FontWeight="Bold" HorizontalAlignment="Right"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Border Grid.Row="2" Classes="pixelWell" Padding="6,4" Margin="2,6">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="{Binding CommandBitBreakdown}" FontSize="9.5" Foreground="#FFB800" TextWrapping="Wrap"/>
+                  <TextBlock Text="[30B MICROSOFT HID DESCRIPTOR @ 0x0001]" FontSize="10" FontWeight="Bold" Foreground="#00E5FF"/>
+                </StackPanel>
+              </Border>
+
+              <ListBox Grid.Row="3" ItemsSource="{Binding HidDescriptorFields}" Background="#0B0913" BorderBrush="#342B4F" BorderThickness="2" CornerRadius="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="42,126,90,*">
+                      <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="{Binding Offset}" FontSize="10" Foreground="#9B92B8"/>
+                      <TextBlock Grid.Column="1" Margin="0,0,6,0" Text="{Binding FieldName}" FontSize="10" Foreground="#00E5FF" FontWeight="Bold"/>
+                      <TextBlock Grid.Column="2" Margin="0,0,6,0" Text="{Binding DecodedValue}" FontSize="10" Foreground="#38E54D"/>
+                      <TextBlock Grid.Column="3" Text="{Binding HexValue}" FontSize="10" Foreground="#F6F2E9"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+
+          <!-- TAB 3: USB-IF REPORT DESCRIPTOR -->
+          <TabItem Header="RPT_DESC">
+            <Grid RowDefinitions="Auto,*">
+              <TextBlock Grid.Row="0" Margin="4,2,4,6" FontSize="10" Foreground="#FFB800" FontWeight="Bold"
+                         Text="[USB-IF REPORT DESCRIPTOR TREE @ 0x0020]"/>
+              <ListBox Grid.Row="1" ItemsSource="{Binding ReportDescriptorItems}" Background="#0B0913" BorderBrush="#342B4F" BorderThickness="2" CornerRadius="0">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="50,74,*">
+                      <TextBlock Grid.Column="0" Margin="0,0,6,0" Text="{Binding Offset, StringFormat='0x{0:X4}'}" FontSize="10" Foreground="#9B92B8"/>
+                      <TextBlock Grid.Column="1" Margin="0,0,6,0" Text="{Binding HexBytes}" FontSize="10" Foreground="#C084FC" FontWeight="Bold"/>
+                      <TextBlock Grid.Column="2" Text="{Binding IndentedDescription}" FontSize="10" Foreground="#38E54D"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+
+          <!-- TAB 4: ACPI ASL & TESTS -->
+          <TabItem Header="ACPI/TST">
+            <Grid RowDefinitions="Auto,160,Auto,*">
+              <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="4,2,4,4">
+                <Button Content="RUN 13 TESTS" Classes="pill" Background="#11662E" BorderBrush="#38E54D" Click="OnRunTestsClick"/>
+                <TextBlock Text="{Binding ComplianceSummary}" VerticalAlignment="Center" FontSize="11" FontWeight="Bold" Foreground="#38E54D"/>
+              </StackPanel>
+              <ListBox Grid.Row="1" ItemsSource="{Binding ComplianceResults}" Background="#0B0913" BorderBrush="#342B4F" BorderThickness="2" CornerRadius="0" Margin="0,0,0,6">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Grid.Column="0" Text="{Binding TestName}" FontSize="10.5" Foreground="#F6F2E9"/>
+                      <TextBlock Grid.Column="1" Text="{Binding Detail}" Classes="testBadge" Classes.pass="{Binding Passed}" FontSize="10.5" FontWeight="Bold"/>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+              <TextBlock Grid.Row="2" Text="[ACPI DSDT ASL -> _DSM GUID]" FontSize="10" FontWeight="Bold" Foreground="#C084FC" Margin="4,2"/>
+              <TextBox Grid.Row="3" Text="{Binding AcpiAslSample}" IsReadOnly="True"
+                       FontSize="10" Background="#0B0913" Foreground="#38E54D"
+                       BorderThickness="2" BorderBrush="#342B4F"
+                       AcceptsReturn="True" TextWrapping="NoWrap"/>
+            </Grid>
+          </TabItem>
+
+          <!-- TAB 5: RAW LOG -->
+          <TabItem Header="RAW_LOG">
+            <ListBox ItemsSource="{Binding RawLogs}" Background="#0B0913" BorderBrush="#342B4F" BorderThickness="2" CornerRadius="0">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" FontSize="10" Foreground="#38E54D" TextWrapping="Wrap"/>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </TabItem>
+
+        </TabControl>
+      </Border>
+    </Grid>
+
+    <GridSplitter Grid.Row="2" Background="#4A3F6E" ResizeDirection="Rows"/>
+
+    <!-- ==================== ROW 2: RETRO CRT LOGIC ANALYZER DOCK ==================== -->
+    <Border Grid.Row="3" Classes="card" Margin="8,2,8,8" Padding="0">
+      <Grid RowDefinitions="Auto,*">
+
+        <!-- Retro LA Toolbar + Transaction Cartridges -->
+        <Border Grid.Row="0" Background="#261E3B" BorderBrush="#4A3F6E" BorderThickness="0,0,0,2" Padding="10,5">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+              <TextBlock Text="[CRT LOGIC ANALYZER]" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" VerticalAlignment="Center" Margin="0,0,6,0"/>
+              <Button Content="ZOOM+" Classes="pill" Padding="7,2" Background="#141020" Click="OnLaZoomInClick"/>
+              <Button Content="ZOOM-" Classes="pill" Padding="7,2" Background="#141020" Click="OnLaZoomOutClick"/>
+              <Button Content="FIT" Classes="pill" Padding="7,2" Background="#141020" Click="OnLaZoomFitClick"/>
+              <Button Content="CLR" Classes="pill" Padding="7,2" Background="#3B203E" BorderBrush="#FF3366" Click="OnClearLaClick"/>
+            </StackPanel>
+
+            <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Margin="10,0">
+              <ItemsControl ItemsSource="{Binding TransactionBookmarks}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="4"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <Button Click="OnBookmarkClick" Tag="{Binding}"
+                            Background="#141020" BorderBrush="#00E5FF" BorderThickness="2"
+                            CornerRadius="0" Padding="6,2" FontSize="10">
+                      <TextBlock Text="{Binding BookmarkLabel}" Foreground="#F6F2E9" FontWeight="Bold" FontSize="9.5"/>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+
+            <TextBlock Grid.Column="2" Text="{Binding LaCursorStatus}"
+                       FontSize="10" FontWeight="Bold"
+                       Foreground="#FFB800" VerticalAlignment="Center" MaxWidth="520" TextTrimming="CharacterEllipsis"/>
+          </Grid>
+        </Border>
+
+        <controls:LogicAnalyzerControl x:Name="LogicAnalyzer" Grid.Row="1"/>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

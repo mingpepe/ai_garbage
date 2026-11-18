@@ -1,0 +1,66 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="HidI2cSimulation.Visualizer.App"
+             RequestedThemeVariant="Dark">
+  <Application.Styles>
+    <FluentTheme />
+
+    <!-- Retro Pixel Global Font & Sharp Corners -->
+    <Style Selector="Button.pill">
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="BorderBrush" Value="#5A4C82"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontFamily" Value="DejaVu Sans Mono, Liberation Mono, Courier 10 Pitch, Monospace"/>
+      <Setter Property="Foreground" Value="#F6F2E9"/>
+    </Style>
+    <Style Selector="Button.pill:pointerover">
+      <Setter Property="BorderBrush" Value="#F6F2E9"/>
+    </Style>
+    <Style Selector="Button.pill:pressed">
+      <Setter Property="RenderTransform" Value="translate(2px, 2px)"/>
+    </Style>
+
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#1E182E"/>
+      <Setter Property="BorderBrush" Value="#4A3F6E"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BoxShadow" Value="3 3 0 0 #050409"/>
+    </Style>
+
+    <Style Selector="Border.pixelWell">
+      <Setter Property="Background" Value="#0B0913"/>
+      <Setter Property="BorderBrush" Value="#3A3059"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="0"/>
+    </Style>
+
+    <Style Selector="ComboBox">
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="BorderBrush" Value="#4A3F6E"/>
+      <Setter Property="Background" Value="#141020"/>
+      <Setter Property="FontFamily" Value="DejaVu Sans Mono, Liberation Mono, Monospace"/>
+    </Style>
+
+    <Style Selector="TextBox">
+      <Setter Property="CornerRadius" Value="0"/>
+    </Style>
+
+    <Style Selector="TabItem">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontFamily" Value="DejaVu Sans Mono, Liberation Mono, Monospace"/>
+      <Setter Property="Padding" Value="10,5"/>
+      <Setter Property="CornerRadius" Value="0"/>
+      <Setter Property="Foreground" Value="#9B92B8"/>
+    </Style>
+    <Style Selector="TabItem:selected">
+      <Setter Property="Foreground" Value="#00E5FF"/>
+      <Setter Property="Background" Value="#2B2242"/>
+    </Style>
+  </Application.Styles>
+</Application>
