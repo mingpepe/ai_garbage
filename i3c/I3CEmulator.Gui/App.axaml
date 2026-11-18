@@ -1,0 +1,123 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="I3CEmulator.Gui.App"
+             RequestedThemeVariant="Dark">
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- Benchtop MSO Oscilloscope Instrument Surface Defaults -->
+        <Style Selector="Button">
+            <Setter Property="Background" Value="#252932" />
+            <Setter Property="Foreground" Value="#D8DEE9" />
+            <Setter Property="BorderBrush" Value="#3E4654" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="FontSize" Value="11.5" />
+            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Monospace" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#313744" />
+            <Setter Property="BorderBrush" Value="#637085" />
+        </Style>
+        <Style Selector="Button:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#181C23" />
+            <Setter Property="BorderBrush" Value="#FFD400" />
+        </Style>
+
+        <!-- Primary Run/Trigger Button -->
+        <Style Selector="Button.mso-run">
+            <Setter Property="Background" Value="#1B3A24" />
+            <Setter Property="Foreground" Value="#5CFF8D" />
+            <Setter Property="BorderBrush" Value="#2E7D45" />
+        </Style>
+        <Style Selector="Button.mso-run:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#234D30" />
+            <Setter Property="BorderBrush" Value="#5CFF8D" />
+        </Style>
+
+        <!-- Step Highlight Button -->
+        <Style Selector="Button.mso-step-field">
+            <Setter Property="Background" Value="#1B2E3C" />
+            <Setter Property="Foreground" Value="#00E5FF" />
+            <Setter Property="BorderBrush" Value="#246B80" />
+        </Style>
+        <Style Selector="Button.mso-step-field:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#213B4F" />
+            <Setter Property="BorderBrush" Value="#00E5FF" />
+        </Style>
+
+        <!-- Hard Reset / Stop Button -->
+        <Style Selector="Button.mso-stop">
+            <Setter Property="Background" Value="#381820" />
+            <Setter Property="Foreground" Value="#FF6B7F" />
+            <Setter Property="BorderBrush" Value="#7A2637" />
+        </Style>
+        <Style Selector="Button.mso-stop:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#4C1E29" />
+            <Setter Property="BorderBrush" Value="#FF2E4C" />
+        </Style>
+
+        <!-- Right-Bezel MSO Vertical Softkeys -->
+        <Style Selector="Button.mso-softkey">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="#232730" />
+            <Setter Property="BorderBrush" Value="#3A4250" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style Selector="Button.mso-softkey:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2E3440" />
+            <Setter Property="BorderBrush" Value="#00E5FF" />
+        </Style>
+
+        <Style Selector="ToggleButton">
+            <Setter Property="Background" Value="#1E222A" />
+            <Setter Property="Foreground" Value="#9CA7B8" />
+            <Setter Property="BorderBrush" Value="#38404D" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Monospace" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="ToggleButton:checked /template/ ContentPresenter">
+            <Setter Property="Background" Value="#0A333E" />
+            <Setter Property="BorderBrush" Value="#00E5FF" />
+            <Setter Property="Foreground" Value="#00E5FF" />
+        </Style>
+
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="#16191F" />
+            <Setter Property="Foreground" Value="#FFD400" />
+            <Setter Property="BorderBrush" Value="#3E4654" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Monospace" />
+            <Setter Property="FontSize" Value="11.5" />
+        </Style>
+
+        <Style Selector="TabItem">
+            <Setter Property="FontFamily" Value="JetBrains Mono, Consolas, Monospace" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Foreground" Value="#8892A4" />
+        </Style>
+        <Style Selector="TabItem:selected">
+            <Setter Property="Foreground" Value="#FFD400" />
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+    </Application.Styles>
+</Application>

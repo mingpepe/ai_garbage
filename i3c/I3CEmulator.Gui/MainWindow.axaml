@@ -1,0 +1,360 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:I3CEmulator.Gui.Controls"
+        xmlns:vm="clr-namespace:I3CEmulator.Gui.ViewModels"
+        xmlns:sim="clr-namespace:I3CEmulator.Simulation;assembly=I3CEmulator.Core"
+        x:Class="I3CEmulator.Gui.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="MSO-I3C // MIPI I3C v1.1.1 SDR &amp; Legacy I2C Mixed-Signal Oscilloscope"
+        Width="1540"
+        Height="920"
+        MinWidth="1120"
+        MinHeight="700"
+        Background="#181A1F">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- ROW 0: BENCHTOP MSO ACQUISITION & TRIGGER BAR -->
+        <Border Grid.Row="0" Background="#20242C" BorderBrush="#383F4C" BorderThickness="0,0,0,2" Padding="8,6">
+            <DockPanel LastChildFill="True">
+
+                <!-- Instrument Identification & Run/Step Controls -->
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="4">
+                    <Border Background="#111419" BorderBrush="#3D4554" BorderThickness="1" Padding="8,4" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <TextBlock Text="MSO-I3C" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="12" Foreground="#FFD400" />
+                            <TextBlock Text="12.5M" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#00E5FF" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Border>
+
+                    <Button Content="{Binding RunPauseButtonText}"
+                            Command="{Binding RunOrPauseCommand}"
+                            Classes="mso-run" />
+                    <Button Content="1/2-BIT" Command="{Binding StepHalfCycleCommand}"
+                            ToolTip.Tip="Single-step one SCL half-cycle (Falling or Rising edge)" />
+                    <Button Content="BIT" Command="{Binding StepBitCommand}"
+                            ToolTip.Tip="Single-step one full SCL clock cycle" />
+                    <Button Content="FIELD" Command="{Binding StepFieldCommand}"
+                            Classes="mso-step-field"
+                            ToolTip.Tip="Single-step one protocol field (S, Addr, ACK, CCC, Data+T, 64b Arb, P)" />
+                    <Button Content="FRAME" Command="{Binding StepTransactionCommand}"
+                            ToolTip.Tip="Run until next STOP condition" />
+                    <Button Content="CH" Command="{Binding StepChapterCommand}"
+                            ToolTip.Tip="Execute next educational Chapter (0..10)" />
+                    <Button Content="RESET" Command="{Binding ResetCommand}"
+                            Classes="mso-stop" />
+
+                    <Rectangle Width="1" Fill="#3A4250" Margin="5,2" />
+
+                    <TextBlock Text="RATE:" VerticalAlignment="Center" Foreground="#8E9BAE"
+                               FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="11" FontWeight="SemiBold" />
+                    <ComboBox ItemsSource="{Binding SpeedPresets}"
+                              SelectedItem="{Binding SelectedSpeed}"
+                              Width="172" />
+                </StackPanel>
+
+                <!-- Right Metrics & Acquisition Telemetry LCD -->
+                <Border DockPanel.Dock="Right" Background="#07090D" BorderBrush="#343C4A" BorderThickness="1" Padding="9,4" Margin="8,0,0,0">
+                    <TextBlock Text="{Binding MetricsBanner}"
+                               VerticalAlignment="Center"
+                               Foreground="#FFD400"
+                               FontFamily="JetBrains Mono, Consolas, Monospace"
+                               FontSize="11"
+                               FontWeight="SemiBold" />
+                </Border>
+
+                <Border Background="#07090D" BorderBrush="#343C4A" BorderThickness="1" Padding="9,4" Margin="10,0,0,0">
+                    <TextBlock Text="{Binding ExecutionStatus}"
+                               VerticalAlignment="Center"
+                               Foreground="#00E5FF"
+                               FontFamily="JetBrains Mono, Consolas, Monospace"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis" />
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <!-- ROW 1: MSO DISPLAY WELL + VERTICAL SOFTKEYS + INSTRUMENT INSPECTOR -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,168,4,358">
+
+            <!-- COL 0: RECESSED OSCILLOSCOPE CRT/LCD DISPLAY WELL -->
+            <Border Grid.Column="0" Background="#161920" BorderBrush="#383F4C" BorderThickness="1" Padding="6">
+                <Border Background="#000000" BorderBrush="#444D5D" BorderThickness="2">
+                    <Grid RowDefinitions="198,4,*">
+
+                        <!-- Top Inside Screen: Probe Pod Deck (CH1 SCL, CH2 SDA, Rp, Pods D0..D5) -->
+                        <controls:BusTopologyControl Grid.Row="0"
+                                                     Sample="{Binding InspectedSample}"
+                                                     ActivePacket="{Binding ActivePacket}"
+                                                     Metadata="{Binding DeviceMetadata}" />
+
+                        <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="#252B36" />
+
+                        <!-- Bottom Inside Screen: Horizontal Timebase Strip + Graticule Waveform -->
+                        <Grid Grid.Row="2" RowDefinitions="Auto,*,Auto">
+                            <Border Grid.Row="0" Background="#10131A" BorderBrush="#282F3D" BorderThickness="0,0,0,1" Padding="8,4">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" Spacing="5">
+                                        <Border Background="#FFD400" Padding="6,2" Margin="0,0,4,0">
+                                            <TextBlock Text="TIMEBASE / SERIAL BUS" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="10.5" Foreground="#000000" />
+                                        </Border>
+                                        <Button Content="ZOOM +" Click="OnZoomInClick" Padding="7,2" FontSize="10.5" />
+                                        <Button Content="ZOOM -" Click="OnZoomOutClick" Padding="7,2" FontSize="10.5" />
+                                        <Button Content="FIT" Click="OnZoomFitClick" Padding="7,2" FontSize="10.5" />
+                                        <ToggleButton Content="TRUE-NS" IsChecked="{Binding UseTrueTimeScale}" Padding="7,2"
+                                                      ToolTip.Tip="Toggle Compact Cycle vs True-Time nanosecond width (40ns PP vs 1300ns I2C)" />
+                                        <ToggleButton Content="FOLLOW" IsChecked="{Binding FollowLive}" Padding="7,2" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="X1: L-CLK | X2: R-CLK | PAN: SHIFT+DRAG | ZOOM: WHEEL"
+                                               HorizontalAlignment="Right" VerticalAlignment="Center"
+                                               Foreground="#7D899C" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" />
+                                </DockPanel>
+                            </Border>
+
+                            <controls:LogicAnalyzerControl x:Name="LaControl"
+                                                           Grid.Row="1"
+                                                           Samples="{Binding Samples}"
+                                                           Packets="{Binding Packets}"
+                                                           Chapters="{Binding Chapters}"
+                                                           SelectedSampleIndex="{Binding SelectedSampleIndex, Mode=TwoWay}"
+                                                           SecondarySampleIndex="{Binding SecondarySampleIndex, Mode=TwoWay}"
+                                                           UseTrueTimeScale="{Binding UseTrueTimeScale}"
+                                                           FollowLive="{Binding FollowLive, Mode=TwoWay}" />
+
+                            <ScrollBar x:Name="LaHScroll"
+                                       Grid.Row="2"
+                                       Orientation="Horizontal"
+                                       AllowAutoHide="False"
+                                       Minimum="0"
+                                       Maximum="0"
+                                       SmallChange="30"
+                                       LargeChange="200"
+                                       ValueChanged="OnScrollBarValueChanged" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Border>
+
+            <!-- COL 1: BENCHTOP MSO VERTICAL SOFTKEY MENU BEZEL -->
+            <Border Grid.Column="1" Background="#1B1F27" BorderBrush="#383F4C" BorderThickness="0,1,1,1" Padding="6,6">
+                <DockPanel LastChildFill="True">
+                    <Border DockPanel.Dock="Top" Background="#111419" BorderBrush="#343C4A" BorderThickness="1" Padding="6,4" Margin="0,0,0,6">
+                        <TextBlock Text="SOFTKEY // STIMULUS" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="10.5" Foreground="#FFD400" />
+                    </Border>
+
+                    <!-- Cursor X1/X2 Delta Telemetry Box at bottom of bezel -->
+                    <Border DockPanel.Dock="Bottom" Background="#07090D" BorderBrush="#343C4A" BorderThickness="1" Padding="7,6" Margin="0,6,0,0">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="MARKER MEASURE" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="10" Foreground="#00E5FF" />
+                            <TextBlock Text="{Binding CursorDeltaBanner}"
+                                       FontFamily="JetBrains Mono, Consolas, Monospace"
+                                       FontSize="10.5"
+                                       Foreground="#FFD400"
+                                       LineHeight="15" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Vertical Hardware Softkeys -->
+                    <StackPanel DockPanel.Dock="Top">
+                        <Button Classes="mso-softkey" Command="{Binding QueueIbiTargetACommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#FF5CA8" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="TRIG IBI: TGT-A" FontSize="11" FontWeight="Bold" Foreground="#F1F5F9" />
+                                    <TextBlock Text="DA=0x09 MDB=0x99" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding QueueIbiTargetCCommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#FF5CA8" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="TRIG IBI: TGT-C" FontSize="11" FontWeight="Bold" Foreground="#F1F5F9" />
+                                    <TextBlock Text="DA=0x08 MDB=0x77" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding TriggerCollisionCommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#FF9800" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="3-WAY COLLISION" FontSize="11" FontWeight="Bold" Foreground="#FFD400" />
+                                    <TextBlock Text="A+C IBI vs WR 0x0A" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding PrivateWriteTargetACommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#00E5FF" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="PP WR -> 0x09" FontSize="11" FontWeight="Bold" Foreground="#00E5FF" />
+                                    <TextBlock Text="12.5M REG 0x20" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding PrivateReadTargetACommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#2EFFC6" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="PP RD &lt;- 0x09" FontSize="11" FontWeight="Bold" Foreground="#2EFFC6" />
+                                    <TextBlock Text="4B + EOD T-BIT" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding LegacyI2CReadCommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#FF40C8" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="I2C RD &lt;- 0x50" FontSize="11" FontWeight="Bold" Foreground="#FF40C8" />
+                                    <TextBlock Text="400kHz OD 24C02" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button Classes="mso-softkey" Command="{Binding HotJoinTargetDCommand}">
+                            <Grid ColumnDefinitions="4,*">
+                                <Border Grid.Column="0" Background="#4CFF72" />
+                                <StackPanel Grid.Column="1" Margin="7,5">
+                                    <TextBlock Text="HOT-PLUG TGT-D" FontSize="11" FontWeight="Bold" Foreground="#4CFF72" />
+                                    <TextBlock Text="7'h02/W -> ENTDAA" FontSize="9.5" Foreground="#8894A8" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="2" ResizeDirection="Columns" Background="#282E3A" />
+
+            <!-- COL 3: RIGHT INSTRUMENT PROTOCOL & REGISTER INSPECTOR -->
+            <Border Grid.Column="3" MinWidth="260" Background="#161920" BorderBrush="#383F4C" BorderThickness="0,1,1,1">
+                <TabControl>
+
+                    <!-- TAB 1: SCENARIO CHAPTERS & SPECIFICATION ASSERTIONS -->
+                    <TabItem Header="CH / PASS">
+                        <Grid RowDefinitions="*,4,185">
+                            <ListBox Grid.Row="0"
+                                     ItemsSource="{Binding ChapterItems}"
+                                     Background="#0B0E13"
+                                     SelectionChanged="OnChapterSelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ChapterItemViewModel">
+                                        <Border Background="#11151C" BorderBrush="#262D3B" BorderThickness="0,0,0,1" Padding="8,6">
+                                            <StackPanel Spacing="3">
+                                                <DockPanel>
+                                                    <Border DockPanel.Dock="Right" Background="#0A2A15" BorderBrush="#2E7D45" BorderThickness="1" Padding="5,1" Margin="6,0,0,0">
+                                                        <TextBlock Text="{Binding Status}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#4CFF72" FontWeight="Bold" />
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Title}" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="11.5" Foreground="#E6ECF5" TextWrapping="Wrap" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Summary}" FontSize="11" Foreground="#98A4B8" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding KeySignalsText}" FontSize="10" Foreground="#00E5FF" FontFamily="JetBrains Mono, Consolas, Monospace" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <GridSplitter Grid.Row="1" ResizeDirection="Rows" Background="#282E3A" />
+
+                            <DockPanel Grid.Row="2" Background="#07090D">
+                                <Border DockPanel.Dock="Top" Background="#13171F" BorderBrush="#262D3B" BorderThickness="0,0,0,1" Padding="8,4">
+                                    <TextBlock Text="SPEC ASSERTIONS [VERIFIED]" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="10.5" Foreground="#4CFF72" />
+                                </Border>
+                                <ListBox ItemsSource="{Binding PassedAssertions}" Background="#07090D">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <TextBlock Text="{Binding}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#9CECB2" Padding="8,2" TextWrapping="Wrap" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- TAB 2: SERIAL DECODE LISTER -->
+                    <TabItem Header="DECODE">
+                        <DockPanel Background="#090C10">
+                            <Border DockPanel.Dock="Top" Background="#13171F" Padding="8,4" BorderBrush="#262D3B" BorderThickness="0,0,0,1">
+                                <TextBlock Text="CLICK DECODED PACKET TO MOVE MARKER X1" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#00E5FF" />
+                            </Border>
+                            <ListBox ItemsSource="{Binding DecodedPackets}"
+                                     SelectedItem="{Binding SelectedPacketRow, Mode=TwoWay}"
+                                     Background="Transparent">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate x:DataType="sim:DecodedPacket">
+                                        <Border Background="#0D1016" BorderBrush="#222834" BorderThickness="0,0,0,1" Padding="7,4">
+                                            <StackPanel Spacing="2">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Left" Text="{Binding StartTimeNs, StringFormat='{}{0:N0} ns'}"
+                                                               FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#7D899C" Width="78" />
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding ElectricalMode}"
+                                                               FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#FF9800" />
+                                                    <TextBlock Text="{Binding ShortLabel}" FontFamily="JetBrains Mono, Consolas, Monospace"
+                                                               FontWeight="Bold" FontSize="11" Foreground="#FFD400" />
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Summary}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#E2E8F0" TextWrapping="Wrap" />
+                                                <TextBlock Text="{Binding InitiatorOrDriver, StringFormat='DRV: {0}'}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="9.5" Foreground="#8894A8" />
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </TabItem>
+
+                    <!-- TAB 3: DEVICE PODS & REGISTER MAP -->
+                    <TabItem Header="TARGETS">
+                        <ListBox ItemsSource="{Binding DeviceStates}" Background="#090C10">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DeviceStateSummary">
+                                    <Border Background="#0E1218" BorderBrush="#262D3B" BorderThickness="0,0,0,1" Padding="8,6">
+                                        <StackPanel Spacing="2">
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding AddressText}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="11" Foreground="#00E5FF" FontWeight="Bold" />
+                                                <TextBlock Text="{Binding Name}" FontFamily="JetBrains Mono, Consolas, Monospace" FontWeight="Bold" FontSize="11.5" Foreground="#FFD400" />
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding Role}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#7D899C" />
+                                            <TextBlock Text="{Binding IdentityText}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#D5DFEC" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding FlagsText}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#FF9800" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding CountersText}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10" Foreground="#4CFF72" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding RegistersPreview}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#FF40C8" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+
+                    <!-- TAB 4: RAW HARDWARE BUS TRACE -->
+                    <TabItem Header="TRACE">
+                        <ListBox ItemsSource="{Binding BusLogs}" Background="#040507">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <TextBlock Text="{Binding}" FontFamily="JetBrains Mono, Consolas, Monospace" FontSize="10.5" Foreground="#CBD5E1" Padding="6,2" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </TabItem>
+
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- ROW 2: BOTTOM MSO CURSOR & PACKET READOUT BAR -->
+        <Border Grid.Row="2" Background="#12151B" BorderBrush="#383F4C" BorderThickness="0,2,0,0" Padding="10,5">
+            <TextBlock Text="{Binding SelectedSampleBanner}"
+                       FontFamily="JetBrains Mono, Consolas, Monospace"
+                       FontSize="11"
+                       Foreground="#E6ECF5"
+                       TextTrimming="CharacterEllipsis" />
+        </Border>
+
+    </Grid>
+</Window>

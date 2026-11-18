@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="I3CEmulator.Core/I3CEmulator.Core.csproj" />
+  <Project Path="I3CEmulator.Gui/I3CEmulator.Gui.csproj" />
+  <Project Path="I3CEmulator.Tests/I3CEmulator.Tests.csproj" />
+  <Project Path="I3CEmulator/I3CEmulator.csproj" />
+</Solution>
