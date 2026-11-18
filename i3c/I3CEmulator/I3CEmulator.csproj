@@ -9,4 +9,8 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\I3CEmulator.Core\I3CEmulator.Core.csproj" />
+  </ItemGroup>
+
 </Project>

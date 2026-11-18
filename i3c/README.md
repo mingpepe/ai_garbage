@@ -259,27 +259,36 @@ I2C 內部狀態機 ____________________________________________________________
 ## 6. 專案架構與檔案清單
 
 ```text
-I3CEmulator/
-├── Docs/
-│   └── 00_ReadMeFirst.cs           # 核心觀念總覽、I2C vs I3C 對照表、全域規則與時序圖表
-├── Physical/
-│   ├── Timing.cs                   # SCL 四種時鐘規格 (12.5MHz PP, 4.17MHz OD, 2.5MHz Init, 400kHz I2C)
-│   └── I3CBus.cs                   # cycle-accurate 匯流排模型、Wired-AND 線與邏輯、推挽電氣衝突防護
-├── Protocol/
-│   ├── I3CAddresses.cs             # 7-bit 地址空間定義、7'h7E 廣播、7'h02 熱插拔、單 bit 錯誤防護 (TE0)
-│   ├── Parity.cs                   # T-Bit 奇同位計算器與 ENTDAA 動態地址同位元驗證 (TE1, TE2, TE3)
-│   ├── CccCode.cs                  # Common Command Codes：廣播 CCC (0x00~0x7F) vs 直接 CCC (0x80~0xFE)
-│   └── DeviceRegisters.cs          # 48-bit PID、8-bit BCR、8-bit DCR 及 I2C 虛擬暫存器 LVR 定義
-├── Devices/
-│   ├── IBusDevice.cs               # 匯流排元件硬體接腳介面（SCL/SDA 邊緣回呼與驅動抽象化）
-│   ├── I3CMaster.Bits.cs           # Controller 底層：S/Sr/P 產生、位元時鐘、Header 開漏仲裁偵測
-│   ├── I3CMaster.Daa.cs            # Controller DAA：SETDASA 靜態轉動態、ENTDAA 64-bit 仲裁發現循環
-│   ├── I3CMaster.Ibi.cs            # Controller IBI：帶內中斷處理、Hot-Join 處理、MDB 與 Payload 讀取
-│   ├── I3CMaster.Ccc.cs            # Controller CCC 引擎：廣播與直接 CCC、自動處理 Header 中斷重試
-│   ├── I3CMaster.Transfers.cs      # Controller 資料傳輸：12.5 MHz 私有讀寫 (PP)、傳統 I2C 400 kHz (OD)
-│   ├── I3CSlave.cs                 # I3C Target 完整硬體狀態機：50ns 濾波切換、ENTDAA 仲裁退讓、IBI 請求
-│   └── I2CSlave.cs                 # 傳統 I2C Target：50ns 類比尖波濾波器模擬、純開漏、每 Byte ACK
-└── Program.cs                      # 完整 10 章情境驗證測試平台（含彩色 ASCII Trace 與斷言）
+i3c/
+├── I3CEmulator.slnx                    # 解決方案檔（串聯 Core / Console / GUI / Tests）
+├── I3CEmulator.Core/                   # 共用核心模擬與協定解碼函式庫 (net10.0)
+│   ├── Physical/
+│   │   ├── Timing.cs                   # SCL 四種時鐘規格 (12.5MHz PP, 4.17MHz OD, 2.5MHz Init, 400kHz I2C)
+│   │   └── I3CBus.cs                   # cycle-accurate 匯流排模型、Wired-AND 線與邏輯、推挽短路防護
+│   ├── Protocol/
+│   │   ├── I3CAddresses.cs             # 7-bit 地址空間、7'h7E 廣播、7'h02 熱插拔、單 bit 錯誤防護 (TE0)
+│   │   ├── Parity.cs                   # T-Bit 奇同位計算器與 ENTDAA 動態地址同位元驗證 (TE1, TE2, TE3)
+│   │   ├── CccCode.cs                  # Common Command Codes：廣播 CCC (0x00~0x7F) vs 直接 CCC (0x80~0xFE)
+│   │   └── DeviceRegisters.cs          # 48-bit PID、8-bit BCR、8-bit DCR 及 I2C 虛擬暫存器 LVR 定義
+│   ├── Devices/
+│   │   ├── IBusDevice.cs               # 匯流排元件硬體接腳介面（SCL/SDA 邊緣回呼與即時診斷屬性）
+│   │   ├── I3CMaster.*.cs              # Controller 位元時鐘、DAA (SETDASA/ENTDAA)、IBI/HJ、CCC 與資料傳輸
+│   │   ├── I3CSlave.cs                 # I3C Target 完整硬體狀態機：50ns 濾波切換、ENTDAA 仲裁退讓、IBI
+│   │   └── I2CSlave.cs                 # 傳統 I2C Target：50ns 類比尖波濾波器模擬、純開漏、每 Byte ACK
+│   └── Simulation/
+│       ├── BusWaveformRecorder.cs      # Cycle-accurate 時鐘邊緣波形與各裝置 Tri-state Pad 快照錄製器
+│       ├── I3CProtocolDecoder.cs       # 增量式 LA 協定解碼器（S/Sr/P、OD/PP Header、64-bit ENTDAA、CCC、T-Bit）
+│       ├── SimulationStepGate.cs       # 支援半週期 / Bit / 協定欄位 / Transaction / Chapter 單步執行閘門
+│       └── I3CSimulationScenario.cs    # Ch0~Ch10 共享驗證腳本 + 互動式 Sandbox 指令介面
+├── I3CEmulator/                        # Console 驗證測試平台 (net10.0，參考 I3CEmulator.Core)
+│   ├── Docs/00_ReadMeFirst.cs          # 核心觀念總覽、I2C vs I3C 對照表與時序圖表
+│   └── Program.cs                      # 呼叫 I3CSimulationScenario 執行 11 章節驗證與 35 項規格斷言
+├── I3CEmulator.Gui/                    # Avalonia XAML 跨平台 Logic Analyzer GUI (net10.0)
+│   ├── Controls/BusTopologyControl.cs  # 即時元件通訊拓樸圖（Rp 上拉開關、PMOS/NMOS 狀態、50ns 濾波與仲裁）
+│   ├── Controls/LogicAnalyzerControl.cs# 多通道 LA 波形圖（協定解碼軌、Bus Mode、SCL/SDA、6 顆裝置 Pad 軌、T1/T2 游標）
+│   ├── ViewModels/MainWindowViewModel.cs
+│   └── MainWindow.axaml(.cs)           # 執行控制列、互動式指令 Sandbox、暫存器檢視與 Packet Decode 表
+└── I3CEmulator.Tests/                  # xUnit 自動化測試（規格斷言、協定解碼、單步閘門與互動式交易）
 ```
 
 ---
@@ -291,14 +300,19 @@ I3CEmulator/
 本專案使用標準 .NET SDK（已驗證於 .NET 10.0）：
 
 ```bash
-# 切換至專案目錄
-cd /home/kk/ai_garbage/i3c/I3CEmulator
+cd /home/kk/ai_garbage/i3c
 
-# 建置專案
-dotnet build
+# 建置整個解決方案（Core + Console + GUI + Tests）
+dotnet build I3CEmulator.slnx
 
-# 執行模擬器測試平台
-dotnet run
+# 執行單元測試
+dotnet test I3CEmulator.slnx
+
+# 執行 Console 驗證輸出
+dotnet run --project I3CEmulator/I3CEmulator.csproj
+
+# 啟動 Logic Analyzer 視覺化 GUI 應用程式
+dotnet run --project I3CEmulator.Gui/I3CEmulator.Gui.csproj
 ```
 
 ### 7.2 模擬器執行的 10 大驗證情境

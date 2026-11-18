@@ -298,20 +298,20 @@
       </p>
     </header>
 
-    <!-- Tab 切換列 -->
+    <!-- Tab 切換列（左右交換：神祇英雄傳在左、特別企劃在右） -->
     <nav class="tab-navigation-bar">
-      <button class="nav-tab-btn active" id="tabBtnRelations" onclick="switchMainTab('relations')">
-        <span>📜 特別企劃：神祇關係與重大事件</span>
-        <span class="tab-badge">6 部精選</span>
-      </button>
-      <button class="nav-tab-btn" id="tabBtnGods" onclick="switchMainTab('gods')">
+      <button class="nav-tab-btn active" id="tabBtnGods" onclick="switchMainTab('gods')">
         <span>🏛️ 神祇英雄傳：30位神明本傳</span>
         <span class="tab-badge">30 部傳記</span>
+      </button>
+      <button class="nav-tab-btn" id="tabBtnRelations" onclick="switchMainTab('relations')">
+        <span>📜 特別企劃：神祇關係與重大事件</span>
+        <span class="tab-badge">6 部精選</span>
       </button>
     </nav>
 
     <!-- TAB 1：特別企劃（6 部） -->
-    <section class="tab-pane active" id="paneRelations">
+    <section class="tab-pane" id="paneRelations">
       <div class="tab-intro-banner">
         <span>💡</span>
         <span><strong>特別企劃導讀：</strong> 這裡收錄了跨越不同神明之間的「家族關係、名場面對決、神獸象徵與神廟秘密生活」，非常適合在讀個別神祇前先讓孩子建立完整的古埃及世界觀！</span>
@@ -419,7 +419,7 @@
     </section>
 
     <!-- TAB 2：個別神祇本傳（30 位） -->
-    <section class="tab-pane" id="paneGods">
+    <section class="tab-pane active" id="paneGods">
       <div class="tab-intro-banner">
         <span>🌟</span>
         <span><strong>神祇英雄傳導讀：</strong> 收錄包含太陽神拉、貓咪女神巴斯特、胡狼神阿努比斯等 30 位偉大神祇的專屬成長冒險，深入認識祂們的代表動物、法寶與美德。</span>

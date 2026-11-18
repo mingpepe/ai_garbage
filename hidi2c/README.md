@@ -207,21 +207,38 @@ Host 寫入 `wCommandRegister`（2 個位元組）來控制周邊裝置：
 
 ```text
 hidi2c/
-├── Protocol/
-│   ├── HidI2cDefinitions.cs       # HIDI2C v1.00 規範常數、30-Byte 結構、OpCode、封包標頭
-│   └── HidReportParser.cs         # USB-IF Report 描述元 Bytecode 生成器、解譯器與 Payload 解碼
-├── Hardware/
-│   ├── GpioPin.cs                 # GPIO 腳位模擬（支援 Open-Drain、上拉電阻、邊緣與電位觸發）
-│   └── I2CBus.cs                  # I2C 實體匯流排模擬（START, SLA+W, ACK, Sr, SLA+R, STOP, 邏輯分析儀追蹤）
-├── Device/
-│   └── HidI2cDevice.cs            # 周邊晶片模擬（Elan Precision Touchpad，含暫存器對應表與 INT# 觸發）
-├── Host/
-│   └── HidI2cHostDriver.cs        # 作業系統驅動層模擬（Windows hidi2c.sys / Linux i2c-hid 行為）
-├── Docs/
-│   └── ArchitectureKnowledgeBase.cs # 內建完整知識庫與 ACPI ASL DSDT 範例程式碼
-├── Program.cs                     # 互動式主選單、步進式引導教學、觸控實驗室與自動化測試套件
-├── HidI2cSimulation.csproj        # .NET 10 專案檔
-└── README.md                      # 本說明文件
+├── HidI2cSimulation.slnx
+├── HidI2cSimulation.Core/             # 共用模擬引擎類別庫 (Shared Library)
+│   ├── Protocol/
+│   │   ├── HidI2cDefinitions.cs       # HIDI2C v1.00 規範常數、30-Byte 結構、OpCode、封包標頭
+│   │   └── HidReportParser.cs         # USB-IF Report 描述元 Bytecode 生成器、解譯器與 Payload 解碼
+│   ├── Hardware/
+│   │   ├── GpioPin.cs                 # GPIO 腳位模擬（支援 Open-Drain、上拉電阻、邊緣與電位觸發）
+│   │   └── I2CBus.cs                  # I2C 實體匯流排模擬（START, SLA+W, ACK, Sr, SLA+R, STOP）
+│   ├── Device/
+│   │   └── HidI2cDevice.cs            # 周邊晶片模擬（Elan Precision Touchpad，含暫存器與 FIFO）
+│   ├── Host/
+│   │   └── HidI2cHostDriver.cs        # 作業系統驅動層模擬（Windows hidi2c.sys / Linux i2c-hid 行為）
+│   ├── Simulation/
+│   │   ├── SimulationTimeline.cs      # 奈秒級硬體時脈軸
+│   │   ├── LogicAnalyzerCapture.cs    # 400kHz Bit-level 波形擷取與 I2C 協定解碼器
+│   │   ├── ComponentCommEvent.cs      # 跨元件通訊事件紀錄
+│   │   ├── HidI2cSimulationSession.cs # Console 與 GUI 共用的步進/互動模擬會話控制器
+│   │   └── ProtocolComplianceRunner.cs# 13 項自動化合規測試引擎
+│   └── Docs/
+│       └── ArchitectureKnowledgeBase.cs # 完整知識庫與 ACPI ASL DSDT 範例程式碼
+├── HidI2cSimulation.Console/          # 文字介面主控台模擬器
+│   └── Program.cs
+├── HidI2cSimulation.Visualizer/       # Avalonia 跨平台桌面視覺化與邏輯分析儀 (WPF-like XAML)
+│   ├── Controls/
+│   │   ├── ArchitectureDiagramControl.cs # 即時元件架構圖、電氣接腳與動態封包流向
+│   │   ├── LogicAnalyzerControl.cs       # 四通道數位波形 (SCL/SDA/INT#/RESET#) + I2C 解碼器
+│   │   └── TouchpadCanvasControl.cs      # 4096x4096 互動式精密觸控板模擬器
+│   ├── ViewModels/MainWindowViewModel.cs
+│   └── MainWindow.axaml
+├── HidI2cSimulation.Tests/            # xUnit 單元與協定測試專案
+│   └── SimulationTests.cs
+└── README.md                          # 本說明文件
 ```
 
 ---
@@ -234,11 +251,17 @@ hidi2c/
 ### 7.2 編譯與執行
 在終端機切換至本專案目錄：
 ```bash
-# 編譯專案
+# 編譯完整方案
 dotnet build
 
-# 執行模擬器
-dotnet run
+# 執行 Avalonia 互動式視覺化與邏輯分析儀 (GUI)
+dotnet run --project HidI2cSimulation.Visualizer
+
+# 執行文字主控台模擬器 (Console)
+dotnet run --project HidI2cSimulation.Console
+
+# 執行自動化單元測試
+dotnet test
 ```
 
 ### 7.3 功能選單說明
