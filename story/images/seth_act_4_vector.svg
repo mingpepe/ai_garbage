@@ -1,0 +1,224 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="100%" height="100%">
+  <defs>
+    <!-- Sky & Background Gradients -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#120408" />
+      <stop offset="35%" stop-color="#380d15" />
+      <stop offset="65%" stop-color="#731f1c" />
+      <stop offset="85%" stop-color="#c85a17" />
+      <stop offset="100%" stop-color="#f5a623" />
+    </linearGradient>
+
+    <!-- Sun Disk Gradient -->
+    <radialGradient id="sunGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="30%" stop-color="#ffe873" />
+      <stop offset="65%" stop-color="#ff9900" />
+      <stop offset="100%" stop-color="#e03000" stop-opacity="0.9" />
+    </radialGradient>
+
+    <!-- Sun Halo -->
+    <radialGradient id="sunHalo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffbb33" stop-opacity="0.6" />
+      <stop offset="60%" stop-color="#e04000" stop-opacity="0.2" />
+      <stop offset="100%" stop-color="#731f1c" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Mountain & Dunes Gradients -->
+    <linearGradient id="backDune" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#541517" />
+      <stop offset="100%" stop-color="#2a060b" />
+    </linearGradient>
+    <linearGradient id="midDune" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#802616" />
+      <stop offset="50%" stop-color="#4a1210" />
+      <stop offset="100%" stop-color="#200609" />
+    </linearGradient>
+    <linearGradient id="frontRock" x1="0%" y1="0%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#3d1410" />
+      <stop offset="40%" stop-color="#1f0808" />
+      <stop offset="100%" stop-color="#0a0203" />
+    </linearGradient>
+
+    <!-- Seth Skin & Armor Shading -->
+    <linearGradient id="sethSkin" x1="30%" y1="0%" x2="70%" y2="100%">
+      <stop offset="0%" stop-color="#b83b28" />
+      <stop offset="50%" stop-color="#7e1f18" />
+      <stop offset="100%" stop-color="#400b0d" />
+    </linearGradient>
+    <linearGradient id="goldArmor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff2a1" />
+      <stop offset="35%" stop-color="#e5b839" />
+      <stop offset="75%" stop-color="#996f12" />
+      <stop offset="100%" stop-color="#593c04" />
+    </linearGradient>
+    <linearGradient id="capeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b01b22" />
+      <stop offset="50%" stop-color="#5c070d" />
+      <stop offset="100%" stop-color="#1a0204" />
+    </linearGradient>
+
+    <!-- Spear Metallic Energy -->
+    <linearGradient id="spearShaft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1a1a24" />
+      <stop offset="50%" stop-color="#525b73" />
+      <stop offset="100%" stop-color="#12131a" />
+    </linearGradient>
+    <linearGradient id="spearBlade" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="30%" stop-color="#ffe680" />
+      <stop offset="70%" stop-color="#ff5500" />
+      <stop offset="100%" stop-color="#7a0000" />
+    </linearGradient>
+
+    <!-- Filters for Glow & Atmosphere -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="superGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="24" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Sky Canvas -->
+  <rect width="1024" height="1024" fill="url(#skyGrad)" />
+
+  <!-- Background Sandstorm Swirls -->
+  <g opacity="0.35">
+    <path d="M-100,520 Q300,380 700,490 T1150,420" fill="none" stroke="#f5a623" stroke-width="45" opacity="0.2" filter="url(#glow)" />
+    <path d="M-50,600 Q400,460 850,560 T1200,480" fill="none" stroke="#c85a17" stroke-width="60" opacity="0.25" />
+    <path d="M0,450 Q500,320 950,400 T1150,350" fill="none" stroke="#ffe873" stroke-width="15" opacity="0.3" filter="url(#glow)" />
+  </g>
+
+  <!-- Giant Blazing Sun / Solar Corona -->
+  <circle cx="512" cy="380" r="230" fill="url(#sunHalo)" filter="url(#superGlow)" />
+  <circle cx="512" cy="380" r="140" fill="url(#sunGrad)" filter="url(#glow)" />
+
+  <!-- Background Distant Pyramids Silhouette in Heat Mist -->
+  <polygon points="120,620 280,480 440,620" fill="#3d0e14" opacity="0.75" />
+  <polygon points="280,480 340,620 440,620" fill="#29070c" opacity="0.75" />
+  <polygon points="680,630 800,520 920,630" fill="#380d13" opacity="0.6" />
+
+  <!-- Layered Desert Dunes -->
+  <path d="M-20,670 Q240,550 540,610 T1050,580 L1050,1024 L-20,1024 Z" fill="url(#backDune)" />
+  <path d="M-50,730 Q280,640 680,710 T1080,680 L1080,1024 L-50,1024 Z" fill="url(#midDune)" opacity="0.9" />
+
+  <!-- Foreground Rocky Cliff Platform -->
+  <path d="M0,810 L280,790 L420,830 L620,810 L780,860 L1024,840 L1024,1024 L0,1024 Z" fill="url(#frontRock)" />
+  <!-- Rock Highlights -->
+  <path d="M0,810 L280,790 L420,830 L620,810 L780,860 L1024,840" fill="none" stroke="#e5b839" stroke-width="2.5" opacity="0.45" />
+
+  <!-- Flowing Royal Crimson Cape (Behind Character) -->
+  <path d="M470,550 C380,560 320,620 280,740 C340,710 410,680 460,670 Z" fill="url(#capeGrad)" opacity="0.95" />
+  <path d="M450,560 C320,600 240,700 210,830 C270,780 370,730 450,680 Z" fill="url(#capeGrad)" opacity="0.8" />
+
+  <!-- SETH - Figure Group -->
+  <g id="SethDeity">
+    <!-- Legs & Kilt -->
+    <!-- Left Leg -->
+    <path d="M470,720 L455,870 L485,875 L510,740 Z" fill="url(#sethSkin)" />
+    <!-- Right Leg (Braced forward) -->
+    <path d="M540,720 L585,860 L620,855 L585,730 Z" fill="url(#sethSkin)" />
+    <!-- Golden Greaves (Leg Armor) -->
+    <path d="M455,810 L485,815 L480,865 L453,865 Z" fill="url(#goldArmor)" />
+    <path d="M570,800 L605,795 L615,850 L583,853 Z" fill="url(#goldArmor)" />
+
+    <!-- Shendyt Royal Kilt -->
+    <path d="M460,660 L590,660 L610,750 L530,770 L450,740 Z" fill="#ffffff" />
+    <path d="M510,660 L550,660 L545,765 L515,765 Z" fill="url(#goldArmor)" stroke="#7e1f18" stroke-width="1.5" />
+    <!-- Gold Belt -->
+    <rect x="460" y="650" width="130" height="20" rx="3" fill="url(#goldArmor)" stroke="#3d1410" stroke-width="1.5" />
+    <circle cx="525" cy="660" r="8" fill="#a01818" stroke="#fff2a1" stroke-width="1" />
+
+    <!-- Muscular Torso -->
+    <path d="M465,540 C455,590 460,655 460,655 L590,655 C590,655 600,590 585,540 Z" fill="url(#sethSkin)" />
+    <!-- Pectoral / Rib Shadow Sculpting -->
+    <path d="M485,580 Q525,595 525,625 Q525,595 565,580" fill="none" stroke="#400b0d" stroke-width="4" opacity="0.6" />
+    <line x1="525" y1="565" x2="525" y2="650" stroke="#400b0d" stroke-width="3" opacity="0.6" />
+
+    <!-- Wesekh Golden Collar (Broad Necklace) -->
+    <path d="M460,540 C475,580 575,580 590,540 C605,515 570,490 525,490 C480,490 445,515 460,540 Z" fill="url(#goldArmor)" stroke="#4a1210" stroke-width="2" />
+    <!-- Gemstone Inlays in Collar -->
+    <circle cx="490" cy="540" r="4" fill="#0f7a75" />
+    <circle cx="525" cy="552" r="5" fill="#a01818" />
+    <circle cx="560" cy="540" r="4" fill="#0f7a75" />
+
+    <!-- Arms -->
+    <!-- Left Arm (Holding Spear high) -->
+    <path d="M585,535 L660,490 L685,420 L710,430 L685,515 L600,565 Z" fill="url(#sethSkin)" />
+    <!-- Golden Armlet -->
+    <rect x="650" y="475" width="22" height="30" rx="4" transform="rotate(-30 650 475)" fill="url(#goldArmor)" />
+    <!-- Right Arm (Muscular forward pose) -->
+    <path d="M460,540 L410,580 L380,630 L355,620 L385,560 L445,520 Z" fill="url(#sethSkin)" />
+    <rect x="375" y="565" width="20" height="28" rx="4" transform="rotate(35 375 565)" fill="url(#goldArmor)" />
+
+    <!-- SETH HEAD (Iconic Sha Animal: Tall squared erect ears, curved snout, piercing red gaze) -->
+    <!-- Neck -->
+    <path d="M500,510 L505,465 L545,465 L550,510 Z" fill="url(#sethSkin)" />
+    <!-- Base Head -->
+    <path d="M490,465 C485,425 510,400 550,405 C575,410 580,440 565,470 Z" fill="url(#sethSkin)" />
+    <!-- Curved Long Snout & Downward Hook Jaw -->
+    <path d="M550,415 C580,410 635,425 660,465 C640,470 610,460 585,460 L560,470 Z" fill="url(#sethSkin)" stroke="#400b0d" stroke-width="2" />
+    <!-- Snout tip curve -->
+    <path d="M640,450 C655,455 665,465 660,472 C650,478 635,470 625,465 Z" fill="#2d0508" />
+
+    <!-- Tall Erect Squared Ears (Hallmark of Seth Animal) -->
+    <!-- Back Ear -->
+    <path d="M510,410 L495,270 L525,260 L535,405 Z" fill="#5c1514" stroke="#2a060b" stroke-width="2" />
+    <!-- Front Ear -->
+    <path d="M530,410 L520,250 L555,240 L558,405 Z" fill="url(#sethSkin)" stroke="#2a060b" stroke-width="2" />
+    <path d="M532,390 L528,270 L545,265 L548,390 Z" fill="#d95338" opacity="0.7" />
+
+    <!-- Piercing Burning Eye -->
+    <polygon points="555,430 580,432 568,442" fill="#fff7b3" filter="url(#glow)" />
+    <circle cx="568" cy="434" r="3.5" fill="#ff0000" />
+    <circle cx="569" cy="433" r="1.5" fill="#ffffff" />
+  </g>
+
+  <!-- Divine Lightning Spear of Seth (Weapon of Cosmic Thunder) -->
+  <g id="ThunderSpear">
+    <!-- Shaft running diagonally through left hand at (695, 420) -->
+    <line x1="840" y1="120" x2="490" y2="920" stroke="url(#spearShaft)" stroke-width="14" stroke-linecap="round" />
+    <line x1="840" y1="120" x2="490" y2="920" stroke="#ffd966" stroke-width="2" opacity="0.6" />
+
+    <!-- Hand gripping shaft -->
+    <circle cx="695" cy="425" r="16" fill="url(#sethSkin)" stroke="#380d15" stroke-width="2" />
+
+    <!-- Spear Spearhead (Ancient Khopesh/Trident Hybrid Blade) -->
+    <path d="M840,120 L870,50 L895,30 L885,85 L925,90 L855,150 Z" fill="url(#spearBlade)" stroke="#ffffff" stroke-width="2" filter="url(#glow)" />
+
+    <!-- Crackling Divine Lightning Arc -->
+    <path d="M885,30 L850,90 L880,110 L810,180 L840,210 L780,290" fill="none" stroke="#fffbda" stroke-width="6" filter="url(#glow)" />
+    <path d="M885,30 L850,90 L880,110 L810,180 L840,210 L780,290" fill="none" stroke="#ff3b00" stroke-width="12" opacity="0.5" filter="url(#superGlow)" />
+
+    <path d="M870,70 L930,80 L910,130 L970,140" fill="none" stroke="#ffe680" stroke-width="3.5" filter="url(#glow)" />
+    <path d="M810,180 L760,195 L770,240 L720,260" fill="none" stroke="#ffe680" stroke-width="3" opacity="0.8" />
+  </g>
+
+  <!-- Swirling Sand & Glowing Embers Particles -->
+  <g opacity="0.85">
+    <circle cx="420" cy="740" r="4" fill="#ffd54f" filter="url(#glow)" />
+    <circle cx="360" cy="690" r="2.5" fill="#ffca28" />
+    <circle cx="630" cy="720" r="3.5" fill="#ffe082" />
+    <circle cx="720" cy="650" r="5" fill="#ff6f00" filter="url(#glow)" />
+    <circle cx="670" cy="580" r="3" fill="#ffab00" />
+    <circle cx="780" cy="480" r="4.5" fill="#ffeb3b" filter="url(#glow)" />
+    <circle cx="820" cy="390" r="3" fill="#ff9100" />
+    <circle cx="310" cy="810" r="3" fill="#ff8f00" />
+    <circle cx="250" cy="630" r="2" fill="#ffe082" />
+    <circle cx="590" cy="480" r="3.5" fill="#ffd54f" />
+    <circle cx="890" cy="240" r="5" fill="#ffffff" filter="url(#glow)" />
+    <circle cx="850" cy="300" r="3.5" fill="#ffe57f" />
+  </g>
+
+  <!-- Vignette Frame Overlay -->
+  <rect width="1024" height="1024" fill="none" stroke="#26050a" stroke-width="28" opacity="0.8" />
+</svg>
