@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JPEG PIXEL LAB // C# + Verilog Byte-Level Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="crt-scanlines" aria-hidden="true"></div>
+
+  <header class="topbar pixel-box">
+    <div class="brand">
+      <svg class="pixel-icon" viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true">
+        <rect x="1" y="2" width="14" height="12" fill="#29adff"/>
+        <rect x="2" y="3" width="12" height="10" fill="#181c2b"/>
+        <rect x="3" y="4" width="4" height="4" fill="#ffec27"/>
+        <rect x="9" y="4" width="4" height="4" fill="#ff004d"/>
+        <rect x="3" y="9" width="4" height="3" fill="#00e436"/>
+        <rect x="9" y="9" width="4" height="3" fill="#ffa300"/>
+      </svg>
+      <div>
+        <h1>JPEG PIXEL LAB</h1>
+        <p class="subtitle">C# BASELINE CODEC &bull; BYTE-BY-BYTE TRACE &bull; VERILOG RTL</p>
+      </div>
+    </div>
+
+    <nav class="mode-tabs" role="tablist">
+      <button class="px-btn tab-btn active" data-tab="encode">1. ENCODE TRACE</button>
+      <button class="px-btn tab-btn" data-tab="decode">2. DECODE TRACE</button>
+      <button class="px-btn tab-btn" data-tab="bytemap">3. BYTE &amp; BIT MAP</button>
+      <button class="px-btn tab-btn" data-tab="verilog">4. VERILOG RTL &amp; SIM</button>
+    </nav>
+  </header>
+
+  <section class="toolbar pixel-box">
+    <div class="tool-group">
+      <label for="presetSelect">PRESET</label>
+      <select id="presetSelect" class="px-input"></select>
+    </div>
+
+    <div class="tool-group">
+      <label for="qualityRange">QUALITY <span id="qualityLabel" class="badge badge-gold">75</span></label>
+      <input id="qualityRange" type="range" min="1" max="100" value="75" class="px-range" />
+    </div>
+
+    <div class="tool-group">
+      <label for="subsamplingSelect">CHROMA</label>
+      <select id="subsamplingSelect" class="px-input">
+        <option value="4:4:4">4:4:4 (1x1 MCU=8x8)</option>
+        <option value="4:2:0">4:2:0 (2x2 MCU=16x16)</option>
+      </select>
+    </div>
+
+    <div class="tool-group">
+      <label for="mathModeSelect">ARITHMETIC</label>
+      <select id="mathModeSelect" class="px-input">
+        <option value="float">IEEE Float64</option>
+        <option value="fixed">Q14 Fixed-Pt (Verilog Match)</option>
+      </select>
+    </div>
+
+    <div class="tool-actions">
+      <label class="px-btn btn-cyan file-btn">
+        UPLOAD IMG
+        <input id="uploadImgInput" type="file" accept="image/*" hidden />
+      </label>
+      <label class="px-btn btn-amber file-btn">
+        DECODE .JPG
+        <input id="uploadJpgInput" type="file" accept=".jpg,.jpeg,image/jpeg" hidden />
+      </label>
+      <button id="downloadJpgBtn" class="px-btn btn-lime">SAVE .JPG</button>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <!-- Left Column: Visual Pixel Canvas + Block Picker + Metrics -->
+    <aside class="left-panel">
+      <div class="pixel-box panel-card">
+        <div class="card-head">
+          <span>PIXEL CANVAS &amp; MCU GRID</span>
+          <button id="paintToggleBtn" class="px-btn btn-sm">PAINT: OFF</button>
+        </div>
+
+        <div id="paletteBar" class="palette-bar hidden"></div>
+
+        <div class="canvas-pair">
+          <div class="canvas-wrap">
+            <div class="canvas-title">INPUT RGB <span id="srcDimsLabel" class="muted"></span></div>
+            <div class="canvas-frame">
+              <canvas id="srcCanvas" width="16" height="16"></canvas>
+              <canvas id="gridCanvas" width="16" height="16"></canvas>
+            </div>
+          </div>
+
+          <div class="canvas-wrap">
+            <div class="canvas-title">DECODED RGB <span id="decDimsLabel" class="muted"></span></div>
+            <div class="canvas-frame">
+              <canvas id="decCanvas" width="16" height="16"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div id="pixelHoverInfo" class="hover-info mono">
+          HOVER PIXEL OR CLICK 8x8 BLOCK TO INSPECT
+        </div>
+      </div>
+
+      <div class="pixel-box panel-card">
+        <div class="card-head">
+          <span>BLOCK / MCU SELECTOR</span>
+          <span id="blockCountLabel" class="badge badge-cyan">0 BLKS</span>
+        </div>
+        <div class="block-controls">
+          <div class="comp-pills" id="compPills">
+            <button class="px-btn btn-sm active" data-comp="Y">Y (LUMA)</button>
+            <button class="px-btn btn-sm" data-comp="Cb">Cb</button>
+            <button class="px-btn btn-sm" data-comp="Cr">Cr</button>
+          </div>
+          <div class="block-nav">
+            <button id="prevBlockBtn" class="px-btn btn-sm">&lt; BLK</button>
+            <select id="blockSelect" class="px-input"></select>
+            <button id="nextBlockBtn" class="px-btn btn-sm">BLK &gt;</button>
+          </div>
+        </div>
+        <div id="activeBlockMeta" class="meta-grid mono"></div>
+      </div>
+
+      <div class="pixel-box panel-card">
+        <div class="card-head">
+          <span>COMPRESSION TELEMETRY</span>
+        </div>
+        <div id="metricsGrid" class="metrics-grid mono"></div>
+      </div>
+    </aside>
+
+    <!-- Main Right Stage Area -->
+    <section class="main-panel">
+      <!-- TAB 1: ENCODER STEP-BY-STEP -->
+      <div id="tab-encode" class="tab-view active">
+        <div class="pixel-box stage-nav-bar">
+          <div class="stage-title">ENCODER PIPELINE &mdash; PIXELS &rarr; BYTES</div>
+          <div class="stage-controls">
+            <button id="encPrevStageBtn" class="px-btn btn-sm">&lt; PREV</button>
+            <button id="encNextStageBtn" class="px-btn btn-sm">NEXT &gt;</button>
+            <button id="encAutoStageBtn" class="px-btn btn-sm btn-gold">AUTO</button>
+            <button id="encShowAllBtn" class="px-btn btn-sm btn-cyan active">ALL STAGES</button>
+          </div>
+          <div id="encStagePills" class="stage-pills"></div>
+        </div>
+        <div id="encodeStagesContainer" class="stages-container"></div>
+      </div>
+
+      <!-- TAB 2: DECODER STEP-BY-STEP -->
+      <div id="tab-decode" class="tab-view">
+        <div class="pixel-box stage-nav-bar">
+          <div class="stage-title">DECODER PIPELINE &mdash; BYTES &rarr; PIXELS</div>
+          <div class="stage-controls">
+            <button id="decPrevStageBtn" class="px-btn btn-sm">&lt; PREV</button>
+            <button id="decNextStageBtn" class="px-btn btn-sm">NEXT &gt;</button>
+            <button id="decAutoStageBtn" class="px-btn btn-sm btn-gold">AUTO</button>
+            <button id="decShowAllBtn" class="px-btn btn-sm btn-cyan active">ALL STAGES</button>
+          </div>
+          <div id="decStagePills" class="stage-pills"></div>
+        </div>
+        <div id="decodeStagesContainer" class="stages-container"></div>
+      </div>
+
+      <!-- TAB 3: COMPLETE BYTE & BIT MAP -->
+      <div id="tab-bytemap" class="tab-view">
+        <div class="pixel-box panel-card">
+          <div class="card-head">
+            <span>100% BYTE-BY-BYTE JFIF HEX &amp; BITSTREAM MAP</span>
+            <div class="byte-filter-row">
+              <button class="px-btn btn-sm active" data-byte-source="encode">ENCODER OUT</button>
+              <button class="px-btn btn-sm" data-byte-source="decode">DECODER IN</button>
+              <button id="highlightBlkBytesBtn" class="px-btn btn-sm btn-cyan">HILITE BLOCK BYTES</button>
+              <button id="jumpStuffBtn" class="px-btn btn-sm btn-ruby">NEXT FF00 STUFF</button>
+            </div>
+          </div>
+
+          <div id="segmentLegend" class="segment-legend"></div>
+
+          <div class="bytemap-split">
+            <div id="hexDumpContainer" class="hex-dump mono"></div>
+            <div id="byteDetailPanel" class="byte-detail mono">
+              <div class="detail-placeholder">CLICK ANY HEX BYTE TO INSPECT ITS EXACT 8-BIT ORIGIN</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: VERILOG RTL & LIVE SIMULATION -->
+      <div id="tab-verilog" class="tab-view">
+        <div class="pixel-box panel-card">
+          <div class="card-head">
+            <span>VERILOG HARDWARE MODULE ARCHITECTURE (VERILOG-2001)</span>
+            <button id="runVerilogSimBtn" class="px-btn btn-lime">RUN LIVE IVERILOG/VVP SIM (&le;32x32)</button>
+          </div>
+
+          <div id="verilogSimResult" class="verilog-sim-result hidden"></div>
+
+          <div class="verilog-diagram-wrap">
+            <div class="vdiag-col">
+              <div class="vdiag-title">ENCODER PIPELINE (rtl/encoder/)</div>
+              <div id="verilogEncDiagram" class="vdiag-flow"></div>
+            </div>
+            <div class="vdiag-col">
+              <div class="vdiag-title">DECODER PIPELINE (rtl/decoder/)</div>
+              <div id="verilogDecDiagram" class="vdiag-flow"></div>
+            </div>
+            <div class="vdiag-col">
+              <div class="vdiag-title">SHARED PRIMITIVES (rtl/common/)</div>
+              <div id="verilogComDiagram" class="vdiag-flow"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pixel-box panel-card">
+          <div class="card-head">
+            <span id="verilogCodeTitle">SELECT A VERILOG MODULE ABOVE TO INSPECT RTL</span>
+            <span id="verilogCodeMeta" class="badge badge-cyan">0 LINES</span>
+          </div>
+          <pre id="verilogCodeView" class="verilog-code mono"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
