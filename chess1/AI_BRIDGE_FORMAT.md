@@ -54,9 +54,10 @@
 
 ---
 
-## 2. AI 建議推播：`POST /api/advice`
+## 2. AI 建議推播：`ai_advice.json`（或 `POST /api/advice`）
 
-- **方向**：CLI AI 直接將建議 JSON `POST /api/advice` 給 `server.mjs` → 立即經由 SSE (`GET /api/advice/stream`) 廣播至網頁前端（純記憶體轉發，不落地寫檔）。
+- **極速路徑**：CLI AI 透過 `write_file` 寫入 `ai_advice.json`（不啟動外部 shell/Node.js）→ `server.mjs` 透過 `fs.watch` 偵測後立即經由 SSE (`GET /api/advice/stream`) 廣播至網頁前端，並**隨手刪除 `ai_advice.json`**。
+- **HTTP 路徑**：亦保留 `POST /api/advice` 直接廣播。
 - **前端行為**：
   - 棋盤上繪製起訖點高亮與帶 `★` 標記的推薦箭頭。
   - 右側欄頂部顯示 `🤖 AI 即時戰術建議` 卡片（`#cli-advice-card`）。

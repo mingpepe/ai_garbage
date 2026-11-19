@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
 const STATE_FILE = path.join(__dirname, 'current_state.json');
+const ADVICE_FILE = path.join(__dirname, 'ai_advice.json');
+const ADVICE_BASENAME = path.basename(ADVICE_FILE);
 const HELP_REQUEST_FILE = path.join(__dirname, 'help_request.json');
 
 const MIME_TYPES = {
@@ -20,7 +22,17 @@ const MIME_TYPES = {
   '.ico': 'image/x-icon'
 };
 
-// Delete stale help request file on server startup
+// Delete stale advice and help request files on server startup
+function removeAdviceFile() {
+  try {
+    if (fs.existsSync(ADVICE_FILE)) {
+      fs.unlinkSync(ADVICE_FILE);
+    }
+  } catch (err) {
+    console.warn('Failed to remove advice file:', err.message);
+  }
+}
+
 function removeHelpRequestFile() {
   try {
     if (fs.existsSync(HELP_REQUEST_FILE)) {
@@ -31,6 +43,7 @@ function removeHelpRequestFile() {
   }
 }
 
+removeAdviceFile();
 removeHelpRequestFile();
 
 // Connected SSE clients
@@ -48,6 +61,25 @@ function broadcastAdvice(payload) {
     }
   }
 }
+
+// Watch ai_advice.json (fast write_file path): broadcast via SSE and delete immediately
+let adviceWatchDebounce = null;
+fs.watch(__dirname, (eventType, filename) => {
+  if (filename !== ADVICE_BASENAME) return;
+  if (adviceWatchDebounce) clearTimeout(adviceWatchDebounce);
+  adviceWatchDebounce = setTimeout(() => {
+    if (!fs.existsSync(ADVICE_FILE)) return;
+    try {
+      const raw = fs.readFileSync(ADVICE_FILE, 'utf-8').trim();
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      removeAdviceFile();
+      broadcastAdvice(parsed);
+    } catch {
+      // Ignore transient partial-write JSON parse errors
+    }
+  }, 40);
+});
 
 const server = http.createServer((req, res) => {
   const urlPath = (req.url || '/').split('?')[0];
@@ -71,8 +103,9 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Reset help request file when starting a new game
+  // Reset advice & help request files when starting a new game
   if (req.method === 'POST' && urlPath === '/api/reset') {
+    removeAdviceFile();
     removeHelpRequestFile();
     broadcastAdvice({ cleared: true });
     res.writeHead(200, { 'Content-Type': 'application/json' });
