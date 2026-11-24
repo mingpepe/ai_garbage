@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 760" width="920" height="760" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect width="920" height="760" fill="#f8fafc"/>
+  <text x="460" y="32" text-anchor="middle" font-size="19" font-weight="bold" fill="#0f172a">C# lwIP-Parity TCP/IP Stack (Layers &amp; Interface Boundaries)</text>
+
+  <!-- L7 -->
+  <rect x="70" y="52" width="780" height="62" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="90" y="75" font-size="13" font-weight="bold" fill="#5b21b6">L7: Application Layer</text>
+  <text x="90" y="96" font-size="11" fill="#4c1d95">HttpClientLayer (HTTP/1.1) | DnsClientLayer (UDP:53) | DhcpClientLayer (UDP:68) | AutoIpLayer (169.254.x.x) | SocketScriptRunner</text>
+
+  <!-- Boundary L7-L5 -->
+  <line x1="460" y1="114" x2="460" y2="144" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="270" y="119" width="380" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="133" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">ISocketApi | IDnsClient | IDhcpClient | IAutoIpClient</text>
+
+  <!-- L5 -->
+  <rect x="70" y="144" width="780" height="54" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="90" y="167" font-size="13" font-weight="bold" fill="#1e40af">L5: BSD Sockets / Netconn API</text>
+  <text x="90" y="185" font-size="11" fill="#1e3a8a">SocketApiLayer (socket, bind, listen, accept, connect, send, recv, sendto, recvfrom, close, setsockopt)</text>
+
+  <!-- Boundary L5-L4 -->
+  <line x1="460" y1="198" x2="460" y2="228" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="280" y="203" width="360" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="217" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">ITcpLayer / ITcpCallbacks | IUdpLayer | IRawLayer</text>
+
+  <!-- L4 -->
+  <rect x="70" y="228" width="780" height="72" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="90" y="250" font-size="13" font-weight="bold" fill="#166534">L4: Transport Layer</text>
+  <text x="90" y="269" font-size="11" fill="#14532d">• TcpLayer: 11 RFC 793 states, MSS/WScale/SACK, ooseq, Cwnd/SsThresh, SRTT/RTO, Nagle, Keepalive, TIME_WAIT</text>
+  <text x="90" y="287" font-size="11" fill="#14532d">• UdpLayer: Pseudo-header checksum, ephemeral ports, ICMP Port Unreachable | • RawLayer: Direct IP protocol PCBs</text>
+
+  <!-- Boundary L4-L3 -->
+  <line x1="460" y1="300" x2="460" y2="330" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="300" y="305" width="320" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="319" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">IIp4Layer | IIp6Layer | IIcmpLayer</text>
+
+  <!-- L3 -->
+  <rect x="70" y="330" width="780" height="76" rx="6" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+  <text x="90" y="352" font-size="13" font-weight="bold" fill="#9a3412">L3: Network Layer</text>
+  <text x="90" y="371" font-size="11" fill="#7c2d12">• Ip4Layer: RFC 1071 checksum, routing table, TTL forwarding, ip4_frag / ip4_reass | • Ip6Layer: 40B header, ICMPv6</text>
+  <text x="90" y="389" font-size="11" fill="#7c2d12">• IcmpLayer: Echo Req/Reply, Dest Unreachable, Time Exceeded | • IgmpLayer: IGMPv2 Join (0x16) / Leave (0x17)</text>
+
+  <!-- Boundary L3-L2.5 -->
+  <line x1="460" y1="406" x2="460" y2="436" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="315" y="411" width="290" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="425" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">IArpLayer | INdpLayer</text>
+
+  <!-- L2.5 -->
+  <rect x="70" y="436" width="780" height="54" rx="6" fill="#fef9c3" stroke="#ca8a04" stroke-width="2"/>
+  <text x="90" y="458" font-size="13" font-weight="bold" fill="#854d0e">L2.5: Address Resolution (ARP / NDP)</text>
+  <text x="90" y="476" font-size="11" fill="#713f12">ArpLayer (Cache, Pending Queue, GARP, Probe) | NdpLayer (ICMPv6 NS 135 / NA 136 Neighbor Cache)</text>
+
+  <!-- Boundary L2.5-L2 -->
+  <line x1="460" y1="490" x2="460" y2="520" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="330" y="495" width="260" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="509" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">ILinkLayer.SendFrame()</text>
+
+  <!-- L2 -->
+  <rect x="70" y="520" width="780" height="54" rx="6" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+  <text x="90" y="542" font-size="13" font-weight="bold" fill="#3730a3">L2: Data Link Layer (Ethernet / Netif)</text>
+  <text x="90" y="560" font-size="11" fill="#312e81">EthernetLayer (14B Ethernet II Frame, EtherType 0x0800/0x0806/0x86DD) + Netif (eth0, MTU, lo0 127.0.0.1 / ::1)</text>
+
+  <!-- Boundary L2-L1 -->
+  <line x1="460" y1="574" x2="460" y2="604" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+  <rect x="290" y="579" width="340" height="20" rx="4" fill="#fef08a" stroke="#ca8a04"/>
+  <text x="460" y="593" text-anchor="middle" font-size="11" font-weight="bold" fill="#713f12">IOsNetworkInterface / IOsRxCallback</text>
+
+  <!-- L1 -->
+  <rect x="70" y="604" width="780" height="54" rx="6" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="90" y="626" font-size="13" font-weight="bold" fill="#1e293b">L1: Simulated OS NIC &amp; SysArch (No WSL)</text>
+  <text x="90" y="644" font-size="11" fill="#334155">SimulatedOsNic (vnic0 Driver) + SimulatedSysArch (ISysArch: Virtual Clock, Timers, PRNG)</text>
+
+  <!-- Boundary L1-L0 -->
+  <line x1="460" y1="658" x2="460" y2="686" stroke="#334155" stroke-width="2" marker-end="url(#arr)" marker-start="url(#arr)"/>
+
+  <!-- L0 -->
+  <rect x="70" y="686" width="780" height="46" rx="6" fill="#1e293b"/>
+  <text x="460" y="714" text-anchor="middle" font-size="13" font-weight="bold" fill="#4ade80">L0: VirtualNetworkSwitch (Simulated Ethernet Wire + Fault Injection)</text>
+</svg>

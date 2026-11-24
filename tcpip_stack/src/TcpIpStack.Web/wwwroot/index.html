@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Win95 lwIP TCP/IP Stack Inspector (C# Pure Implementation)</title>
+  <link rel="stylesheet" href="win95.css" />
+</head>
+<body>
+<div class="desktop-wrapper">
+  <!-- Main Application Window -->
+  <div class="w95-window">
+    <div class="w95-titlebar">
+      <div>&#x1F5A5; TCP/IP Stack Inspector 95 &mdash; C# lwIP-Parity Protocol Stack &amp; Single-Step Simulator (No WSL / Simulated OS NIC)</div>
+      <div class="w95-titlebar-btns">
+        <div class="w95-winbtn">_</div>
+        <div class="w95-winbtn">&#9633;</div>
+        <div class="w95-winbtn">X</div>
+      </div>
+    </div>
+
+    <div class="w95-menubar">
+      <div class="menu-items">
+        <span onclick="resetSim()"><u>F</u>ile (Reset)</span>
+        <span onclick="switchTab('tab-stack')"><u>S</u>tack View</span>
+        <span onclick="switchTab('tab-ide')"><u>P</u>rogram IDE</span>
+        <span onclick="switchTab('tab-http')"><u>H</u>TTP Browser</span>
+        <span onclick="switchTab('tab-internals')"><u>M</u>IB / lwIP Internals</span>
+      </div>
+      <div style="font-family: 'Courier New', monospace;">
+        <span class="led on" id="led-link"></span>10BASE-T Virtual Ethernet | Interface-Isolated C# Stack
+      </div>
+    </div>
+
+    <!-- Primary Stepping & Protocol Toolbar -->
+    <div class="w95-toolbar">
+      <button class="w95-btn primary" onclick="stepHop()" title="Keyboard: F10">&#9654;| Step 1 Hop (F10)</button>
+      <button class="w95-btn" onclick="stepN(5)">&#9654;| Step 5</button>
+      <button class="w95-btn" onclick="runIdle()">&#9654;&#9654; Run All</button>
+      <button class="w95-btn" id="btn-autoplay" onclick="toggleAutoPlay()">&#9205; Auto-Play</button>
+      <div class="w95-sep"></div>
+      <button class="w95-btn" onclick="advanceClock(500)" title="Tick lwIP tcp_fasttmr + tcp_slowtmr">&#9201; +500ms</button>
+      <button class="w95-btn" onclick="advanceClock(1500)" title="Trigger TCP RTO Retransmission / TIME_WAIT">&#9201; +1500ms (RTO)</button>
+      <button class="w95-btn danger" onclick="resetSim()">&#8634; Reset Stack</button>
+      <div class="w95-sep"></div>
+      <!-- Quick Protocol Actions -->
+      <button class="w95-btn" onclick="quickPing('93.184.216.34', 32)">Ping Server</button>
+      <button class="w95-btn" onclick="quickFragPing()">Frag Ping (MTU=100)</button>
+      <button class="w95-btn" onclick="quickPing6()">IPv6+NDP Ping6</button>
+      <button class="w95-btn" onclick="quickDns()">DNS Query</button>
+      <button class="w95-btn" onclick="quickDhcp()">DHCP DORA</button>
+      <button class="w95-btn" onclick="quickAutoIp()">AutoIP</button>
+      <button class="w95-btn" onclick="quickIgmp()">IGMP Join</button>
+      <button class="w95-btn" onclick="flushCaches()">Flush ARP/DNS</button>
+    </div>
+
+    <!-- Fault Injection & Network Parameter Bar -->
+    <div class="w95-toolbar" style="background: #d4d0c8; padding: 3px 6px;">
+      <b>Fault Injection &amp; NIC:</b>
+      <label><input type="checkbox" id="chk-drop-next" onchange="updateFaults()"> Drop Next Client TX (Test TCP Retransmit)</label>
+      <label><input type="checkbox" id="chk-corrupt-next" onchange="updateFaults()"> Corrupt Next Checksum</label>
+      <label><input type="checkbox" id="chk-dup-next" onchange="updateFaults()"> Duplicate Next Frame</label>
+      <div class="w95-sep"></div>
+      <label>Client MTU:
+        <select class="w95-input" id="sel-mtu" onchange="updateFaults()">
+          <option value="1500">1500 (Standard Ethernet)</option>
+          <option value="256">256 (Trigger IPv4 Frag)</option>
+          <option value="100">100 (Heavy IPv4 Frag)</option>
+        </select>
+      </label>
+      <label>Auto-Play Speed:
+        <select class="w95-input" id="sel-speed">
+          <option value="700">Slow (700ms)</option>
+          <option value="300" selected>Medium (300ms)</option>
+          <option value="100">Fast (100ms)</option>
+        </select>
+      </label>
+      <span id="phase-badge" style="margin-left:auto; font-weight:bold; color:#000080;"></span>
+    </div>
+
+    <!-- Next Queued Hop Preview -->
+    <div style="padding: 4px 6px 0 6px;">
+      <div class="next-hop-banner idle" id="next-hop-banner">
+        <span id="next-hop-text">Queue Idle &mdash; Trigger a protocol action, run a Socket Script, or start an HTTP Request!</span>
+        <span id="next-hop-queue-badge">Pending Hops: 0</span>
+      </div>
+    </div>
+
+    <!-- Win95 Tabs -->
+    <div class="w95-tabs">
+      <div class="w95-tab active" data-tab="tab-stack" onclick="switchTab('tab-stack')">1. Layered Stack Architecture</div>
+      <div class="w95-tab" data-tab="tab-ide" onclick="switchTab('tab-ide')">2. TCP Socket Program IDE (Single-Step)</div>
+      <div class="w95-tab" data-tab="tab-http" onclick="switchTab('tab-http')">3. HTTP Request Tracer (Win95 Browser)</div>
+      <div class="w95-tab" data-tab="tab-internals" onclick="switchTab('tab-internals')">4. lwIP Internals, Tables &amp; MIB Stats</div>
+    </div>
+
+    <div class="w95-tab-content">
+      <!-- TAB 1: STACK ARCHITECTURE VISUALIZER -->
+      <div class="tab-pane active" id="tab-stack">
+        <div class="stack-grid" id="stack-diagram"></div>
+
+        <!-- Simulated Virtual Wire connecting all 3 Simulated OS NICs -->
+        <div class="virtual-wire-bar" id="virtual-wire-bar">
+          <div>&#x1F50C; <b>LAYER 0: Virtual Ethernet Switch / Simulated Wire</b> (No WSL &mdash; Pure C# Simulated OS Layer)</div>
+          <div id="wire-stats">Forwarded: 0 | Dropped: 0 | Corrupted: 0</div>
+        </div>
+
+        <!-- Selected Layer Quick Inspector -->
+        <div class="w95-group" style="margin-top:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <b id="layer-inspector-title">Click any layer box above to inspect its C# class, upper/lower interfaces, and live state</b>
+            <span style="font-size:11px; color:#444;">Legend: <span style="background:#ffff66;padding:0 4px;border:1px solid #888;">Source Layer</span> <span style="background:#80ff80;padding:0 4px;border:1px solid #888;">Target Layer</span> <span style="background:#ff8080;padding:0 4px;border:1px solid #888;">Dropped</span></span>
+          </div>
+          <div id="layer-inspector-body" class="w95-sunken" style="margin-top:4px; padding:5px; font-family:'Courier New',monospace; font-size:11px; max-height:110px; overflow-y:auto;">
+            Architecture: Every protocol layer is an independent C# class communicating exclusively via upper/lower C# interfaces.
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: TCP SOCKET PROGRAM IDE -->
+      <div class="tab-pane" id="tab-ide">
+        <div class="w95-toolbar" style="padding:3px 0; border-bottom:none;">
+          <b>Preset:</b>
+          <select class="w95-input" id="sel-preset" onchange="loadSelectedPreset()" style="min-width:300px;"></select>
+          <button class="w95-btn primary" onclick="loadScriptFromEditor()">Load / Reset Script</button>
+          <button class="w95-btn primary" onclick="stepScriptLine()">&#8627; Step 1 Code Line</button>
+          <button class="w95-btn" onclick="stepHop()">&#9654;| Step 1 Packet Hop (F10)</button>
+          <button class="w95-btn" onclick="runScriptAll()">&#9654;&#9654; Run To Completion</button>
+          <span id="script-status-badge" style="margin-left:auto; font-weight:bold;"></span>
+        </div>
+
+        <div class="ide-grid">
+          <div>
+            <div style="font-weight:bold; margin-bottom:2px;">Edit Socket Program (C#-style BSD Socket API):</div>
+            <textarea class="w95-input" id="script-editor" rows="10" style="width:100%; resize:vertical;"></textarea>
+            <div style="font-weight:bold; margin:4px 0 2px 0;">Single-Step Execution Pointer (Yellow = Next Line, Cyan = Waiting on Network):</div>
+            <div class="w95-sunken code-line-view" id="script-line-view"></div>
+          </div>
+          <div>
+            <div style="font-weight:bold; margin-bottom:2px;">Program Console Output (STDOUT):</div>
+            <div class="w95-sunken console-box" id="script-console"></div>
+
+            <div style="font-weight:bold; margin:6px 0 2px 0;">Variables &amp; Client Socket FD Table:</div>
+            <div class="w95-sunken" style="height:195px; overflow-y:auto; padding:4px;" id="script-vars-sockets"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: HTTP REQUEST TRACER (WIN95 BROWSER) -->
+      <div class="tab-pane" id="tab-http">
+        <div class="w95-toolbar" style="padding:4px; background:#d4d0c8; border:1px solid #808080;">
+          <b>Method:</b>
+          <select class="w95-input" id="http-method">
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+            <option value="HEAD">HEAD</option>
+          </select>
+          <b>Address:</b>
+          <input class="w95-input" id="http-url" value="http://example.com/" style="flex:1; min-width:220px;" />
+          <select class="w95-input" onchange="if(this.value) document.getElementById('http-url').value=this.value;">
+            <option value="">-- Quick URLs --</option>
+            <option value="http://example.com/">http://example.com/ (HTML Page)</option>
+            <option value="http://example.com/api/info">http://example.com/api/info (JSON)</option>
+            <option value="http://example.com/large">http://example.com/large (Multi-Segment TCP)</option>
+            <option value="http://retro.local/echo">http://retro.local/echo (POST Echo)</option>
+            <option value="http://example.com/404">http://example.com/404 (404 Error)</option>
+          </select>
+          <label><input type="checkbox" id="http-flush-dns" checked> Flush DNS</label>
+          <label><input type="checkbox" id="http-flush-arp" checked> Flush ARP</label>
+          <button class="w95-btn primary" onclick="startHttp(false)">&#127760; Start (Single-Step)</button>
+          <button class="w95-btn" onclick="startHttp(true)">&#9654;&#9654; Send &amp; Run All</button>
+        </div>
+
+        <div style="margin-top:4px; display:flex; gap:6px; align-items:center;">
+          <b>POST Body:</b>
+          <input class="w95-input" id="http-body" placeholder="Optional request body for POST /echo" style="flex:1;" />
+        </div>
+
+        <!-- Lifecycle Phase Pipeline -->
+        <div class="http-phases" id="http-phases">
+          <div class="phase-pill" id="ph-DNS_LOOKUP">1. DNS Resolution (UDP:53)</div>
+          <div class="phase-pill" id="ph-TCP_HANDSHAKE">2. ARP + TCP 3-Way Handshake</div>
+          <div class="phase-pill" id="ph-HTTP_SEND">3. HTTP Request TX</div>
+          <div class="phase-pill" id="ph-HTTP_RECV">4. HTTP Response RX</div>
+          <div class="phase-pill" id="ph-TCP_CLOSE">5. TCP 4-Way Close (FIN)</div>
+          <div class="phase-pill" id="ph-COMPLETED">6. Complete</div>
+        </div>
+
+        <div class="http-grid">
+          <div>
+            <div style="font-weight:bold; margin-bottom:2px;">HTTP Lifecycle Milestones &amp; Raw Wire Exchange:</div>
+            <div class="w95-sunken" id="http-milestones" style="height:105px; overflow-y:auto; padding:4px; font-family:'Courier New',monospace; font-size:11px;"></div>
+            <div style="font-weight:bold; margin:4px 0 2px 0;">Raw HTTP Request / Response:</div>
+            <div class="w95-sunken" id="http-raw" style="height:130px; overflow-y:auto; padding:4px; font-family:'Courier New',monospace; font-size:11px; white-space:pre-wrap;"></div>
+          </div>
+          <div>
+            <div style="font-weight:bold; margin-bottom:2px;">Win95 Browser Rendered Response (<span id="http-status-label">Idle</span>):</div>
+            <div class="w95-sunken retro-browser-frame" id="http-rendered">
+              <p style="color:#666;">Click <b>Start (Single-Step)</b> then press <b>Step 1 Hop (F10)</b> repeatedly to watch DNS &rarr; ARP &rarr; Gateway Routing &rarr; TCP SYN/SYN+ACK/ACK &rarr; HTTP GET &rarr; 200 OK &rarr; FIN unfold layer by layer!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: lwIP INTERNALS & MIB STATS -->
+      <div class="tab-pane" id="tab-internals">
+        <div class="internals-grid">
+          <div>
+            <b>Client TCP PCBs (State Machine, Seq/Ack, Window, Cwnd, RTO):</b>
+            <div class="w95-sunken" style="height:130px; overflow:auto; margin-bottom:6px;" id="tbl-tcp-pcbs"></div>
+
+            <b>ARP Cache &amp; IPv6 NDP Neighbor Cache (Client):</b>
+            <div class="w95-sunken" style="height:110px; overflow:auto; margin-bottom:6px;" id="tbl-arp-ndp"></div>
+
+            <b>IPv4 Routing Table, DNS Cache, DHCP, AutoIP &amp; IGMP:</b>
+            <div class="w95-sunken" style="height:110px; overflow:auto;" id="tbl-routes-apps"></div>
+          </div>
+          <div>
+            <b>lwIP MIB / Protocol Statistics (lwip_stats &mdash; Client Node):</b>
+            <div class="w95-sunken" style="height:210px; overflow:auto; margin-bottom:6px;" id="tbl-mib-stats"></div>
+
+            <b>lwIP Feature Parity &amp; C# Interface Matrix:</b>
+            <div class="w95-sunken" style="height:150px; overflow:auto; padding:4px; font-family:'Courier New',monospace; font-size:11px;">
+              <div>[OK] <b>OS Layer (sys_arch + NIC)</b>: ISysArch, IOsNetworkInterface, IOsRxCallback (Simulated, No WSL)</div>
+              <div>[OK] <b>Netif / Ethernet / Loopback</b>: ILinkLayer (EthernetLayer, Netif, lo0 127.0.0.1 / ::1)</div>
+              <div>[OK] <b>ARP &amp; NDP</b>: IArpLayer (cache, pending queue, GARP, probe), INdpLayer (ICMPv6 NS/NA)</div>
+              <div>[OK] <b>IPv4 + Frag/Reass + Router</b>: IIp4Layer (RFC 1071 csum, routing, ip4_frag, ip4_reass, TTL fwd)</div>
+              <div>[OK] <b>ICMPv4 &amp; IGMPv2</b>: IIcmpLayer (Echo, Unreachable, TimeExceeded), IIgmpLayer (Join/Leave)</div>
+              <div>[OK] <b>IPv6 &amp; ICMPv6</b>: IIp6Layer (40B hdr, pseudo-csum, Echo6, NDP dispatch)</div>
+              <div>[OK] <b>TCP (Full RFC 793/5681/6298)</b>: ITcpLayer (11 states, MSS/WScale/SACK, ooseq, Cwnd/SsThresh, FastRetx, SRTT/RTO, Nagle, Keepalive, TIME_WAIT)</div>
+              <div>[OK] <b>UDP &amp; RAW PCB</b>: IUdpLayer (pseudo-csum, port unreachable), IRawLayer</div>
+              <div>[OK] <b>BSD Socket API</b>: ISocketApi (socket, bind, listen, accept, connect, send, recv, sendto, recvfrom, close, setsockopt)</div>
+              <div>[OK] <b>lwIP Apps</b>: IDnsClient (RFC 1035), IDhcpClient (DORA), IAutoIpClient (169.254.x.x), IHttpClient (HTTP/1.1)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL: INTER-LAYER COMMUNICATION TRACE LOG + PACKET DISSECTOR -->
+    <div style="padding: 0 6px 6px 6px;">
+      <div class="bottom-split">
+        <div class="w95-window" style="margin-bottom:0;">
+          <div class="w95-titlebar">
+            <div>&#x1F4E1; Inter-Layer Communication Log (Every Interface Boundary Crossing)</div>
+            <div>
+              <select class="w95-input" id="trace-filter-node" onchange="renderTraceTable()" style="font-size:10px;padding:0 2px;">
+                <option value="ALL">All Nodes</option>
+                <option value="client">Client Only</option>
+                <option value="gateway">Gateway Only</option>
+                <option value="server">WebServer Only</option>
+                <option value="wire">Virtual Wire</option>
+              </select>
+              <button class="w95-btn" style="padding:0 5px;font-size:10px;" onclick="clearTraces()">Clear</button>
+            </div>
+          </div>
+          <div class="w95-sunken trace-table-wrap" id="trace-table-wrap">
+            <table class="w95-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>ms</th>
+                  <th>Node</th>
+                  <th>From &rarr; To</th>
+                  <th>Proto</th>
+                  <th>Len</th>
+                  <th>Summary</th>
+                </tr>
+              </thead>
+              <tbody id="trace-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="w95-window" style="margin-bottom:0;">
+          <div class="w95-titlebar">
+            <div>&#x1F50D; Packet Dissector &amp; Encapsulation Inspector (Hex / Headers)</div>
+            <div id="dissector-meta" style="font-weight:normal; font-size:10px;">Select a hop row</div>
+          </div>
+          <div class="w95-sunken dissector-wrap" id="dissector-body">
+            Select any inter-layer hop in the trace table on the left to inspect its exact C# interface call, decoded protocol headers, and raw Pbuf Hex/ASCII dump at that layer boundary.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Win95 Status Bar -->
+    <div class="w95-statusbar">
+      <div class="status-panel" id="sb-clock">Virtual Clock: 0 ms</div>
+      <div class="status-panel" id="sb-pending">Pending Hops: 0</div>
+      <div class="status-panel" id="sb-client-ip">Client eth0: 192.168.1.100/24</div>
+      <div class="status-panel" id="sb-traces">Captured Hops: 0</div>
+      <div class="status-panel" style="margin-left:auto; font-family:'Courier New',monospace;">Visitors: 001995 | Pure C# .NET</div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

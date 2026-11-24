@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 680" width="1100" height="680" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#1d4ed8"/>
+    </marker>
+  </defs>
+
+  <rect width="1100" height="680" fill="#f8fafc"/>
+  <text x="550" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f172a">TcpIpStack Solution Architecture (Pure C# .NET 10, No WSL)</text>
+
+  <!-- Web UI Box -->
+  <rect x="40" y="55" width="1020" height="105" rx="8" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="60" y="80" font-size="15" font-weight="bold" fill="#1e3a8a">TcpIpStack.Web (ASP.NET Core Minimal API + Win95 Retro UI)</text>
+  <rect x="60" y="92" width="290" height="52" rx="5" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="205" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">wwwroot/ (index.html, win95.css, app.js)</text>
+  <text x="205" y="132" text-anchor="middle" font-size="11" fill="#475569">Stack View | Socket IDE | HTTP Tracer | MIB</text>
+
+  <rect x="375" y="92" width="320" height="52" rx="5" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="535" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">Program.cs (REST API Endpoints)</text>
+  <text x="535" y="132" text-anchor="middle" font-size="11" fill="#475569">/api/step, /api/run-idle, /api/clock, /api/http, /api/script</text>
+
+  <rect x="720" y="92" width="320" height="52" rx="5" fill="#ffffff" stroke="#60a5fa"/>
+  <text x="880" y="114" text-anchor="middle" font-size="12" font-weight="bold" fill="#1e40af">TcpIpStack.Tests (21 Integration Tests)</text>
+  <text x="880" y="132" text-anchor="middle" font-size="11" fill="#475569">Ping, Frag, HTTP, RTO Retx, DHCP, IPv6/NDP, IGMP</text>
+
+  <!-- Arrows down to Core -->
+  <line x1="535" y1="160" x2="535" y2="195" stroke="#1d4ed8" stroke-width="2" marker-end="url(#arrow-blue)"/>
+  <line x1="880" y1="160" x2="880" y2="195" stroke="#1d4ed8" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+  <!-- Core Engine Box -->
+  <rect x="40" y="198" width="1020" height="455" rx="8" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
+  <text x="60" y="222" font-size="15" font-weight="bold" fill="#0f172a">TcpIpStack.Core (Simulation Engine &amp; Interface-Isolated Protocol Stack)</text>
+
+  <!-- SimulationEngine + Scheduler + ScriptRunner -->
+  <rect x="60" y="236" width="320" height="115" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="220" y="258" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">SimulationEngine (IStepScheduler)</text>
+  <text x="220" y="278" text-anchor="middle" font-size="11" fill="#78350f">• Discrete-event PendingHop Queue</text>
+  <text x="220" y="295" text-anchor="middle" font-size="11" fill="#78350f">• TraceRecord History + PacketDissector</text>
+  <text x="220" y="312" text-anchor="middle" font-size="11" fill="#78350f">• StepOneHop() / AdvanceClockMs()</text>
+  <text x="220" y="329" text-anchor="middle" font-size="11" fill="#78350f">• Pbuf / LwipStats / Checksum</text>
+
+  <rect x="400" y="236" width="300" height="115" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5"/>
+  <text x="550" y="258" text-anchor="middle" font-size="13" font-weight="bold" fill="#92400e">SocketScriptRunner</text>
+  <text x="550" y="278" text-anchor="middle" font-size="11" fill="#78350f">• C#-like BSD Socket Interpreter</text>
+  <text x="550" y="295" text-anchor="middle" font-size="11" fill="#78350f">• Line-by-Line + Network Wait</text>
+  <text x="550" y="312" text-anchor="middle" font-size="11" fill="#78350f">• Calls ISocketApi, IDnsClient, IIcmpLayer</text>
+
+  <rect x="720" y="236" width="320" height="115" rx="6" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="880" y="258" text-anchor="middle" font-size="13" font-weight="bold" fill="#166534">Simulated OS &amp; Hardware</text>
+  <text x="880" y="278" text-anchor="middle" font-size="11" fill="#14532d">• SimulatedSysArch (ISysArch)</text>
+  <text x="880" y="295" text-anchor="middle" font-size="11" fill="#14532d">• SimulatedOsNic (IOsNetworkInterface)</text>
+  <text x="880" y="312" text-anchor="middle" font-size="11" fill="#14532d">• VirtualNetworkSwitch (L2 Wire)</text>
+  <text x="880" y="329" text-anchor="middle" font-size="11" fill="#14532d">• FaultInjectionConfig (Drop/Corrupt/Dup)</text>
+
+  <!-- 3 Nodes -->
+  <rect x="60" y="375" width="305" height="175" rx="6" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
+  <rect x="60" y="375" width="305" height="28" rx="6" fill="#1e3a8a"/>
+  <text x="212" y="394" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Node 1: Client (192.168.1.100)</text>
+  <text x="212" y="422" text-anchor="middle" font-size="11" fill="#1e293b">TcpIpStackNode (Full L7 → L1 Stack)</text>
+  <text x="212" y="442" text-anchor="middle" font-size="11" fill="#475569">HttpClientLayer, DnsClient, DhcpClient</text>
+  <text x="212" y="460" text-anchor="middle" font-size="11" fill="#475569">SocketApiLayer → Tcp/Udp/Raw</text>
+  <text x="212" y="478" text-anchor="middle" font-size="11" fill="#475569">Ip4/Icmp/Igmp/Ip6 → Arp/Ndp → Ethernet</text>
+  <text x="212" y="510" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f766e">SimulatedOsNic (02:00:00:00:01:00)</text>
+
+  <rect x="397" y="375" width="305" height="175" rx="6" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
+  <rect x="397" y="375" width="305" height="28" rx="6" fill="#0f766e"/>
+  <text x="550" y="394" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Node 2: Gateway (192.168.1.1)</text>
+  <text x="550" y="422" text-anchor="middle" font-size="11" fill="#1e293b">TcpIpStackNode (Full L7 → L1 Stack)</text>
+  <text x="550" y="442" text-anchor="middle" font-size="11" fill="#475569">GatewayServices: DNS(:53), DHCP(:67)</text>
+  <text x="550" y="460" text-anchor="middle" font-size="11" fill="#475569">TCP/UDP Echo(:7)</text>
+  <text x="550" y="478" text-anchor="middle" font-size="11" fill="#475569">Ip4Layer.EnableForwarding = true</text>
+  <text x="550" y="510" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f766e">SimulatedOsNic (02:00:00:00:00:01)</text>
+
+  <rect x="735" y="375" width="305" height="175" rx="6" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
+  <rect x="735" y="375" width="305" height="28" rx="6" fill="#6b21a8"/>
+  <text x="887" y="394" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff">Node 3: WebServer (93.184.216.34)</text>
+  <text x="887" y="422" text-anchor="middle" font-size="11" fill="#1e293b">TcpIpStackNode (Full L7 → L1 Stack)</text>
+  <text x="887" y="442" text-anchor="middle" font-size="11" fill="#475569">RemoteWebAndEchoServer</text>
+  <text x="887" y="460" text-anchor="middle" font-size="11" fill="#475569">HTTP/1.1(:80) + TCP/UDP Echo(:7)</text>
+  <text x="887" y="478" text-anchor="middle" font-size="11" fill="#475569">Routes via Gateway 192.168.1.1</text>
+  <text x="887" y="510" text-anchor="middle" font-size="11" font-weight="bold" fill="#0f766e">SimulatedOsNic (02:00:00:00:00:50)</text>
+
+  <!-- Virtual Wire -->
+  <rect x="60" y="585" width="980" height="44" rx="6" fill="#1e293b"/>
+  <text x="550" y="612" text-anchor="middle" font-size="13" font-weight="bold" fill="#4ade80">VirtualNetworkSwitch (Layer 0 Virtual Ethernet Wire — Connects all 3 SimulatedOsNic)</text>
+
+  <line x1="212" y1="550" x2="212" y2="585" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="550" y1="550" x2="550" y2="585" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <line x1="887" y1="550" x2="887" y2="585" stroke="#334155" stroke-width="2" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+</svg>
