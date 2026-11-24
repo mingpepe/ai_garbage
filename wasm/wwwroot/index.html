@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wasan-Kikan | WebAssembly &amp; Wasm3 Low-Level IDE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=Shippori+Mincho:wght@500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/wafu-ide.css" />
+</head>
+<body>
+  <div id="app" class="ide-shell">
+    <!-- Urushi Lacquer Top Bar -->
+    <header class="urushi-header">
+      <div class="brand-cluster">
+        <div class="kamon-crest" title="Wasan-Kikan Wasm3 Crest">
+          <span>W</span>
+        </div>
+        <div class="brand-titles">
+          <h1>Wasan-Kikan · WebAssembly &amp; Wasm3 IDE</h1>
+          <span class="subtitle">C# ASP.NET Core × Instrumented Wasm3 Threaded Interpreter × DWARF &amp; W3C ISA</span>
+        </div>
+      </div>
+
+      <div class="toolbar-cluster">
+        <label class="wafu-field">
+          <span>Preset</span>
+          <select id="presetSelect"></select>
+        </label>
+        <label class="wafu-field">
+          <span>Optimization</span>
+          <select id="optSelect">
+            <option value="O0" selected>-O0 -g (Full Step Debug)</option>
+            <option value="O1">-O1 -g (Reg Optimized)</option>
+            <option value="O2">-O2 -g (Full Optimized)</option>
+          </select>
+        </label>
+        <button id="btnCompile" class="btn-urushi btn-gold" title="Compile C to Wasm32 with Clang and load into Wasm3">
+          <span>Compile &amp; Load</span>
+          <small>Clang wasm32 + DWARF</small>
+        </button>
+        <button id="btnOpenSpec" class="btn-urushi btn-indigo" title="Browse W3C WebAssembly Core Specification &amp; ISA Reference">
+          <span>W3C Spec &amp; ISA</span>
+          <small>Instruction Reference</small>
+        </button>
+      </div>
+    </header>
+
+    <!-- Execution & Stepping Control Deck -->
+    <section class="control-deck">
+      <div class="status-cluster">
+        <span id="statusSeal" class="hanko-seal seal-idle">IDLE</span>
+        <div class="telemetry-pills">
+          <div class="tpill"><span>Steps</span><strong id="lblStepCount">0</strong></div>
+          <div class="tpill"><span>Func</span><strong id="lblFuncName">—</strong></div>
+          <div class="tpill"><span>C Line</span><strong id="lblCLine">—</strong></div>
+          <div class="tpill"><span>Wasm PC</span><strong id="lblWasmPc">0x0000</strong></div>
+          <div class="tpill"><span>Opcode</span><strong id="lblOpcode">—</strong></div>
+          <div class="tpill"><span>M3 _r0</span><strong id="lblM3R0">0</strong></div>
+        </div>
+      </div>
+
+      <div class="step-cluster">
+        <div class="step-group" title="C Source-Level Stepping (DWARF .debug_line)">
+          <span class="group-tag">C Source</span>
+          <button id="btnStepC" class="step-btn" title="Step Into next C source line">Step Into C</button>
+          <button id="btnStepOverC" class="step-btn" title="Step Over C function call">Step Over C</button>
+        </div>
+
+        <div class="step-group" title="Wasm Bytecode-Level Stepping (Wasm3 op_DebugStep)">
+          <span class="group-tag">Wasm ISA</span>
+          <button id="btnStepWasm" class="step-btn step-accent" title="Step single Wasm bytecode instruction">Step Wasm</button>
+          <button id="btnStepOverWasm" class="step-btn" title="Step over Wasm call instruction">Step Over Call</button>
+          <button id="btnStepOut" class="step-btn" title="Step out of current function">Step Out</button>
+        </div>
+
+        <div class="step-group">
+          <span class="group-tag">Run</span>
+          <button id="btnContinue" class="step-btn step-run" title="Continue execution until breakpoint or exit">Continue</button>
+          <button id="btnResetExec" class="step-btn step-warn" title="Reset Wasm3 execution to entry point">Reset</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kumiko Grid Workspace -->
+    <main class="kumiko-grid">
+      <!-- I. C Source Code & Breakpoints -->
+      <section class="washi-panel panel-c-source">
+        <div class="panel-head">
+          <h2><span class="kanji-num">I</span> C Source &amp; Breakpoints</h2>
+          <div class="head-meta">
+            <span class="badge-note">HAL: ReadRegister / WriteRegister / print_i32</span>
+            <button id="btnToggleEditMode" class="mini-btn">Edit Source</button>
+          </div>
+        </div>
+        <div class="panel-body c-pane-body">
+          <div id="cDebugView" class="c-debug-view"></div>
+          <textarea id="cEditor" class="c-editor hidden" spellcheck="false"></textarea>
+        </div>
+      </section>
+
+      <!-- II. Wasm Disassembly, Sections & Micro-Architecture -->
+      <section class="washi-panel panel-wasm-disasm">
+        <div class="panel-head">
+          <h2><span class="kanji-num">II</span> Wasm Bytecode &amp; ISA Anatomy</h2>
+          <div class="tab-strip" data-tabgroup="center">
+            <button class="tab-btn active" data-tab="tabDisasm">Disassembly (WAT + Hex)</button>
+            <button class="tab-btn" data-tab="tabAnatomy">Instruction Anatomy</button>
+            <button class="tab-btn" data-tab="tabSections">Binary Sections (TLV)</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="tabDisasm" class="tab-pane active">
+            <div class="disasm-header">
+              <span>BP</span><span>Offset</span><span>Hex Bytes</span><span>Wasm Instruction (WAT)</span><span>C Line</span>
+            </div>
+            <div id="wasmDisasmList" class="disasm-list"></div>
+          </div>
+
+          <div id="tabAnatomy" class="tab-pane">
+            <div id="instructionAnatomyBox" class="anatomy-box">
+              <p class="empty-hint">Compile and load a Wasm module, or click any instruction in the disassembly list to inspect its spec details.</p>
+            </div>
+          </div>
+
+          <div id="tabSections" class="tab-pane">
+            <div id="wasmSectionsBox" class="sections-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- III. C# Hardware Register Bank (0x00-0xFF) -->
+      <section class="washi-panel panel-registers">
+        <div class="panel-head">
+          <h2><span class="kanji-num">III</span> C# Host Registers (0x00–0xFF)</h2>
+          <div class="head-meta">
+            <span class="legend-read">Read</span>
+            <span class="legend-write">Write</span>
+            <button id="btnResetRegs" class="mini-btn">Reset Regs</button>
+          </div>
+        </div>
+        <div class="panel-body registers-body">
+          <div class="reg-editor-bar">
+            <span>Addr:</span>
+            <input id="regEditAddr" type="text" value="0x10" maxlength="4" />
+            <span>Val:</span>
+            <input id="regEditVal" type="text" value="0x2A" maxlength="4" />
+            <button id="btnWriteReg" class="mini-btn btn-vermilion">Write Byte</button>
+          </div>
+          <div class="tab-strip sub-tabs" data-tabgroup="regs">
+            <button class="tab-btn active" data-tab="tabRegWatch">MMIO Register Watch</button>
+            <button class="tab-btn" data-tab="tabRegMatrix">256-Byte Matrix</button>
+          </div>
+          <div id="tabRegWatch" class="tab-pane active">
+            <div id="regWatchTable" class="reg-watch-table"></div>
+          </div>
+          <div id="tabRegMatrix" class="tab-pane">
+            <div id="regMatrixGrid" class="reg-matrix-grid"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- IV. Variables, Operand Stack & Call Stack -->
+      <section class="washi-panel panel-vars-stack">
+        <div class="panel-head">
+          <h2><span class="kanji-num">IV</span> Variables &amp; Call Stack</h2>
+          <div class="tab-strip" data-tabgroup="vars">
+            <button class="tab-btn active" data-tab="tabCVars">C Vars &amp; Stack</button>
+            <button class="tab-btn" data-tab="tabWasmSlots">Locals / Globals</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="tabCVars" class="tab-pane active">
+            <div class="sub-section">
+              <h3>Call Stack</h3>
+              <div id="callStackList" class="kv-list"></div>
+            </div>
+            <div class="sub-section">
+              <h3>Wasm Operand Stack</h3>
+              <div id="operandStackList" class="kv-list"></div>
+            </div>
+            <div class="sub-section">
+              <h3>C Local Variables (DWARF)</h3>
+              <div id="cVarsList" class="kv-list"></div>
+            </div>
+          </div>
+          <div id="tabWasmSlots" class="tab-pane">
+            <div class="sub-section">
+              <h3>Wasm Function Locals</h3>
+              <div id="wasmLocalsList" class="kv-list"></div>
+            </div>
+            <div class="sub-section">
+              <h3>Wasm Module Globals</h3>
+              <div id="wasmGlobalsList" class="kv-list"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- V. Wasm3 Engine Internals & Linear Memory -->
+      <section class="washi-panel panel-wasm3-mem">
+        <div class="panel-head">
+          <h2><span class="kanji-num">V</span> Wasm3 Internals &amp; Linear Memory</h2>
+          <div class="tab-strip" data-tabgroup="m3">
+            <button class="tab-btn active" data-tab="tabM3State">Wasm3 Engine</button>
+            <button class="tab-btn" data-tab="tabM3CodePage">M3CodePage Stream</button>
+            <button class="tab-btn" data-tab="tabLinearMem">Linear Memory (Hex)</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="tabM3State" class="tab-pane active">
+            <div id="m3InternalsBox" class="m3-box"></div>
+          </div>
+          <div id="tabM3CodePage" class="tab-pane">
+            <div id="m3CodePageBox" class="m3-codepage-box"></div>
+          </div>
+          <div id="tabLinearMem" class="tab-pane">
+            <div class="mem-toolbar">
+              <span>Offset:</span>
+              <input id="memOffsetInput" type="text" value="0x0000" />
+              <button id="btnMemLoad" class="mini-btn">Read</button>
+              <button id="btnMemSP" class="mini-btn">Jump to __stack_pointer</button>
+              <button id="btnMemZero" class="mini-btn">0x0000</button>
+            </div>
+            <div id="linearMemDump" class="mem-dump"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VI. Console & Register Bus Log -->
+      <section class="washi-panel panel-console">
+        <div class="panel-head">
+          <h2><span class="kanji-num">VI</span> Console &amp; I/O Bus Log</h2>
+          <div class="tab-strip" data-tabgroup="console">
+            <button class="tab-btn active" data-tab="tabConsoleOut">Console Output</button>
+            <button class="tab-btn" data-tab="tabBusTrace">Register I/O Bus</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="tabConsoleOut" class="tab-pane active">
+            <div id="consoleLogBox" class="console-box"></div>
+          </div>
+          <div id="tabBusTrace" class="tab-pane">
+            <div id="busLogBox" class="bus-box"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- VII. W3C WebAssembly Specification & ISA Reference Modal -->
+  <div id="specModal" class="spec-modal hidden">
+    <div class="spec-dialog">
+      <div class="spec-header">
+        <div>
+          <h2>VII · W3C WebAssembly Core Specification &amp; ISA Reference</h2>
+          <p id="specFileStatus" class="spec-status">Checking offline specification files...</p>
+        </div>
+        <div class="spec-actions">
+          <a href="/spec/wasm-core-1.html" target="_blank" class="mini-btn btn-gold-outline">Open Full W3C Spec (wasm-core-1.html)</a>
+          <a href="/spec/exec-instructions.html" target="_blank" class="mini-btn">Open Execution Semantics</a>
+          <button id="btnRefreshSpec" class="mini-btn">Re-download Spec</button>
+          <button id="btnCloseSpec" class="mini-btn btn-vermilion">Close ✕</button>
+        </div>
+      </div>
+
+      <div class="spec-search-bar">
+        <input id="specSearchInput" type="text" placeholder="Search mnemonic (e.g. i32.add, store8, br_if), opcode (0x6A), or category..." />
+      </div>
+
+      <div class="spec-split">
+        <div id="specOpcodeList" class="spec-opcode-list"></div>
+        <div id="specDetailPane" class="spec-detail-pane">
+          <p class="empty-hint">Select a WebAssembly instruction on the left to inspect its binary encoding, stack effect, execution rule, and Wasm3 internals.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
