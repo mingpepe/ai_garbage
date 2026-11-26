@@ -9,6 +9,9 @@ const STATE_FILE = path.join(__dirname, 'current_state.json');
 const ADVICE_FILE = path.join(__dirname, 'ai_advice.json');
 const ADVICE_BASENAME = path.basename(ADVICE_FILE);
 const HELP_REQUEST_FILE = path.join(__dirname, 'help_request.json');
+const REVIEW_REQUEST_FILE = path.join(__dirname, 'review_request.json');
+const REVIEW_FILE = path.join(__dirname, 'ai_review.json');
+const REVIEW_BASENAME = path.basename(REVIEW_FILE);
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -43,8 +46,19 @@ function removeHelpRequestFile() {
   }
 }
 
+function removeReviewFiles() {
+  for (const f of [REVIEW_REQUEST_FILE, REVIEW_FILE]) {
+    try {
+      if (fs.existsSync(f)) fs.unlinkSync(f);
+    } catch (err) {
+      console.warn('Failed to remove review file:', err.message);
+    }
+  }
+}
+
 removeAdviceFile();
 removeHelpRequestFile();
+removeReviewFiles();
 
 // Connected SSE clients
 const sseClients = new Set();
@@ -62,23 +76,39 @@ function broadcastAdvice(payload) {
   }
 }
 
-// Watch ai_advice.json (fast write_file path): broadcast via SSE and delete immediately
+// Watch ai_advice.json and ai_review.json (fast write_file path): broadcast via SSE and delete immediately
 let adviceWatchDebounce = null;
+let reviewWatchDebounce = null;
 fs.watch(__dirname, (eventType, filename) => {
-  if (filename !== ADVICE_BASENAME) return;
-  if (adviceWatchDebounce) clearTimeout(adviceWatchDebounce);
-  adviceWatchDebounce = setTimeout(() => {
-    if (!fs.existsSync(ADVICE_FILE)) return;
-    try {
-      const raw = fs.readFileSync(ADVICE_FILE, 'utf-8').trim();
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      removeAdviceFile();
-      broadcastAdvice(parsed);
-    } catch {
-      // Ignore transient partial-write JSON parse errors
-    }
-  }, 40);
+  if (filename === ADVICE_BASENAME) {
+    if (adviceWatchDebounce) clearTimeout(adviceWatchDebounce);
+    adviceWatchDebounce = setTimeout(() => {
+      if (!fs.existsSync(ADVICE_FILE)) return;
+      try {
+        const raw = fs.readFileSync(ADVICE_FILE, 'utf-8').trim();
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        removeAdviceFile();
+        broadcastAdvice(parsed);
+      } catch {
+        // Ignore transient partial-write JSON parse errors
+      }
+    }, 40);
+  } else if (filename === REVIEW_BASENAME) {
+    if (reviewWatchDebounce) clearTimeout(reviewWatchDebounce);
+    reviewWatchDebounce = setTimeout(() => {
+      if (!fs.existsSync(REVIEW_FILE)) return;
+      try {
+        const raw = fs.readFileSync(REVIEW_FILE, 'utf-8').trim();
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        try { fs.unlinkSync(REVIEW_FILE); } catch {}
+        broadcastAdvice({ type: 'game-review', ...parsed });
+      } catch {
+        // Ignore transient partial-write JSON parse errors
+      }
+    }, 40);
+  }
 });
 
 const server = http.createServer((req, res) => {
@@ -107,9 +137,36 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && urlPath === '/api/reset') {
     removeAdviceFile();
     removeHelpRequestFile();
+    removeReviewFiles();
     broadcastAdvice({ cleared: true });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
+  // Receive post-game AI review request from UI and write review_request.json
+  if (req.method === 'POST' && urlPath === '/api/review') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 5 * 1024 * 1024) req.destroy();
+    });
+    req.on('end', () => {
+      try {
+        const parsed = body ? JSON.parse(body) : {};
+        const payload = {
+          requestId: Date.now().toString(36),
+          requestedAt: new Date().toISOString(),
+          ...parsed
+        };
+        fs.writeFileSync(REVIEW_REQUEST_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, requestId: payload.requestId }));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: err.message }));
+      }
+    });
     return;
   }
 

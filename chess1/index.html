@@ -9,7 +9,7 @@
 </head>
 <body>
   <!-- Header -->
-  <header class="app-header" id="app-header">
+  <header class="app-header collapsed" id="app-header">
     <div class="brand">
       <div class="brand-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -57,7 +57,7 @@
       </button>
     </div>
   </header>
-  <button id="btn-toggle-header" class="header-collapse-btn" title="收合/展開頂部選單">▲ 收合選單</button>
+  <button id="btn-toggle-header" class="header-collapse-btn" title="收合/展開頂部選單">▼ 展開選單</button>
 
   <!-- Main Content -->
   <main class="app-main">
@@ -110,6 +110,21 @@
           <span id="cli-advice-move" class="badge-cat" style="background: rgba(168, 85, 247, 0.25); color: #d8b4fe; font-size: 0.95rem;">Bg3</span>
         </h2>
         <div id="cli-advice-body" style="font-size: 0.95rem; line-height: 1.6; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.5rem;"></div>
+      </div>
+
+      <!-- Panel 0.5: Post-Game AI Review Card (Shown when full-game review is requested/received) -->
+      <div class="card" id="ai-review-card" style="display: none; border-left: 5px solid #10b981; background: linear-gradient(135deg, rgba(6, 78, 59, 0.25) 0%, rgba(15, 23, 42, 0.95) 100%);">
+        <h2 class="card-title" style="margin-bottom: 0.6rem;">
+          <span>📋 AI 整局複盤診斷</span>
+          <span id="ai-review-badge" class="badge-cat" style="background: rgba(16, 185, 129, 0.22); color: #6ee7b7; font-size: 0.85rem;">等待分析</span>
+        </h2>
+        <div id="ai-review-summary" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 0.6rem; display: none;"></div>
+        <div id="ai-review-step-nav" style="display: none; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.65rem;">
+          <button class="action-btn" id="btn-review-prev" style="padding: 0.3rem 0.65rem; font-size: 0.85rem;">◀ 上一步</button>
+          <span id="ai-review-step-label" style="font-size: 0.88rem; font-weight: 600; color: var(--text-primary);">第 1 步</span>
+          <button class="action-btn" id="btn-review-next" style="padding: 0.3rem 0.65rem; font-size: 0.85rem;">下一步 ▶</button>
+        </div>
+        <div id="ai-review-body" style="font-size: 0.92rem; line-height: 1.55; color: var(--text-primary); display: flex; flex-direction: column; gap: 0.45rem;"></div>
       </div>
 
       <!-- Players Info Stack (Moved from Board Column to maximize board size) -->
@@ -468,8 +483,9 @@
       <p id="gameover-desc" style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
         白方將死黑方獲勝！
       </p>
-      <div style="display: flex; gap: 0.75rem; justify-content: center;">
+      <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
         <button class="action-btn" id="btn-gameover-review">檢視棋局</button>
+        <button class="action-btn" id="btn-gameover-review-ai" style="background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #6ee7b7;">🤖 AI 複盤診斷</button>
         <button class="action-btn primary" id="btn-gameover-rematch">再來一局 🔄</button>
       </div>
     </div>

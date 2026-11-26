@@ -73,6 +73,10 @@ class ChessApp {
     this.initTutorialSelect();
     this.initMrOngMode();
     this.initZoomControls();
+
+    if (window.location.search.includes('debug=1')) {
+      setTimeout(() => this.debugFinishGame(), 300);
+    }
     this.setAiDifficulty(this.aiDifficulty);
     this.resetGame();
   }
@@ -336,6 +340,31 @@ class ChessApp {
     document.getElementById('btn-gameover-review').addEventListener('click', () => {
       document.getElementById('gameover-modal').classList.remove('open');
     });
+    const reviewAiBtn = document.getElementById('btn-gameover-review-ai');
+    if (reviewAiBtn) {
+      reviewAiBtn.addEventListener('click', () => {
+        document.getElementById('gameover-modal').classList.remove('open');
+        this.requestFullGameReview();
+      });
+    }
+    const reviewPrevBtn = document.getElementById('btn-review-prev');
+    if (reviewPrevBtn) {
+      reviewPrevBtn.addEventListener('click', () => {
+        if (this.historyIndex > 0) {
+          this.historyIndex -= 1;
+          this.applyHistoryPosition();
+        }
+      });
+    }
+    const reviewNextBtn = document.getElementById('btn-review-next');
+    if (reviewNextBtn) {
+      reviewNextBtn.addEventListener('click', () => {
+        if (this.historyIndex < this.historyStack.length - 1) {
+          this.historyIndex += 1;
+          this.applyHistoryPosition();
+        }
+      });
+    }
 
     // Keyboard shortcuts for tutorial navigation and undo
     window.addEventListener('keydown', (e) => {
@@ -450,6 +479,8 @@ class ChessApp {
     this.boardUI.setTutorialHint(null, null);
     this.cliAdvice = null;
     this.renderCliAdviceCard(null);
+    this.gameReview = null;
+    this.renderGameReviewStep();
     fetch('/api/reset', { method: 'POST' }).catch(() => {});
 
     this.updateGameState();
@@ -912,6 +943,7 @@ class ChessApp {
     // 9. Sync live game state to local bridge server (for CLI AI coaching)
     this.cliAdvice = null;
     this.renderCliAdviceCard(null);
+    this.renderGameReviewStep();
     this.syncStateToServer();
   }
 
@@ -943,6 +975,122 @@ class ChessApp {
 
     bodyEl.innerHTML = parts.length > 0 ? parts.join('') : `<div>推薦走法：${coord}</div>`;
     card.style.display = 'block';
+  }
+
+  debugFinishGame() {
+    this.resetGame();
+    const moves = ['e4', 'e5', 'Qh5', 'Nc6', 'Bc4', 'Nf6', 'Qxf7#'];
+    for (const san of moves) {
+      const m = this.game.move(san);
+      if (m) {
+        this.historyStack.push({ move: m, fen: this.game.fen() });
+        this.historyIndex = this.historyStack.length - 1;
+      }
+    }
+    this.updateGameState();
+  }
+
+  requestFullGameReview() {
+    if (!this.game || this.historyStack.length === 0) return;
+    console.log('[Review] Requesting full game review, moves:', this.historyStack.length);
+    const card = document.getElementById('ai-review-card');
+    const badge = document.getElementById('ai-review-badge');
+    const summaryEl = document.getElementById('ai-review-summary');
+    const navEl = document.getElementById('ai-review-step-nav');
+    const bodyEl = document.getElementById('ai-review-body');
+    if (card && badge && bodyEl) {
+      badge.textContent = '⏳ 等待 AI 複盤...';
+      if (summaryEl) summaryEl.style.display = 'none';
+      if (navEl) navEl.style.display = 'none';
+      bodyEl.innerHTML = '<div>已將整局棋譜傳送給 AI，正在逐手診斷中...</div>';
+      card.style.display = 'block';
+    }
+
+    const moves = this.historyStack.map((s, idx) => ({
+      index: idx,
+      moveNumber: Math.floor(idx / 2) + 1,
+      color: s.move.color,
+      san: s.move.san,
+      from: s.move.from,
+      to: s.move.to,
+      fenAfter: s.fen
+    }));
+
+    fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: this.mode,
+        playerColor: this.playerColor,
+        pgn: this.game.pgn(),
+        moves
+      })
+    }).catch(() => {});
+  }
+
+  renderGameReviewStep() {
+    const card = document.getElementById('ai-review-card');
+    const badge = document.getElementById('ai-review-badge');
+    const summaryEl = document.getElementById('ai-review-summary');
+    const navEl = document.getElementById('ai-review-step-nav');
+    const stepLabel = document.getElementById('ai-review-step-label');
+    const bodyEl = document.getElementById('ai-review-body');
+    const prevBtn = document.getElementById('btn-review-prev');
+    const nextBtn = document.getElementById('btn-review-next');
+    if (!card || !badge || !bodyEl) return;
+
+    if (!this.gameReview || !Array.isArray(this.gameReview.moves)) {
+      console.log('[Review] renderGameReviewStep skipped: no gameReview');
+      if (badge.textContent !== '⏳ 等待 AI 複盤...') {
+        card.style.display = 'none';
+      }
+      return;
+    }
+    console.log('[Review] Rendering step index:', this.historyIndex, 'total:', this.gameReview.moves.length);
+
+    card.style.display = 'block';
+    if (summaryEl && this.gameReview.summary) {
+      summaryEl.textContent = this.gameReview.summary;
+      summaryEl.style.display = 'block';
+    }
+    if (navEl) navEl.style.display = 'flex';
+    if (prevBtn) prevBtn.disabled = this.historyIndex <= 0;
+    if (nextBtn) nextBtn.disabled = this.historyIndex >= this.historyStack.length - 1;
+
+    const idx = this.historyIndex;
+    const stepReview = this.gameReview.moves.find(m => m.index === idx);
+    const moveNum = idx >= 0 ? Math.floor(idx / 2) + 1 : 0;
+    const sideLabel = idx >= 0 ? (idx % 2 === 0 ? '白' : '黑') : '';
+    if (stepLabel) {
+      stepLabel.textContent = idx >= 0 ? `第 ${moveNum} 回合 (${sideLabel}) · ${idx + 1}/${this.historyStack.length}` : '初始盤面';
+    }
+
+    if (!stepReview) {
+      badge.textContent = '無資料';
+      bodyEl.innerHTML = '<div>此步無診斷資料，請使用上/下一步或點擊右側棋譜切換。</div>';
+      return;
+    }
+
+    badge.textContent = `${stepReview.san || ''} · ${stepReview.quality || '已分析'}`;
+    const parts = [];
+    if (stepReview.comment) {
+      parts.push(`<div><strong>📝 診斷：</strong>${stepReview.comment}</div>`);
+    }
+    if (stepReview.betterMove && stepReview.betterMove.from && stepReview.betterMove.to) {
+      const bm = stepReview.betterMove;
+      const coord = `${bm.from.toUpperCase()} → ${bm.to.toUpperCase()}`;
+      parts.push(`<div style="background: rgba(16,185,129,0.14); border-left: 3px solid #10b981; padding: 0.45rem 0.65rem; border-radius: 4px;"><strong>💡 更好走法：${bm.san || ''} (${coord})</strong>${bm.reason ? `<br>${bm.reason}` : ''}</div>`);
+      if (this.boardUI) {
+        this.boardUI.setCustomArrows([{
+          from: bm.from,
+          to: bm.to,
+          color: '#10b981',
+          width: 7,
+          stepText: '★'
+        }]);
+      }
+    }
+    bodyEl.innerHTML = parts.join('');
   }
 
   setAskAiButtonState(state) {
@@ -991,6 +1139,7 @@ class ChessApp {
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          console.log('[SSE <-]', data.type || data.status || (data.cleared ? 'cleared' : 'advice'));
           if (data.status === 'analyzing') {
             this.setAskAiButtonState('analyzing');
             return;
@@ -998,11 +1147,23 @@ class ChessApp {
           if (data.cleared) {
             this.cliAdvice = null;
             this.renderCliAdviceCard(null);
+            this.gameReview = null;
+            this.renderGameReviewStep();
             this.setAskAiButtonState('idle');
             if (this.mode !== 'coach' && !this.enableCoachHints && this.boardUI) {
               this.boardUI.clearCustomArrows();
               this.boardUI.clearCustomHighlights();
             }
+            return;
+          }
+          if (data.type === 'game-review' && Array.isArray(data.moves)) {
+            this.gameReview = data;
+            console.log('[SSE] gameReview set, moves:', data.moves.length);
+            if (this.historyStack.length > 0) {
+              this.historyIndex = 0;
+              this.applyHistoryPosition();
+            }
+            this.renderGameReviewStep();
             return;
           }
           if (data.from && data.to && this.boardUI) {
@@ -1021,7 +1182,9 @@ class ChessApp {
               { square: data.to, type: 'best' }
             ]);
           }
-        } catch {}
+        } catch (err) {
+          console.error('[SSE] Error handling advice stream message:', err);
+        }
       };
     } catch {}
   }
