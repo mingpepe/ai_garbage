@@ -350,18 +350,28 @@ class ChessApp {
     const reviewPrevBtn = document.getElementById('btn-review-prev');
     if (reviewPrevBtn) {
       reviewPrevBtn.addEventListener('click', () => {
-        if (this.historyIndex > 0) {
-          this.historyIndex -= 1;
-          this.applyHistoryPosition();
+        if (this.historyIndex > 0 && !this._reviewStepping) {
+          this._reviewStepping = true;
+          reviewPrevBtn.disabled = true;
+          setTimeout(() => {
+            this.historyIndex -= 1;
+            this.applyHistoryPosition();
+            this._reviewStepping = false;
+          }, 250);
         }
       });
     }
     const reviewNextBtn = document.getElementById('btn-review-next');
     if (reviewNextBtn) {
       reviewNextBtn.addEventListener('click', () => {
-        if (this.historyIndex < this.historyStack.length - 1) {
-          this.historyIndex += 1;
-          this.applyHistoryPosition();
+        if (this.historyIndex < this.historyStack.length - 1 && !this._reviewStepping) {
+          this._reviewStepping = true;
+          reviewNextBtn.disabled = true;
+          setTimeout(() => {
+            this.historyIndex += 1;
+            this.applyHistoryPosition();
+            this._reviewStepping = false;
+          }, 250);
         }
       });
     }
